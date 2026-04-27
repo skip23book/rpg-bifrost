@@ -41,7 +41,7 @@ var SFX = {
 };
 
 // 🔗 URL Apps Script
-var SHEET_URL = "https://script.google.com/macros/s/AKfycbwq4bwjl6aH1B9csf7ETB_LLL-x8I9kjxtNOR9B4AjBIHRn4cGBN8tB2sfsyeSy9ueM2g/exec"; 
+var SHEET_URL = "https://script.google.com/macros/library/d/1YVuZo53PJc9M6_F94MHFddnaHsyX5n3cEP81kdA4Fv7Tw8sLOzkAR-9G/27"; 
 
 function sendToLine(msgType, msgContent) {
   if(!SHEET_URL || SHEET_URL.length < 10) return;
