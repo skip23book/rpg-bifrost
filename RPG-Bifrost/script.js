@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════════
 //  STATE (ตัวแปรระบบหลัก)
 // ══════════════════════════════════════════════════
-var APP_VERSION = "0.1.3 Beta";
+var APP_VERSION = "0.1.9 Beta";
 var AV = ['🧙','⚔️','🏹','🧜','🔥','⚡','🌊','🍃','❄️','💫','🦅','🐉','🌸','🗡️','🛡️','👑','🌙','☀️','🎭','✨','🦇','🐺','🧚','🧞','🧟','🤖','👽','👻','☠️','🤡','🦁','🐍','🐢','🐦','🦄','🐝','🦊','🐙','🕷️','🦂','💎','🔮','🪓','🔱','👁️','🪐','☄️','🌪️','🌌','♾️'];
 var AN = ['นักเวทย์','นักรบ','นักธนู','ไฮโดร','ไพโร','อิเล็กโตร','อควา','อะเนโม','ครายโอ','แอสโตร','ฮอว์ค','มังกร','ซากุระ','คาตา','พาลาดิน','ราชัน','ลูน่า','โซลาร์','มายา','ดาวเด่น','แวมไพร์','ไลแคน','แฟรี่','จินนี่','ซอมบี้','ไซบอร์ก','เอเลี่ยน','สเปกเตอร์','เนโครมันเซอร์','โจ๊กเกอร์','ราชสีห์','ไวเปอร์','เก็นบุ','ฟีนิกซ์','ยูนิคอร์น','คิลเลอร์บี','คิทซึเนะ','คราเคน','อารัคเน่','สคอร์เปียน','โกเลม','ออราเคิล','เบอร์เซิร์กเกอร์','โพไซดอน','ผู้หยั่งรู้','คอสมิก','เมเทโอ','พายุหมุน','เนบิวลา','อัลฟ่า'];
 var CHAR_NAMES=['นักดาบฝึกหัด','นักรบฝึกหัด','สำนักดาบ','ทหารยาม','อัศวินสามัญ','ผู้พิทักษ์','นักรบแนวหน้า','อัศวินศักดิ์สิทธิ์','พาลาดินศักดิ์สิทธิ์','เทมพลาร์หลวง','อัศวินองครักษ์','อัศวินเพลิง','จทัพศักดิ์สิทธิ์','นักดาบเงา','อัศวินรัตติกาล','จ้าวแห่งเพลิง','ผู้พิทักษ์เหมันต์','จ้าวแห่งพายุ','ผู้พิทักษ์สวรรค์','ตำนานนิรันดร์'];
@@ -113,19 +113,22 @@ function processAutoNextDay() {
   while (lastDate.toLocaleDateString('en-CA') < todayStr) {
     var dateLabel = lastDate.toLocaleDateString('th-TH', {year:'numeric',month:'long',day:'numeric'});
     if(S.gmBuffs) S.gmBuffs.secretQuest = '';
-    if (S.streak[S.currentDayIndex] !== 'gold' && S.streak[S.currentDayIndex] !== 'red') { S.streak[S.currentDayIndex] = 'red'; }
+   
 
     if(!SHEET_URL || SHEET_URL.length < 10) return;
     var payload = Object.assign({}, S, { syncDate: dateLabel });
     fetch(SHEET_URL, { method: 'POST', mode: 'no-cors', cache: 'no-cache', body: JSON.stringify(payload) });
 
-    S.currentDayIndex++;
-    if (S.currentDayIndex > 6) { S.currentDayIndex = 0; S.streak = ['grey','grey','grey','grey','grey','grey','grey']; S.phWeekBought = 0; S.foodWeekBought = 0; }
+    // รีเซ็ตโควตาซื้อของในร้านค้าทุกๆ วันจันทร์ (ไม่ต้องยุ่งกับก้าวเดินแล้ว)
+if (new Date().getDay() === 1) { S.phWeekBought = 0; S.foodWeekBought = 0; }
     
     S.submitted = false; S.gmSubmitted = false; S.isResubmit = false;
     S.quests = [false, false, false];
     S.todayCoins = 0; S.todayGmCoins = 0; S.todayGacha = []; S.todayItemsUsed = [];
+    S.achievement = '';       // 🌟 ล้างประวัติ GM Gift ของเมื่อวาน
+    S.specialCoin = 0;        // 🌟 ล้างจำนวนเหรียญพิเศษของเมื่อวาน
     S.laps = ''; S.swimFr = ''; S.swimBt = ''; S.swimFg = ''; S.swimBk = ''; S.score = ''; S.gpa = ''; S.illness = 'ไม่มี';
+    S.achievement = ''; S.specialCoin = 0;
 
     lastDate.setDate(lastDate.getDate() + 1);
     var oldMonth = new Date(lastDate.getTime() - 86400000).getMonth();
@@ -216,42 +219,44 @@ function gasCall(fn, args, ok, fail) {
       saveLocal(); res = S; 
     }
     else if (fn === 'submitGm') { 
-      // 1. ปรับปรุงเหรียญ (ไม่ให้ติดลบต่ำกว่า 0)
-      var coinsAdj = args.coinsAdj || 0;
-      S.coins = Math.max(0, S.coins + coinsAdj);
-      S.todayGmCoins = coinsAdj; 
-      
-      // 2. ปรับปรุงเลเวล (1-100)
-      var lvAdj = args.lvAdj || 0;
-      S.lv = Math.max(1, Math.min(100, S.lv + lvAdj));
+      var coinsAdj = args.coinsAdj || 0; S.coins = Math.max(0, S.coins + coinsAdj); S.todayGmCoins = coinsAdj; 
+      var lvAdj = args.lvAdj || 0; S.lv = Math.max(1, Math.min(100, S.lv + lvAdj));
       
       if(!S.gmBuffs) S.gmBuffs = { jackpot: false, prophecy: '', buddy: false };
       if (args.jackpot) S.gmBuffs.jackpot = true;
-      if (args.prophecy) { 
-    S.gmBuffs.prophecy = args.prophecy; 
-    S.prophecySeen = false; // สั่งให้ Popup เด้ง
-    }
+      if (args.prophecy) { S.gmBuffs.prophecy = args.prophecy; S.prophecySeen = false; }
       if (args.secretQuest !== undefined) { S.gmBuffs.secretQuest = args.secretQuest; }
       
       var extra = [];
       if (args.addPhoenix) { S.phoenix++; extra.push('💧 น้ำตาฟีนิกซ์'); }
       if (args.addKey) { S.keys++; extra.push('🗝️ กุญแจทอง'); }
-      if (args.addExp) { 
-        S.exp += 50; 
-        if(S.exp >= S.expMax) { S.lv = Math.min(100, S.lv + 1); S.exp -= S.expMax; } 
-        extra.push('⭐ 50 EXP'); 
-      }
-      
-      // อัปเดตรูปตัวละครให้ตรงกับเลเวลใหม่
+      if (args.addExp) { S.exp += 50; if(S.exp >= S.expMax) { S.lv = Math.min(100, S.lv + 1); S.exp -= S.expMax; } extra.push('⭐ 50 EXP'); }
       setChar(chForLevel(S.lv));
       
+      // 🌟 [ส่วนปรับปรุง God Mode] 🌟
+      // 1. แก้ไขสถิติว่ายน้ำ
+      if (args.swimType !== '') {
+          var st = args.swimType;
+          if (args.swimMonth !== undefined && args.swimMonth !== '') { var mVal = parseFloat(args.swimMonth); S.monthBest[st] = mVal <= 0 ? null : mVal; }
+          if (args.swimAll !== undefined && args.swimAll !== '') { var aVal = parseFloat(args.swimAll); S.allBest[st] = aVal <= 0 ? null : aVal; }
+      }
+      
+      // 2. แก้มือลั่น ฐานบอส (ตรวจเช็กเผื่อไม่มี Object)
+      if(!S.bossTargets) S.bossTargets = { speed: 25, heightBase: 129, weightBase: 24 };
+      if (args.baseW !== undefined && args.baseW !== '') { S.bossTargets.weightBase = parseInt(args.baseW); }
+      if (args.baseH !== undefined && args.baseH !== '') { S.bossTargets.heightBase = parseInt(args.baseH); }
+      if (args.bossShark !== undefined && args.bossShark !== '') { S.bossTargets.speed = parseInt(args.bossShark); }
+
+      // 3. ยึดตรา HOF
+      if(!S.hof) S.hof = { shark: false, book: false, heart: false };
+      if (args.revShark) S.hof.shark = false;
+      if (args.revBook) S.hof.book = false;
+      if (args.revHeart) S.hof.heart = false;
+
       var logMsg = args.achievement;
       if(extra.length > 0) logMsg += (logMsg ? ' ' : '') + '(แถม: ' + extra.join(', ') + ')';
       
-      S.achievement = logMsg; 
-      S.specialCoin = coinsAdj; 
-      S.gmSubmitted = true; 
-      S.gmPopupSeen = false;
+      S.achievement = logMsg; S.specialCoin = coinsAdj; S.gmSubmitted = true; S.gmPopupSeen = false;
       saveLocal(); 
       res = S;
     }
@@ -281,10 +286,49 @@ function goP(p){
 
 }
 
-function buildStreak(){ var days=['จ','อ','พ','พฤ','ศ','ส','อา'], ico={gold:'🗡️', red:'💀', grey:'○', now:'⏳'}, html=''; S.streak.forEach(function(s, i){ var status = s; if (i === S.currentDayIndex && s === 'grey') status = 'now'; html+='<div class="sd"><div class="sdl">'+days[i]+'</div><div class="fl '+status+'" data-si="'+i+'">'+ico[status]+'</div></div>'; }); var sg = document.getElementById('sg'); if(sg) sg.innerHTML=html; document.querySelectorAll('.fl').forEach(function(el){ el.addEventListener('click',function(){onFl(parseInt(el.getAttribute('data-si')));}); }); }
-function onFl(i){ if(S.streak[i]!=='red')return; if(S.phoenix<=0){showToast('❌ น้ำตาฟีนิกซ์หมดแล้ว!');return;} var days=['จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์','อาทิตย์']; cfmShow('💧','ใช้น้ำตาฟีนิกซ์?','ต้องการใช้น้ำตาฟีนิกซ์ 1 หยด\nเพื่อชุบชีวิต Streak วัน'+days[i]+'?',function(){ gasCall('usePhoenixItem',i,function(r){ applyData(r); S.streak[i]='gold'; buildStreak(); showToast('💧 Streak ฟื้นคืนแล้ว! 🔥'); 
-  sendToLine("ITEM", "💧 แจ้งเตือน! ไบฟรอสใช้น้ำตาฟีนิกซ์ชุบชีวิต Streak วัน" + days[i]);
-}); }); }
+function buildStreak() {
+  const container = document.getElementById('st-slots');
+  if(!container) return;
+  container.innerHTML = '';
+  
+  // สร้างช่องทางเดิน 7 ก้าว
+  for (let i = 0; i < 7; i++) {
+    const slot = document.createElement('div');
+    const isDone = i < S.currentDayIndex; // ก้าวที่ผ่านมาแล้ว
+    const isCurrent = i === S.currentDayIndex; // ก้าวปัจจุบันที่รอส่ง
+    const isBoss = i === 6; // ก้าวที่ 7 (หีบสมบัติ)
+    
+    // ตกแต่งหน้าตาช่องก้าวเดิน
+    slot.style.width = '35px';
+    slot.style.height = '35px';
+    slot.style.borderRadius = '50%';
+    slot.style.display = 'flex';
+    slot.style.alignItems = 'center';
+    slot.style.justifyContent = 'center';
+    slot.style.fontSize = '18px';
+    slot.style.transition = '0.3s';
+    
+    if (isDone) {
+      slot.innerHTML = '✔️';
+      slot.style.background = 'var(--gold)';
+      slot.style.boxShadow = '0 0 10px var(--gold)';
+    } else if (isBoss) {
+      slot.innerHTML = '🎁';
+      slot.style.background = '#333';
+      slot.style.border = '2px dashed var(--gold)';
+    } else if (isCurrent) {
+      slot.innerHTML = '⚔️';
+      slot.style.background = '#fff';
+      slot.style.transform = 'scale(1.2)';
+    } else {
+      slot.innerHTML = '•';
+      slot.style.background = '#222';
+      slot.style.color = '#555';
+      slot.style.border = '1px solid #444';
+    }
+    container.appendChild(slot);
+  }
+}
 
 function tQ(n) {
   var i = n - 1;
@@ -342,6 +386,44 @@ function doSubmit(){
   gasCall('submitQuest',questData,function(r){ 
     var prevLv=S.lv; applyData(r); 
     var sokC = document.getElementById('sok-coins'); if(sokC) sokC.textContent='+'+(r.totalCoinsEarned||0)+' B-Coin'; 
+    // 🗺️ ระบบสะสมก้าวเดินและแจกรางวัล (7 ก้าว)
+if (!S.isResubmit) { 
+    S.currentDayIndex = (S.currentDayIndex || 0) + 1; 
+    
+    buildStreak(); // 🌟 สั่งให้วาดกราฟิกก้าวเดินใหม่ทันที!
+    saveLocal();   // 🌟 สั่งเซฟข้อมูลลงเครื่อง
+    
+    if (S.currentDayIndex >= 7) {
+        S.currentDayIndex = 0;      // รีเซ็ตกลับไปก้าวที่ 0
+        setTimeout(() => {
+            showToast("🎊 ยินดีด้วย! ผจญภัยครบ 7 ครั้ง รับกุญแจทอง 2 ดอก!");
+            renderAll(); 
+            buildStreak(); // 🌟 รีเซ็ตภาพกราฟิกกลับมาจุดเริ่มต้น
+            saveLocal();
+        }, 1500);
+    }
+    // 💾 ระบบจดจำสถิติล่าสุด (Latest Record) [V.2 ดักจับทุกชื่อตัวแปร]
+        if (!S.lastStats) S.lastStats = {};
+        if (!S.compareStats) S.compareStats = {};
+        
+        // กวาดหาชื่อตัวแปรทุกรูปแบบที่มีโอกาสเป็นไปได้
+        const trackKeys = ['w', 'h', 'laps', 'lp', 'swimFr', 'fr', 'swimBt', 'bt', 'swimFg', 'fg', 'swimBk', 'bk', 'gpa', 'score', 'sc'];
+        
+        trackKeys.forEach(key => {
+            let val = questData[key];
+            if (val !== undefined && val !== '' && val !== null && val != 0) {
+                S.compareStats[key] = S.lastStats[key] || val; 
+                S.lastStats[key] = val; 
+            }
+        });
+}
+
+    // 🌟 ส่งข้อมูลขึ้น Sheet ประวัติแบบเรียลไทม์ทันทีที่กดส่งภารกิจ
+      if (navigator.onLine && SHEET_URL && SHEET_URL.length > 10) {
+         var dateLabel = new Date().toLocaleDateString('th-TH', {year:'numeric',month:'long',day:'numeric'});
+         var payload = Object.assign({}, S, { syncDate: dateLabel });
+         fetch(SHEET_URL, { method: 'POST', mode: 'no-cors', cache: 'no-cache', body: JSON.stringify(payload) });
+      }
     // บันทึกสถิติวันนี้สำหรับ Ghost Data
       S.todayStats = questData;
       updateLog();
@@ -410,15 +492,31 @@ function doGmSubmit(){
     secretQuest: document.getElementById('gm-secret-quest')?.value || '',
     addPhoenix: document.querySelector('#gm-add-ph')?.parentElement.classList.contains('active') || false,
     addKey: document.querySelector('#gm-add-key')?.parentElement.classList.contains('active') || false,
-    addExp: document.querySelector('#gm-add-exp')?.parentElement.classList.contains('active') || false
+    addExp: document.querySelector('#gm-add-exp')?.parentElement.classList.contains('active') || false,
+
+    // 🌟 ส่งข้อมูลแก้ไขใหม่ไปให้ระบบ
+    swimType: document.getElementById('gm-swim-type')?.value || '',
+    swimMonth: document.getElementById('gm-swim-m')?.value,
+    swimAll: document.getElementById('gm-swim-a')?.value,
+    baseW: document.getElementById('gm-base-w')?.value,
+    baseH: document.getElementById('gm-base-h')?.value,
+    bossShark: document.getElementById('gm-boss-shark')?.value,
+    revShark: document.getElementById('gm-revoke-shark')?.checked || false,
+    revBook: document.getElementById('gm-revoke-book')?.checked || false,
+    revHeart: document.getElementById('gm-revoke-heart')?.checked || false
   };
 
   gasCall('submitGm', gmData, function(r){ 
     applyData(r); 
-    showToast('🎁 รันคำสั่งลับ GM เรียบร้อย!'); 
-    // ล้างค่าในช่องกรอกหลังกดเสร็จ
-    ['in-gm-coins', 'in-gm-lv', 'gm-prophecy', 'gm-secret-quest', 'in-ac'].forEach(id => {
+    showToast('🎁 รันคำสั่งระดับพระเจ้า GM เรียบร้อย!'); 
+    
+    // ล้างค่าในช่องกรอกทุกช่องหลังกดเสร็จ
+    ['in-gm-coins', 'in-gm-lv', 'gm-prophecy', 'gm-secret-quest', 'in-ac', 'gm-swim-m', 'gm-swim-a', 'gm-base-w', 'gm-base-h', 'gm-boss-shark'].forEach(id => {
       var el = document.getElementById(id); if(el) el.value = '';
+    });
+    var stEl = document.getElementById('gm-swim-type'); if(stEl) stEl.value = '';
+    ['gm-revoke-shark', 'gm-revoke-book', 'gm-revoke-heart', 'gm-secret-jackpot'].forEach(id => {
+      var el = document.getElementById(id); if(el) el.checked = false;
     });
     document.querySelectorAll('.gm-item-sel').forEach(el => el.classList.remove('active'));
     document.getElementById('gm-modal').classList.remove('on');
@@ -525,107 +623,150 @@ function displayGachaResult(res) {
 
 function closeGacha() { document.getElementById('gacha-mov').classList.remove('on'); document.getElementById('gacha-light').classList.remove('on'); document.getElementById('gacha-mov').classList.remove('jackpot-active'); }
 
-// 📜 ระบบรายงานรวม (All-in-One Log)
 function updateLog() {
-  var logEl = document.getElementById('log-txt');
-  if (!logEl) return;
+    const logBox = document.getElementById('log-txt');
+    if (!logBox) return;
 
-  // --- 🌟 จุดที่เพิ่ม: ระบบส่งต่อสถิติข้ามวัน 🌟 ---
-  if (!S.submitted && S.todayStats) {
-    S.yesterdayStats = S.todayStats;
-    S.todayStats = null;
-    saveLocal();
-  }
-  // ------------------------------------------
+    let html = '';
+    const isTodayDone = S.submitted; // 🌟 เช็กว่าวันนี้กดส่งเควสไปหรือยัง?
 
-  var hasGacha = S.todayGacha && S.todayGacha.length > 0;
-  var hasItems = S.todayItemsUsed && S.todayItemsUsed.length > 0;
-  var yData = S.yesterdayStats || {};
-  var tData = S.todayStats || {};
-  var isSub = S.submitted;
-
-  // ถ้ายังไม่ทำอะไรเลย และเมื่อวานก็ไม่มีสถิติ ให้โชว์คำทักทายเดิม
-  if (!isSub && !S.gmSubmitted && !hasGacha && !hasItems && !S.yesterdayStats) {
-    logEl.innerHTML = '<div style="text-align:center; padding:10px; color:var(--txt3);">ยังไม่มีข้อมูลของวันนี้<br>กรุณาส่งภารกิจที่หน้า Quest Board ก่อนนะ! 🗡️</div>';
-    return;
-  }
-
-  var html = '<div style="font-size:12px; line-height:1.7;">';
-
-  // --- ส่วนที่ 1: สถานะเควสและป่วย ---
-  if (isSub) {
-    var qd = S.quests.filter(Boolean).length;
-    html += '<div>✅ ภารกิจรายวัน: ' + (qd === 3 ? '<b style="color:var(--gold);">ครบถ้วน (+6 Coins)</b>' : '<span style="color:#ff9800;">ทำได้ ' + qd + '/3 ข้อ</span>') + '</div>';
-    if (S.illness && S.illness !== 'ไม่มี') html += '<div>🤒 สถานะร่างกาย: <b style="color:#ff4d4d;">' + S.illness + '</b></div>';
-  }
-
-  // --- ส่วนที่ 2: Ghost Data (เปรียบเทียบสถิติ) ---
-  var ghostHtml = '';
-  function getGhostLine(label, tVal, yVal, unit, isLessBetter) {
-    var t = parseFloat(tVal), y = parseFloat(yVal);
-    var hasT = !isNaN(t), hasY = !isNaN(y);
-    if (!hasT && !hasY) return '';
-    if (!isSub && !hasY) return '';
-
-    var line = '<div style="display:flex; justify-content:space-between; margin-bottom:2px;">';
-    line += '<span>' + label + ':</span>';
-    var valPart = '<span>';
-    if (!isSub) {
-      valPart += '<span style="color:var(--txt3); font-style:italic;">(เมื่อวาน: ' + yVal + ' ' + unit + ')</span>';
-    } else if (hasT) {
-      line = '<div style="display:flex; justify-content:space-between; margin-bottom:4px;">' + line.split('<span>')[1];
-      valPart += '<b style="color:#fff;">' + tVal + '</b> <small>' + unit + '</small> ';
-      if (hasY) {
-        var diff = t - y;
-        if (diff !== 0) {
-          var isGood = isLessBetter ? diff < 0 : diff > 0;
-          var arrow = isGood ? '▲' : '▼';
-          var color = isGood ? '#00e676' : '#ff5252';
-          var diffStr = Math.abs(diff) % 1 === 0 ? Math.abs(diff) : Math.abs(diff).toFixed(2);
-          valPart += '<span style="color:' + color + '; font-weight:bold; margin-left:5px;">' + arrow + ' ' + diffStr + '</span>';
+    // ==========================================
+    // 🟢 โซนที่ 1: ข้อมูลภารกิจ (โชว์เฉพาะตอนส่งงานแล้ว)
+    // ==========================================
+    if (isTodayDone) {
+        let qCnt = S.quests ? S.quests.filter(Boolean).length : 0;
+        if (qCnt > 0) {
+            let qEarn = (S.quests[0]?2:0) + (S.quests[1]?2:0) + (S.quests[2]?2:0);
+            html += `<div style="margin-bottom:5px; color:#4caf50; font-weight:bold;">✅ ภารกิจรายวัน: ${qCnt === 3 ? 'ครบถ้วน' : qCnt+' ข้อ'} (+${qEarn} Coins)</div>`;
         }
-      }
+        if (S.todayItemsUsed && S.todayItemsUsed.length > 0) {
+            html += `<div style="margin-bottom:5px; color:#2196f3; font-weight:bold;">🎒 ใช้ไอเทม: ${S.todayItemsUsed.join(', ')}</div>`;
+        }
+        if (S.todayGacha && S.todayGacha.length > 0) {
+            html += `<div style="margin-bottom:5px; color:#9c27b0; font-weight:bold;">💎 สมบัติ: ${S.todayGacha.join(', ')}</div>`;
+        }
     }
-    valPart += '</span></div>';
-    return line + valPart;
-  }
 
-  var statsHtml = '';
-  statsHtml += getGhostLine('⚖️ น้ำหนัก', tData.w, yData.w, 'kg', false);
-  statsHtml += getGhostLine('🦒 ส่วนสูง', tData.h, yData.h, 'cm', false);
-  statsHtml += getGhostLine('🏊 ฟรีสไตล์', tData.swimFr, yData.swimFr, 'วิ', true);
-  statsHtml += getGhostLine('🏊 กรรเชียง', tData.swimBk, yData.swimBk, 'วิ', true);
-  statsHtml += getGhostLine('🏊 กบ', tData.swimFg, yData.swimFg, 'วิ', true);
-  statsHtml += getGhostLine('🏊 ผีเสื้อ', tData.swimBt, yData.swimBt, 'วิ', true);
-  statsHtml += getGhostLine('🏊 จำนวนรอบ', tData.laps, yData.laps, 'รอบ', false);
+    // ==========================================
+    // 📊 โซนที่ 2: สถิติการผจญภัย
+    // ==========================================
+    html += `
+    <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--gbdr);">
+        <div style="color:var(--gold); font-weight:bold; margin-bottom:8px;">📊 สถิติการผจญภัย</div>`;
+    
+    // 🌟 ดึงข้อมูล: ถ้าวันใหม่(ยังไม่ส่ง) จะไม่มีค่าปัจจุบัน ให้ดึงแต่อดีตมาเทียบ
+    const d = isTodayDone ? (S.todayStats || {}) : {}; 
+    const past = isTodayDone ? (S.compareStats || {}) : (S.lastStats || {});
 
-  if (statsHtml !== '') {
-    html += '<hr style="border:0; border-top:1px dashed var(--gbdr); margin:10px 0;">';
-    html += '<div style="font-weight:bold; margin-bottom:6px;">📊 สถิติการผจญภัย</div>';
-    html += '<div style="padding-left:15px; color:var(--txt2);">' + statsHtml + '</div>';
-  }
+    function getVal(obj, k1, k2) {
+        if (obj && obj[k1] !== undefined && obj[k1] !== '' && obj[k1] != 0) return obj[k1];
+        if (obj && k2 && obj[k2] !== undefined && obj[k2] !== '' && obj[k2] != 0) return obj[k2];
+        return '';
+    }
 
-  // --- ส่วนที่ 3: ไอเทม / กาชา / ความรู้สึก / วิชาการ (โค้ดเดิม) ---
-  if (S.gmSubmitted && S.achievement) {
-    html += '<div style="color:var(--gold);">🎁 GM Gift: <b>' + (S.specialCoin >= 0 ? '+' : '') + S.specialCoin + ' Coins</b> (' + S.achievement + ')</div>';
-  }
-  if (hasItems) {
-    html += '<div style="margin-top:10px; color:var(--txt2);">🎒 ใช้ไอเทม: ' + S.todayItemsUsed.join(', ') + '</div>';
-  }
-  if (hasGacha) {
-    html += '<div style="margin-top:5px; color:var(--gold);">💎 สมบัติ: ' + S.todayGacha.join(' | ') + '</div>';
-  }
-  if (isSub) {
-    html += '<hr style="border:0; border-top:1px dashed var(--gbdr); margin:10px 0;">';
-    if (S.feeling && FEEL[S.feeling]) html += '<div>' + FEEL[S.feeling].i + ' <b>ความรู้สึก:</b> ' + FEEL[S.feeling].l + '</div>';
-    var ac = [];
-    if (S.gpa) ac.push('GPA ' + S.gpa);
-    if (S.score) ac.push('คะแนนสอบ ' + S.score + '%' + (parseFloat(S.score) >= 90 ? ' 🌟' : ''));
-    if (ac.length) html += '<div style="margin-top:5px;">📚 <b>วิชาการ:</b> ' + ac.join(' | ') + '</div>';
-  }
+    let cv = {
+        w: getVal(d, 'w'), h: getVal(d, 'h'), laps: getVal(d, 'laps', 'lp'),
+        fr: getVal(d, 'swimFr', 'fr'), bk: getVal(d, 'swimBk', 'bk'),
+        fg: getVal(d, 'swimFg', 'fg'), bt: getVal(d, 'swimBt', 'bt'),
+        gpa: getVal(d, 'gpa'), sc: getVal(d, 'score', 'sc')
+    };
+    
+    let pv = {
+        w: getVal(past, 'w'), h: getVal(past, 'h'), laps: getVal(past, 'laps', 'lp'),
+        fr: getVal(past, 'swimFr', 'fr'), bk: getVal(past, 'swimBk', 'bk'),
+        fg: getVal(past, 'swimFg', 'fg'), bt: getVal(past, 'swimBt', 'bt'),
+        gpa: getVal(past, 'gpa'), sc: getVal(past, 'score', 'sc')
+    };
 
-  html += '</div>';
-  logEl.innerHTML = html;
+    function drawStatRow(label, icon, currentVal, prevVal, unit, isTimeBased = false) {
+        // 🌟 กรณีที่ 1: พอกดข้ามวัน (ยังไม่ได้ส่งเควส) ให้โชว์ค่า (ล่าสุด: ...)
+        if (!isTodayDone) {
+            if (!prevVal || prevVal === '' || prevVal == 0) return '';
+            return `
+            <div style="display:flex; align-items:center; justify-content:flex-start; padding:2px 0; font-size:13px; color:#333; gap:0 !important;">
+                <span style="margin-right:8px; width:18px; text-align:center;">${icon}</span>
+                <span style="min-width:80px; margin-right:5px; color:#333;">${label}:</span>
+                <span style="font-weight:bold; color:#777;">(ล่าสุด: ${prevVal} ${unit})</span>
+            </div>`;
+        }
+
+        // 🌟 กรณีที่ 2: ส่งเควสแล้ว โชว์ค่าปัจจุบัน + ลูกศร
+        if (!currentVal || currentVal === '' || currentVal == 0) return '';
+        let rowHtml = `
+        <div style="display:flex; align-items:center; justify-content:flex-start; padding:2px 0; font-size:13px; color:#333; gap:0 !important;">
+            <span style="margin-right:8px; width:18px; text-align:center;">${icon}</span>
+            <span style="min-width:80px; margin-right:5px; color:#333;">${label}:</span>
+            <span style="font-weight:900; color:#111;">${currentVal} ${unit}</span>`;
+
+        let cvNum = parseFloat(currentVal);
+        let pvNum = parseFloat(prevVal);
+        // แสดงลูกศรก็ต่อเมื่อมีค่าเก่า และค่าเปลี่ยนแปลง
+        if (!isNaN(cvNum) && !isNaN(pvNum) && pvNum > 0 && cvNum !== pvNum) {
+            let diff = cvNum - pvNum;
+            let isImprovement = isTimeBased ? (diff < 0) : (diff > 0);
+            let color = isImprovement ? '#00e676' : '#ff4d4d'; 
+            let arrow = isImprovement ? '▲' : '▼';
+            rowHtml += `<span style="color:${color}; font-weight:900; margin-left:10px; text-shadow:0 1px 2px rgba(0,0,0,0.1);">${arrow} ${Math.abs(diff).toFixed(2).replace(/\.00$/, '')}</span>`;
+        }
+        rowHtml += `</div>`;
+        return rowHtml;
+    }
+
+    let statHtml = '';
+    statHtml += drawStatRow('น้ำหนัก', '⚖️', cv.w, pv.w, 'kg');
+    statHtml += drawStatRow('ส่วนสูง', '🦒', cv.h, pv.h, 'cm');
+    statHtml += drawStatRow('จำนวนรอบ', '🏊', cv.laps, pv.laps, 'รอบ');
+    statHtml += drawStatRow('ฟรีสไตล์', '🏊', cv.fr, pv.fr, 'วิ', true);
+    statHtml += drawStatRow('กรรเชียง', '🏊', cv.bk, pv.bk, 'วิ', true);
+    statHtml += drawStatRow('กบ', '🏊', cv.fg, pv.fg, 'วิ', true);
+    statHtml += drawStatRow('ผีเสื้อ', '🏊', cv.bt, pv.bt, 'วิ', true);
+    
+    if (statHtml === '') {
+        html += `<div style="font-size:12px; color:#777; font-style:italic;">ยังไม่มีข้อมูลสถิติที่บันทึกไว้ครับ...</div>`;
+    } else {
+        html += statHtml;
+    }
+    
+    html += `</div>`; 
+
+    // ==========================================
+    // 📚 โซนที่ 3: ความรู้สึก และ วิชาการ
+    // ==========================================
+    html += `<div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--gbdr);">`;
+    
+    if (isTodayDone && S.feeling !== undefined) {
+        const FEEL = ['แย่มาก', 'ไม่ค่อยดี', 'พอสู้ได้', 'ดีทีเดียว', 'ยอดเยี่ยม'];
+        const F_ICO = ['😫', '🙁', '😐', '🙂', '🌟'];
+        let fidx = parseInt(S.feeling) - 1;
+        if(fidx >= 0 && fidx < 5) { 
+            html += `<div style="margin-bottom:8px; font-size:13px; color:#333; display:flex; justify-content:flex-start; gap:0 !important;">
+                        <span style="margin-right:8px; width:18px; text-align:center;">${F_ICO[fidx]}</span> 
+                        <span style="min-width:80px; margin-right:5px;"><b style="color:var(--gold);">ความรู้สึก:</b></span> 
+                        <span style="font-weight:bold;">${FEEL[fidx]}</span>
+                     </div>`;
+        }
+    }
+
+    if (pv.gpa || pv.sc) {
+        let acadStr = [];
+        if(isTodayDone) {
+            if(cv.gpa) acadStr.push(`GPA ${cv.gpa}`);
+            if(cv.sc) acadStr.push(`คะแนนสอบ ${cv.sc}%`);
+        } else {
+            if(pv.gpa) acadStr.push(`GPA (ล่าสุด: ${pv.gpa})`);
+            if(pv.sc) acadStr.push(`คะแนนสอบ (ล่าสุด: ${pv.sc}%)`);
+        }
+        if (acadStr.length > 0) {
+            html += `<div style="font-size:13px; color:#333; display:flex; justify-content:flex-start; gap:0 !important;">
+                        <span style="margin-right:8px; width:18px; text-align:center;">📚</span> 
+                        <span style="min-width:80px; margin-right:5px;"><b style="color:var(--gold);">วิชาการ:</b></span> 
+                        <span style="font-weight:bold;">${acadStr.join(' | ')}</span>
+                     </div>`;
+        }
+    }
+
+    html += `</div>`;
+    logBox.innerHTML = html;
 }
 
 function renderAll(){ 
@@ -663,6 +804,7 @@ updateHeroSpeech();
   updateGmStatus();
   checkGmNotif();
   updateLog();
+  buildStreak();
 }
 
 function checkGachaLock() {
@@ -859,13 +1001,31 @@ function bindAll(){
 // ==========================================
 // 🛠️ DEV MODE FUNCTIONS
 // ==========================================
-window.devQuickComplete = function() { 
-  var questData = { q1: true, q2: true, q3: true, feeling: 5, illness: 'ไม่มี' }; 
-  gasCall('submitQuest', questData, function(r) { 
-    applyData(r); 
-    showToast('🎯 ทำภารกิจเสร็จสิ้นอัตโนมัติ!'); 
-    goP('dashboard'); 
-  }); 
+window.devQuickComplete = function() {
+    if (S.submitted) { showToast('วันนี้ส่งภารกิจไปแล้ว กดข้ามวันก่อนครับ!'); return; }
+    
+    // 1. ติ๊กเควสให้ครบ 3 ข้อ
+    S.quests = [true, true, true];
+    S.submitted = true;
+    
+    // 2. 🗺️ สั่งให้ก้าวเดินขยับ 1 ก้าวทันที
+    S.currentDayIndex = (S.currentDayIndex || 0) + 1;
+    buildStreak(); // อัปเดตภาพหน้าจอ
+    
+    // 3. 🎁 แจกรางวัลถ้าครบ 7 ก้าว (โหมดจำลอง Dev)
+    if (S.currentDayIndex >= 7) {
+        S.keys = (S.keys || 0) + 2; // แจกกุญแจในโหมด Dev ได้เลย
+        S.currentDayIndex = 0;
+        setTimeout(() => {
+            showToast("🎊 ยินดีด้วย! ครบ 7 ก้าว รับกุญแจทอง 2 ดอก! (Dev Mode)");
+            renderAll();
+            buildStreak();
+        }, 1000);
+    }
+    
+    saveLocal();
+    renderAll();
+    showToast('🎯 จบเควส & เดินหน้า 1 ก้าวเรียบร้อย!');
 };
 
 window.devLevelUp = function() { 
@@ -906,18 +1066,17 @@ window.devAddKey = function() {
 
 window.devNextDay = function() { 
   var dateLabel = new Date().toLocaleDateString('th-TH', {year:'numeric',month:'long',day:'numeric'});
-  if (S.streak[S.currentDayIndex] !== 'gold' && S.streak[S.currentDayIndex] !== 'red') { S.streak[S.currentDayIndex] = 'red'; }
   if(SHEET_URL && SHEET_URL.length >= 10) {
       var payload = Object.assign({}, S, { syncDate: dateLabel });
       fetch(SHEET_URL, { method: 'POST', mode: 'no-cors', cache: 'no-cache', body: JSON.stringify(payload) });
   }
   
-  S.currentDayIndex++; 
-  if (S.currentDayIndex > 6) { S.currentDayIndex = 0; S.streak = ['grey','grey','grey','grey','grey','grey','grey']; S.phWeekBought = 0; S.foodWeekBought = 0; showToast('✨ เริ่มต้นสัปดาห์ใหม่!'); } 
-  
+if (new Date().getDay() === 1) { S.phWeekBought = 0; S.foodWeekBought = 0; showToast('✨ เริ่มต้นสัปดาห์ใหม่!'); }
+
   S.submitted = false; S.gmSubmitted = false; S.isResubmit = false; S.quests = [false, false, false]; S.todayCoins = 0; S.todayGmCoins = 0; S.todayGacha = []; S.todayItemsUsed = []; S.lastSyncDate = new Date().toLocaleDateString('en-CA');
   [1,2,3].forEach(function(n){ var qc = document.getElementById('qc'+n); if(qc) { qc.classList.remove('on'); qc.textContent=''; } var qi = document.getElementById('qi'+n); if(qi) qi.classList.remove('done'); });
   qcnt = 0; var qbar = document.getElementById('qbar'); if(qbar) qbar.innerHTML = 'ติ๊ก <b>0</b>/3 ภารกิจ'; 
+  S.achievement = ''; S.specialCoin = 0;
   
   var currentM = new Date().getMonth(); var checkM = new Date(S.lastSyncDate).getMonth();
   if (currentM !== checkM) { S.monthBest = { fr: null, bt: null, fg: null, bk: null }; }
@@ -1172,3 +1331,109 @@ function loadDraft() {
         }
     }
 }
+
+// ==========================================
+// 🎟️ ชุดแพตช์อัปเกรด B-CARD V.2 (โชว์ Popup + อัปเดต Log ทันที)
+// ==========================================
+
+setTimeout(function() {
+    // 1. ถอดปลั๊กปุ่มแลกบัตรอันเก่าทิ้งถาวร
+    var oldBtnBc = document.getElementById('btn-bc');
+    if (oldBtnBc) {
+        var newBtnBc = oldBtnBc.cloneNode(true);
+        oldBtnBc.parentNode.replaceChild(newBtnBc, oldBtnBc);
+        
+        // 🌟 ใส่สมอง V.2 ให้ปุ่มแลกบัตร
+        newBtnBc.onclick = function() {
+            var inputEl = document.getElementById('in-bc-amount');
+            var amount = parseInt(inputEl.value);
+            
+            // เช็กเงื่อนไข (เงินพอไหม / พิมพ์เลขถูกไหม)
+            if (isNaN(amount) || amount < 100) {
+                showToast('❌ ต้องแลกขั้นต่ำ 100 B-Coin ขึ้นไปครับ!');
+                return;
+            }
+            if ((S.coins || 0) < amount) {
+                showToast('❌ B-Coin ไม่พอครับ! ขาดอีก ' + (amount - S.coins) + ' เหรียญ');
+                return;
+            }
+            
+            // 💸 หักเงิน B-Coin
+            S.coins -= amount;
+            
+            // 🎫 สร้างข้อมูลบัตร
+            S.bcCount = (S.bcCount || 0) + 1;
+            S.bcTotalIssued = (S.bcTotalIssued || 0) + 1;
+            S.bcLastValue = amount;
+            S.bcLastSerial = "BIFROST-BCARD-" + String(S.bcTotalIssued).padStart(4, '0'); // รันเลข 0001, 0002...
+            
+            var dateOpts = { year: 'numeric', month: 'short', day: 'numeric' };
+            S.bcLastDate = new Date().toLocaleDateString('th-TH', dateOpts);
+            
+            inputEl.value = ''; // เคลียร์ช่องพิมพ์ตัวเลข
+            
+            // 📝 บันทึกประวัติการซื้อ (สำหรับเก็บข้อมูล)
+            if (!S.todayItemsUsed) S.todayItemsUsed = [];
+            S.todayItemsUsed.push('🎟️ แลกบัตร B-Card (' + amount + ' B-Coin)');
+            
+            saveLocal();
+            renderAll();
+            showToast('🎟️ แลก B-Card สำเร็จ!');
+            
+            // 📝 ยิงข้อความอัปเดตลง Log หน้าแรก (Dashboard) ทันที
+            if (typeof updateLog === 'function') updateLog();
+            var logBox = document.getElementById('log-txt');
+            if (logBox) {
+                var timeStr = new Date().toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
+                var newLog = '<div style="color:var(--gold); padding:5px 0; border-bottom:1px dashed #444; font-weight:bold;">🎟️ [' + timeStr + '] ทำการแลก B-Card มูลค่า ' + amount + ' เหรียญ</div>';
+                if (logBox.innerHTML.includes('กำลังโหลด')) logBox.innerHTML = '';
+                logBox.innerHTML = newLog + logBox.innerHTML; // เอาดันไว้บรรทัดบนสุด
+            }
+            
+            // 🌟 ไฮไลท์! สั่งเปิด Popup โชว์บัตรทันทีที่แลกเสร็จ!
+            document.getElementById('bc-value').textContent = S.bcLastValue;
+            document.getElementById('bc-serial').textContent = S.bcLastSerial;
+            document.getElementById('bc-date').textContent = S.bcLastDate;
+            document.getElementById('bc-screen').style.display = 'flex';
+        };
+    }
+
+    // 2. จัดการปุ่ม "แสดงบัตร" ในหน้าคลังไอเทม
+    var oldUseBc = document.querySelector('.use-pill.bc');
+    if (oldUseBc) {
+        var newUseBc = oldUseBc.cloneNode(true);
+        oldUseBc.parentNode.replaceChild(newUseBc, oldUseBc);
+        
+        newUseBc.onclick = function() {
+            if (!S.bcCount || S.bcCount <= 0) {
+                showToast('❌ คุณยังไม่มี B-Card ในคลังครับ');
+                return;
+            }
+            // เปิด Popup โชว์บัตรใบล่าสุด
+            document.getElementById('bc-value').textContent = S.bcLastValue;
+            document.getElementById('bc-serial').textContent = S.bcLastSerial;
+            document.getElementById('bc-date').textContent = S.bcLastDate;
+            document.getElementById('bc-screen').style.display = 'flex';
+        };
+    }
+    
+    // 3. ป้องกันปุ่มปิดบัตรพัง (กดกากบาทแล้วต้องปิดได้)
+    var bcCloseBtn = document.getElementById('bc-close-btn');
+    if (bcCloseBtn) {
+        bcCloseBtn.onclick = function() {
+            document.getElementById('bc-screen').style.display = 'none';
+        };
+    }
+
+    // 4. แอบแทรกคำสั่งอัปเดตเลขในคลัง (ทำครั้งเดียวเพื่อไม่ให้จอโหลดซ้ำซ้อน)
+    if (typeof renderAll === 'function' && !window.bcPatchApplied) {
+        window.bcPatchApplied = true; 
+        var originalRenderAll_BC = renderAll;
+        renderAll = function() {
+            originalRenderAll_BC(); 
+            var invBc = document.getElementById('inv-bc');
+            if (invBc) invBc.textContent = S.bcCount || 0;
+        };
+        renderAll(); // อัปเดตทันทีที่เปิดแอป
+    }
+}, 500);
