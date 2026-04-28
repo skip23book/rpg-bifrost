@@ -10,78 +10,36 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    :root{
-      --bg:#1a1a2e;--panel:#22233f;--panel2:#2b2d50;--ink:#fff8df;--muted:#b8b3ca;
-      --gold:#ffd700;--gold2:#c99222;--aqua:#67d9ff;--blue:#7aa2ff;--pink:#ff8ec7;
-      --green:#8ee48e;--red:#ff7373;--line:rgba(255,215,0,.28);
-      --shadow:0 18px 46px rgba(0,0,0,.34);
-    }
+    :root{--bg:#1a1a2e;--ink:#fff8df;--muted:#b8b3ca;--gold:#ffd700;--aqua:#67d9ff;--blue:#7aa2ff;--pink:#ff8ec7;--green:#8ee48e;--line:rgba(255,215,0,.28);--shadow:0 18px 46px rgba(0,0,0,.34)}
     html,body{min-height:100%;background:var(--bg);color:var(--ink)}
     body{font-family:"Noto Sans Thai","Segoe UI",sans-serif;overflow-x:hidden}
-    .scene{
-      min-height:100vh;padding:18px 14px 30px;position:relative;isolation:isolate;
-      background:
-        radial-gradient(circle at 18% 8%,rgba(103,217,255,.18),transparent 28%),
-        radial-gradient(circle at 84% 12%,rgba(255,215,0,.16),transparent 28%),
-        radial-gradient(circle at 50% 100%,rgba(255,142,199,.10),transparent 34%),
-        linear-gradient(180deg,#101427 0%,#1a1a2e 48%,#131528 100%);
-    }
-    .scene::before{
-      content:"";position:absolute;inset:0;z-index:-1;opacity:.18;
-      background-image:
-        linear-gradient(120deg,transparent 0 46%,rgba(255,215,0,.75) 47% 48%,transparent 49%),
-        linear-gradient(60deg,transparent 0 48%,rgba(103,217,255,.52) 49% 50%,transparent 51%);
-      background-size:120px 120px,92px 92px;
-    }
+    .scene{min-height:100vh;padding:18px 14px 30px;position:relative;isolation:isolate;background:radial-gradient(circle at 18% 8%,rgba(103,217,255,.18),transparent 28%),radial-gradient(circle at 84% 12%,rgba(255,215,0,.16),transparent 28%),radial-gradient(circle at 50% 100%,rgba(255,142,199,.10),transparent 34%),linear-gradient(180deg,#101427 0%,#1a1a2e 48%,#131528 100%)}
+    .scene::before{content:"";position:absolute;inset:0;z-index:-1;opacity:.18;background-image:linear-gradient(120deg,transparent 0 46%,rgba(255,215,0,.75) 47% 48%,transparent 49%),linear-gradient(60deg,transparent 0 48%,rgba(103,217,255,.52) 49% 50%,transparent 51%);background-size:120px 120px,92px 92px}
     .app{width:min(980px,100%);margin:0 auto}
     .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
     .brand{font:700 22px Cinzel,serif;letter-spacing:4px;color:var(--gold);text-shadow:0 0 18px rgba(255,215,0,.42)}
     .sub{font-size:11px;color:var(--muted);letter-spacing:2px;margin-top:2px}
-    .back{
-      text-decoration:none;color:var(--ink);border:1px solid var(--line);
-      background:rgba(255,255,255,.06);border-radius:999px;padding:9px 13px;font-weight:800;font-size:12px;
-      box-shadow:0 5px 0 rgba(0,0,0,.18);white-space:nowrap;font-family:inherit;cursor:pointer;
-    }
-    .hero{
-      position:relative;overflow:hidden;border:1px solid var(--line);border-radius:16px;
-      background:
-        radial-gradient(circle at 18% 22%,rgba(255,255,255,.12),transparent 24%),
-        linear-gradient(145deg,rgba(255,215,0,.18),rgba(34,35,63,.96) 42%,rgba(103,217,255,.13));
-      box-shadow:var(--shadow),inset 0 0 0 1px rgba(255,255,255,.08);padding:20px;
-      margin-bottom:14px;
-    }
+    .back{text-decoration:none;color:var(--ink);border:1px solid var(--line);background:rgba(255,255,255,.06);border-radius:999px;padding:9px 13px;font-weight:800;font-size:12px;box-shadow:0 5px 0 rgba(0,0,0,.18);white-space:nowrap;font-family:inherit;cursor:pointer}
+    .hero{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:16px;background:radial-gradient(circle at 18% 22%,rgba(255,255,255,.12),transparent 24%),linear-gradient(145deg,rgba(255,215,0,.18),rgba(34,35,63,.96) 42%,rgba(103,217,255,.13));box-shadow:var(--shadow),inset 0 0 0 1px rgba(255,255,255,.08);padding:20px;margin-bottom:14px}
     .hero::after{content:"✦";position:absolute;right:22px;top:18px;color:var(--gold);font-size:48px;opacity:.75;text-shadow:0 0 18px rgba(255,215,0,.5)}
     .hero h1{font:700 28px/1.1 Cinzel,serif;letter-spacing:2px;color:#fff;margin-bottom:8px}
     .hero p{font-size:13px;line-height:1.7;color:var(--muted);max-width:640px}
     .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
-    .stat{
-      background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.18);border-radius:12px;
-      padding:12px;min-height:76px;
-    }
+    .stat{background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.18);border-radius:12px;padding:12px;min-height:76px}
     .stat span{display:block;font-size:10px;color:var(--muted);letter-spacing:1.4px;text-transform:uppercase}
     .stat b{display:block;margin-top:5px;font-size:21px;color:var(--gold)}
     .grid{display:grid;grid-template-columns:1fr;gap:14px}
-    .card{
-      background:linear-gradient(180deg,rgba(43,45,80,.96),rgba(27,28,52,.96));
-      border:1px solid var(--line);border-radius:16px;padding:15px;box-shadow:var(--shadow);
-    }
+    .card{background:linear-gradient(180deg,rgba(43,45,80,.96),rgba(27,28,52,.96));border:1px solid var(--line);border-radius:16px;padding:15px;box-shadow:var(--shadow)}
     .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
     .title{font:700 14px Cinzel,serif;letter-spacing:2px;color:var(--gold);display:flex;align-items:center;gap:8px}
     .title::before{content:"";width:7px;height:7px;background:var(--gold);transform:rotate(45deg);display:inline-block}
     .hint{font-size:11px;color:var(--muted);text-align:right}
     .chart-wrap{position:relative;width:100%;height:360px}
-    .status{
-      margin-top:12px;color:var(--muted);font-size:12px;line-height:1.7;text-align:center;
-      background:rgba(0,0,0,.16);border:1px dashed rgba(255,215,0,.18);border-radius:12px;padding:10px;
-    }
+    .status{margin-top:12px;color:var(--muted);font-size:12px;line-height:1.7;text-align:center;background:rgba(0,0,0,.16);border:1px dashed rgba(255,215,0,.18);border-radius:12px;padding:10px}
     .status.bad{color:#ffd1d1;border-color:rgba(255,115,115,.35)}
     .status.good{color:#dcffdf;border-color:rgba(142,228,142,.35)}
     @media (min-width:860px){.grid{grid-template-columns:1fr 1fr}.hero h1{font-size:34px}}
-    @media (max-width:620px){
-      .scene{padding:14px 10px 24px}.top{align-items:flex-start}.brand{font-size:18px;letter-spacing:3px}
-      .hero{padding:16px}.hero h1{font-size:24px}.summary{grid-template-columns:1fr 1fr}
-      .chart-wrap{height:315px}.card{padding:12px}.card-head{display:block}.hint{text-align:left;margin-top:5px}
-    }
+    @media (max-width:620px){.scene{padding:14px 10px 24px}.top{align-items:flex-start}.brand{font-size:18px;letter-spacing:3px}.hero{padding:16px}.hero h1{font-size:24px}.summary{grid-template-columns:1fr 1fr}.chart-wrap{height:315px}.card{padding:12px}.card-head{display:block}.hint{text-align:left;margin-top:5px}}
     @media (max-width:360px){.summary{grid-template-columns:1fr}.back{padding:8px 10px;font-size:11px}}
   </style>
 </head>
@@ -98,3 +56,260 @@
 
       <section class="hero">
         <h1>BB STATS</h1>
+        <p>ศูนย์วิเคราะห์ข้อมูลจาก Archive_Data และ Main แบบอ่านอย่างเดียว แสดงแนวโน้มร่างกายและเวลาว่ายน้ำจากประวัติที่บันทึกไว้</p>
+      </section>
+
+      <section class="summary" aria-label="สรุปข้อมูลล่าสุด">
+        <div class="stat"><span>Records</span><b id="sumRecords">—</b></div>
+        <div class="stat"><span>Latest Weight</span><b id="sumWeight">—</b></div>
+        <div class="stat"><span>Latest Height</span><b id="sumHeight">—</b></div>
+        <div class="stat"><span>Best Freestyle</span><b id="sumFreestyle">—</b></div>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <div class="card-head"><div class="title">Body Growth</div><div class="hint">น้ำหนัก kg / ส่วนสูง cm</div></div>
+          <div class="chart-wrap"><canvas id="bodyChart"></canvas></div>
+        </article>
+        <article class="card">
+          <div class="card-head"><div class="title">Swim Records</div><div class="hint">เวลาว่ายน้ำเป็นวินาที</div></div>
+          <div class="chart-wrap"><canvas id="swimChart"></canvas></div>
+        </article>
+      </section>
+
+      <div class="status" id="statusText">กำลังโหลดข้อมูล Archive_Data และ Main...</div>
+    </div>
+  </main>
+
+  <script>
+    const SHEET_URL = "https://script.google.com/macros/s/AKfycbzhZ4vnKvSMhxay6Wz2Ur86cI3bBXhel3ms_v9yH27eEKT9m8M4QmcMFypts59iwXst/exec";
+    const els = {
+      status: document.getElementById("statusText"),
+      records: document.getElementById("sumRecords"),
+      weight: document.getElementById("sumWeight"),
+      height: document.getElementById("sumHeight"),
+      freestyle: document.getElementById("sumFreestyle")
+    };
+    let bodyChart;
+    let swimChart;
+    const palette = { gold:"#ffd700", aqua:"#67d9ff", blue:"#7aa2ff", pink:"#ff8ec7", green:"#8ee48e", muted:"#b8b3ca", grid:"rgba(255,255,255,.10)" };
+
+    function setStatus(message, type) {
+      els.status.textContent = message;
+      els.status.className = "status" + (type ? " " + type : "");
+    }
+
+    function toNumber(value) {
+      if (value === null || value === undefined || value === "") return null;
+      const num = Number(String(value).replace(/[^\d.-]/g, ""));
+      return Number.isFinite(num) && num > 0 ? num : null;
+    }
+
+    function pick(row, keys) {
+      if (!row || typeof row !== "object") return "";
+      for (const key of keys) if (row[key] !== undefined && row[key] !== null && row[key] !== "") return row[key];
+      const lowerMap = Object.keys(row).reduce((acc, key) => {
+        acc[key.toLowerCase().replace(/\s+/g, "")] = row[key];
+        return acc;
+      }, {});
+      for (const key of keys) {
+        const normalized = key.toLowerCase().replace(/\s+/g, "");
+        if (lowerMap[normalized] !== undefined && lowerMap[normalized] !== "") return lowerMap[normalized];
+      }
+      return "";
+    }
+
+    function formatDate(value, index) {
+      if (!value) return "#" + (index + 1);
+      const date = new Date(value);
+      if (!Number.isNaN(date.getTime())) return date.toLocaleDateString("th-TH", { day:"2-digit", month:"short" });
+      return String(value).slice(0, 16);
+    }
+
+    function extractRows(payload) {
+      if (Array.isArray(payload)) return payload;
+      if (!payload || typeof payload !== "object") return [];
+      if (Array.isArray(payload.data)) return payload.data;
+      if (Array.isArray(payload.archive)) return payload.archive;
+      if (Array.isArray(payload.records)) return payload.records;
+      if (Array.isArray(payload.rows)) return payload.rows;
+      if (Array.isArray(payload.result)) return payload.result;
+      return [];
+    }
+
+    function normalizeRows(rows, sourceLabel = "Archive") {
+      return rows.map((row, index) => {
+        const dateValue = pick(row, ["date", "Date", "วันที่", "timestamp", "Timestamp", "createdAt", "day", "syncDate"]);
+        return {
+          source: sourceLabel,
+          label: formatDate(dateValue, index),
+          sortValue: dateValue ? new Date(dateValue).getTime() || index : index,
+          w: toNumber(pick(row, ["w", "weight", "Weight", "น้ำหนัก"])),
+          h: toNumber(pick(row, ["h", "height", "Height", "ส่วนสูง"])),
+          fr: toNumber(pick(row, ["swimFr", "fr", "freestyle", "FreeStyle", "ฟรีสไตล์"])),
+          bk: toNumber(pick(row, ["swimBk", "bk", "backstroke", "Backstroke", "กรรเชียง"])),
+          fg: toNumber(pick(row, ["swimFg", "fg", "breaststroke", "Breaststroke", "กบ"])),
+          bt: toNumber(pick(row, ["swimBt", "bt", "butterfly", "Butterfly", "ผีเสื้อ"]))
+        };
+      }).filter(hasAnyStat).sort((a, b) => a.sortValue - b.sortValue);
+    }
+
+    function hasAnyStat(row) {
+      return [row.w,row.h,row.fr,row.bk,row.fg,row.bt].some(value => value !== null);
+    }
+
+    function rowFromStats(stats, label, sortValue, fallback = {}) {
+      return {
+        source: "Main",
+        label,
+        sortValue,
+        w: toNumber(pick(stats, ["w", "weight", "น้ำหนัก"])) ?? toNumber(fallback.w),
+        h: toNumber(pick(stats, ["h", "height", "ส่วนสูง"])) ?? toNumber(fallback.h),
+        fr: toNumber(pick(stats, ["swimFr", "fr", "freestyle", "ฟรีสไตล์"])),
+        bk: toNumber(pick(stats, ["swimBk", "bk", "backstroke", "กรรเชียง"])),
+        fg: toNumber(pick(stats, ["swimFg", "fg", "breaststroke", "กบ"])),
+        bt: toNumber(pick(stats, ["swimBt", "bt", "butterfly", "ผีเสื้อ"]))
+      };
+    }
+
+    function mainRowsFromSave(saveData) {
+      if (!saveData || typeof saveData !== "object") return [];
+      const rows = [];
+      const todayLabel = new Date().toLocaleDateString("th-TH", { day:"2-digit", month:"short" });
+      const todayStamp = Date.now();
+      if (saveData.lastStats && typeof saveData.lastStats === "object") {
+        rows.push(rowFromStats(saveData.lastStats, todayLabel + " (ล่าสุด)", todayStamp - 1, saveData));
+      }
+      if (saveData.todayStats && typeof saveData.todayStats === "object") {
+        rows.push(rowFromStats(saveData.todayStats, todayLabel + " (วันนี้)", todayStamp, saveData));
+      }
+      const directRow = rowFromStats(saveData, todayLabel + " (Main)", todayStamp + 1);
+      if (hasAnyStat(directRow)) rows.push(directRow);
+      return rows.filter(hasAnyStat);
+    }
+
+    function loadLocalSave() {
+      try {
+        const raw = localStorage.getItem("bifrost_data");
+        return raw ? JSON.parse(raw) : null;
+      } catch (err) {
+        console.warn("Cannot read local bifrost_data", err);
+        return null;
+      }
+    }
+
+    function mergeRows(archiveRows, mainRows) {
+      return [...archiveRows, ...mainRows].sort((a, b) => a.sortValue - b.sortValue).map((row, index) => ({ ...row, index }));
+    }
+
+    function latestValue(rows, key, unit) {
+      for (let i = rows.length - 1; i >= 0; i--) if (rows[i][key] !== null) return rows[i][key].toLocaleString("th-TH") + unit;
+      return "—";
+    }
+
+    function minValue(rows, key, unit) {
+      const values = rows.map(row => row[key]).filter(value => value !== null);
+      return values.length ? Math.min(...values).toLocaleString("th-TH") + unit : "—";
+    }
+
+    function lineDataset(label, data, color, yAxisID) {
+      return { label, data, yAxisID, borderColor:color, backgroundColor:color + "26", borderWidth:3, pointRadius:3, pointHoverRadius:6, pointBackgroundColor:"#15172d", pointBorderColor:color, pointBorderWidth:2, tension:.35, spanGaps:true };
+    }
+
+    function chartOptions(unit, dualAxis) {
+      const scales = {
+        x:{ grid:{ color:"rgba(255,255,255,.05)" }, ticks:{ maxRotation:0, autoSkip:true, maxTicksLimit:7 } },
+        y:{ beginAtZero:false, grid:{ color:palette.grid }, ticks:{ callback:value => value + unit } }
+      };
+      if (dualAxis) {
+        scales.y.title = { display:true, text:"kg", color:palette.gold };
+        scales.y1 = { position:"right", beginAtZero:false, grid:{ drawOnChartArea:false }, ticks:{ callback:value => value + "cm" }, title:{ display:true, text:"cm", color:palette.aqua } };
+      }
+      return {
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{ mode:"index", intersect:false },
+        plugins:{
+          legend:{ position:"bottom", labels:{ usePointStyle:true, boxWidth:8, padding:16 } },
+          tooltip:{ backgroundColor:"rgba(12,14,28,.94)", borderColor:"rgba(255,215,0,.32)", borderWidth:1, padding:12 }
+        },
+        scales
+      };
+    }
+
+    function renderSummary(rows) {
+      els.records.textContent = rows.length.toLocaleString("th-TH");
+      els.weight.textContent = latestValue(rows, "w", " kg");
+      els.height.textContent = latestValue(rows, "h", " cm");
+      els.freestyle.textContent = minValue(rows, "fr", " วิ");
+    }
+
+    function renderCharts(rows) {
+      if (!window.Chart) {
+        setStatus("โหลด Chart.js ไม่สำเร็จ กรุณาเชื่อมต่ออินเทอร์เน็ตแล้ว refresh", "bad");
+        return;
+      }
+      Chart.defaults.font.family = "'Noto Sans Thai','Segoe UI',sans-serif";
+      Chart.defaults.color = palette.muted;
+      const labels = rows.map(row => row.label);
+      bodyChart?.destroy();
+      swimChart?.destroy();
+      bodyChart = new Chart(document.getElementById("bodyChart"), {
+        type:"line",
+        data:{ labels, datasets:[lineDataset("น้ำหนัก", rows.map(row => row.w), palette.gold, "y"), lineDataset("ส่วนสูง", rows.map(row => row.h), palette.aqua, "y1")] },
+        options:chartOptions("kg", true)
+      });
+      swimChart = new Chart(document.getElementById("swimChart"), {
+        type:"line",
+        data:{ labels, datasets:[lineDataset("ฟรีสไตล์", rows.map(row => row.fr), palette.aqua, "y"), lineDataset("กรรเชียง", rows.map(row => row.bk), palette.blue, "y"), lineDataset("กบ", rows.map(row => row.fg), palette.green, "y"), lineDataset("ผีเสื้อ", rows.map(row => row.bt), palette.pink, "y")] },
+        options:chartOptions("วิ", false)
+      });
+    }
+
+    async function fetchJson(action) {
+      const res = await fetch(`${SHEET_URL}?action=${action}&ts=${Date.now()}`);
+      if (!res.ok) throw new Error(`${action} HTTP ${res.status}`);
+      return res.json();
+    }
+
+    async function loadArchive() {
+      setStatus("กำลังโหลดข้อมูล Archive_Data และ Main...");
+      const [archiveResult, mainResult] = await Promise.allSettled([fetchJson("fetchArchive"), fetchJson("loadSave")]);
+      const archiveRows = archiveResult.status === "fulfilled" ? normalizeRows(extractRows(archiveResult.value), "Archive") : [];
+      let mainRows = mainResult.status === "fulfilled" ? mainRowsFromSave(mainResult.value) : [];
+      const localRows = mainRows.length ? [] : mainRowsFromSave(loadLocalSave());
+      if (!mainRows.length && localRows.length) mainRows = localRows;
+      const rows = mergeRows(archiveRows, mainRows);
+      renderSummary(rows);
+      renderCharts(rows);
+      if (!rows.length) {
+        const failures = [];
+        if (archiveResult.status === "rejected") failures.push("fetchArchive: " + archiveResult.reason.message);
+        if (mainResult.status === "rejected") failures.push("loadSave: " + mainResult.reason.message);
+        setStatus("ยังไม่มีข้อมูลสถิติจาก Archive_Data, Main หรือ localStorage" + (failures.length ? " (" + failures.join(" | ") + ")" : ""), "bad");
+        return;
+      }
+      const parts = [];
+      if (archiveRows.length) parts.push(`Archive_Data ${archiveRows.length.toLocaleString("th-TH")} รายการ`);
+      if (mainRows.length) parts.push(`${localRows.length ? "localStorage" : "Main"} ${mainRows.length.toLocaleString("th-TH")} รายการ`);
+      setStatus(`โหลดสำเร็จ: ${parts.join(" + ")}`, "good");
+    }
+
+    function closeStatsPage() {
+      window.open("", "_self");
+      window.close();
+      setTimeout(() => {
+        if (!document.hidden) {
+          if (history.length > 1) history.back();
+          else location.replace("index.html");
+        }
+      }, 160);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("closePageBtn")?.addEventListener("click", closeStatsPage);
+      loadArchive();
+    });
+  </script>
+</body>
+</html>
