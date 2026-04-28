@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════════
 //  STATE (ตัวแปรระบบหลัก)
 // ══════════════════════════════════════════════════
-var APP_VERSION = "0.3.0 Beta";
+var APP_VERSION = "0.3.2 Beta";
 var AV = ['🧙','⚔️','🏹','🧜','🔥','⚡','🌊','🍃','❄️','💫','🦅','🐉','🌸','🗡️','🛡️','👑','🌙','☀️','🎭','✨','🦇','🐺','🧚','🧞','🧟','🤖','👽','👻','☠️','🤡','🦁','🐍','🐢','🐦','🦄','🐝','🦊','🐙','🕷️','🦂','💎','🔮','🪓','🔱','👁️','🪐','☄️','🌪️','🌌','♾️'];
 var AN = ['นักเวทย์','นักรบ','นักธนู','ไฮโดร','ไพโร','อิเล็กโตร','อควา','อะเนโม','ครายโอ','แอสโตร','ฮอว์ค','มังกร','ซากุระ','คาตา','พาลาดิน','ราชัน','ลูน่า','โซลาร์','มายา','ดาวเด่น','แวมไพร์','ไลแคน','แฟรี่','จินนี่','ซอมบี้','ไซบอร์ก','เอเลี่ยน','สเปกเตอร์','เนโครมันเซอร์','โจ๊กเกอร์','ราชสีห์','ไวเปอร์','เก็นบุ','ฟีนิกซ์','ยูนิคอร์น','คิลเลอร์บี','คิทซึเนะ','คราเคน','อารัคเน่','สคอร์เปียน','โกเลม','ออราเคิล','เบอร์เซิร์กเกอร์','โพไซดอน','ผู้หยั่งรู้','คอสมิก','เมเทโอ','พายุหมุน','เนบิวลา','อัลฟ่า'];
 var CHAR_NAMES=['นักดาบฝึกหัด','นักรบฝึกหัด','สำนักดาบ','ทหารยาม','อัศวินสามัญ','ผู้พิทักษ์','นักรบแนวหน้า','อัศวินศักดิ์สิทธิ์','พาลาดินศักดิ์สิทธิ์','เทมพลาร์หลวง','อัศวินองครักษ์','อัศวินเพลิง','จทัพศักดิ์สิทธิ์','นักดาบเงา','อัศวินรัตติกาล','จ้าวแห่งเพลิง','ผู้พิทักษ์เหมันต์','จ้าวแห่งพายุ','ผู้พิทักษ์สวรรค์','ตำนานนิรันดร์'];
@@ -49,6 +49,7 @@ var SFX = {
 var SHEET_URL = "https://script.google.com/macros/s/AKfycbzhZ4vnKvSMhxay6Wz2Ur86cI3bBXhel3ms_v9yH27eEKT9m8M4QmcMFypts59iwXst/exec"; 
 
 function sendToLine(msgType, msgContent) {
+  // return; // 🛑 เปิดแจ้งเตือน Line ให้ลบสองขีดหน้ารีเทินออก
   if(!SHEET_URL || SHEET_URL.length < 10) return;
   fetch(SHEET_URL, {
     method: 'POST',
@@ -130,7 +131,7 @@ if (new Date().getDay() === 1) { S.phWeekBought = 0; S.foodWeekBought = 0; }
     
     S.submitted = false; S.gmSubmitted = false; S.isResubmit = false;
     S.quests = [false, false, false];
-    S.todayCoins = 0; S.todayGmCoins = 0; S.todayGacha = []; S.todayItemsUsed = [];
+    S.todayCoins = 0; S.todayGmCoins = 0; S.todayGacha = []; S.todayItemsUsed = []; S.todayCoinsSpent = 0;
     S.achievement = '';       // 🌟 ล้างประวัติ GM Gift ของเมื่อวาน
     S.specialCoin = 0;        // 🌟 ล้างจำนวนเหรียญพิเศษของเมื่อวาน
     S.laps = ''; S.swimFr = ''; S.swimBt = ''; S.swimFg = ''; S.swimBk = ''; S.score = ''; S.gpa = ''; S.illness = 'ไม่มี';
@@ -301,8 +302,8 @@ function buildStreak() {
   // แก๊งมอนสเตอร์ประจำด่าน (เผื่อเหนียว ป้องกันบั๊ก)
   var monsters = ['👾', '🦇', '🕷️', '🦂', '🐍', '🐺'];
   
-  // 🌟 ดึงค่าการก้าวเดิน (ใช้ S.streak เป็นค่ามาตรฐาน)
-  var currentStep = S.streak || 0; 
+  // 🌟 ดึงค่าการก้าวเดิน
+  var currentStep = S.currentDayIndex || 0; 
   
   for (var i = 0; i < 7; i++) {
     var slot = document.createElement('div');
@@ -320,11 +321,14 @@ function buildStreak() {
     slot.style.transition = '0.3s';
     
     if (isDone) {
-      slot.innerHTML = '✔️';
+      slot.innerHTML = '✔'; // 🌟 เปลี่ยนมาใช้เครื่องหมายถูกตัวนี้แทนอีโมจิ
+      slot.style.color = '#ffffff'; // 🌟 บังคับให้เครื่องหมายถูกเป็นสีขาวล้วน
       slot.style.background = 'var(--gold)';
       slot.style.boxShadow = '0 0 10px var(--gold)';
       slot.style.border = 'none'; // เอาขอบออกให้สีทองเนียนๆ
-    } else if (isBoss) {
+    }
+    
+    else if (isBoss) {
       slot.innerHTML = '💎';
       // 🌟 กล่องรางวัล: พื้นขาว ขอบทองแบบเส้นประ
       slot.style.background = '#fff'; 
@@ -404,21 +408,28 @@ function doSubmit(){
     var prevLv=S.lv; applyData(r); 
     var sokC = document.getElementById('sok-coins'); if(sokC) sokC.textContent='+'+(r.totalCoinsEarned||0)+' B-Coin'; 
     // 🗺️ ระบบสะสมก้าวเดินและแจกรางวัล (7 ก้าว)
-if (!S.isResubmit) { 
-    S.currentDayIndex = (S.currentDayIndex || 0) + 1; 
-    
-    buildStreak(); // 🌟 สั่งให้วาดกราฟิกก้าวเดินใหม่ทันที!
-    saveLocal();   // 🌟 สั่งเซฟข้อมูลลงเครื่อง
-    
-    if (S.currentDayIndex >= 7) {
-        S.currentDayIndex = 0;      // รีเซ็ตกลับไปก้าวที่ 0
-        setTimeout(() => {
-            showToast("🎊 ยินดีด้วย! ผจญภัยครบ 7 ครั้ง รับกุญแจทอง 2 ดอก!");
-            renderAll(); 
-            buildStreak(); // 🌟 รีเซ็ตภาพกราฟิกกลับมาจุดเริ่มต้น
-            saveLocal();
-        }, 1500);
-    }
+// 🗺️ ระบบสะสมก้าวเดินและแจกรางวัล (7 ก้าว)
+  
+  // 🌟 เพิ่มตัวแปรดักจับบอสไว้ตรงนี้ (เหนือ if)
+  var isBossCleared_ForLine = false; 
+
+  if (!S.isResubmit) { 
+      S.currentDayIndex = (S.currentDayIndex || 0) + 1; 
+      
+      buildStreak(); // 🌟 สั่งให้วาดกราฟิกก้าวเดินใหม่ทันที!
+      saveLocal();   // 🌟 สั่งเซฟข้อมูลลงเครื่อง
+      
+      if (S.currentDayIndex >= 7) {
+          isBossCleared_ForLine = true; // 🌟 มาร์คไว้ว่าเพิ่งตบบอสเสร็จ! ส่งให้ LINE รู้
+          S.currentDayIndex = 0;        // รีเซ็ตกลับไปก้าวที่ 0
+          
+          setTimeout(() => {
+              showToast("🎊 ยินดีด้วย! ผจญภัยครบ 7 ครั้ง รับกุญแจทอง 2 ดอก!");
+              renderAll(); 
+              buildStreak(); // 🌟 รีเซ็ตภาพกราฟิกกลับมาจุดเริ่มต้น
+              saveLocal();
+          }, 1500);
+      }
     // 💾 ระบบจดจำสถิติล่าสุด (Latest Record) [V.2 ดักจับทุกชื่อตัวแปร]
         if (!S.lastStats) S.lastStats = {};
         if (!S.compareStats) S.compareStats = {};
@@ -466,18 +477,35 @@ if(r.lv>prevLv) {
     }
 
     // -----------------------------------------
-    // 🌟 สร้างข้อความแจ้งเตือน LINE สรุปรายวัน (รูปแบบใหม่)
+    // 🌟 สร้างข้อความแจ้งเตือน LINE สรุปรายวัน (อัปเกรด V.3)
     // -----------------------------------------
     var earnCoin = r.totalCoinsEarned || 0;
+    var spentCoin = S.todayCoinsSpent || 0; // 🌟 ดึงยอดเงินที่ใช้ไปวันนี้
+
+    // 🗺️ คำนวณเส้นทางนักผจญภัย
+    var stepStr = "";
+    if (S.isResubmit) {
+        stepStr = (S.currentDayIndex === 0) ? "ด่าน บอส 💎" : "ด่าน " + S.currentDayIndex + "/7";
+    } else {
+        if (isBossCleared_ForLine) {
+            stepStr = "ด่าน บอส 💎 (🎉 เคลียร์สำเร็จ! ได้รับรางวัล กุญแจทอง 2 ดอก 🗝️🗝️)";
+        } else {
+            stepStr = "ด่าน " + S.currentDayIndex + "/7";
+        }
+    }
+
     var dOpts = {year:'numeric', month:'short', day:'numeric'};
     var todayStr = new Date().toLocaleDateString('th-TH', dOpts);
     
     var lineMsg = S.isResubmit ? "🔄 [อัปเดตแก้ไข] รายงานประจำวัน 🔄\n" : "🛡️ [BIFROST] สรุปรายงานประจำวัน 🛡️\n";
     lineMsg += "📅 วันที่: " + todayStr + "\n\n";
-    
+
     lineMsg += "💰 เหรียญทั้งหมดในกระเป๋า: " + r.coins + " B-Coin\n";
-    lineMsg += "✨ เหรียญที่ได้วันนี้: +" + earnCoin + " B-Coin\n\n";
-    
+    lineMsg += "✨ เหรียญที่ได้วันนี้: +" + earnCoin + " B-Coin\n";
+    lineMsg += "💸 เหรียญที่ใช้วันนี้: -" + spentCoin + " B-Coin\n\n"; // 🌟 แสดงเหรียญที่ใช้
+
+    lineMsg += "🗺️ เส้นทางนักผจญภัย: " + stepStr + "\n\n"; // 🌟 แสดงด่านที่เดินถึง
+
     lineMsg += "📊 สถิติการฝึกซ้อม:\n";
     lineMsg += "⚖️ น้ำหนัก: " + (questData.w ? questData.w + " kg" : "-") + "\n";
     lineMsg += "🦒 ส่วนสูง: " + (questData.h ? questData.h + " cm" : "-") + "\n";
@@ -489,7 +517,7 @@ if(r.lv>prevLv) {
     lineMsg += "🏊 กบ: " + (questData.swimFg ? questData.swimFg + " วิ" : "-") + "\n";
     lineMsg += "🏊 ผีเสื้อ: " + (questData.swimBt ? questData.swimBt + " วิ" : "-");
 
-    sendToLine("DAILY_REPORT", lineMsg); 
+    sendToLine("DAILY_REPORT", lineMsg);
     // -----------------------------------------
     
     if(bar) { bar.style.width = '100%'; }
@@ -1148,7 +1176,7 @@ window.devNextDay = function() {
   
 if (new Date().getDay() === 1) { S.phWeekBought = 0; S.foodWeekBought = 0; showToast('✨ เริ่มต้นสัปดาห์ใหม่!'); }
 
-  S.submitted = false; S.gmSubmitted = false; S.isResubmit = false; S.quests = [false, false, false]; S.todayCoins = 0; S.todayGmCoins = 0; S.todayGacha = []; S.todayItemsUsed = []; S.lastSyncDate = new Date().toLocaleDateString('en-CA');
+  S.submitted = false; S.gmSubmitted = false; S.isResubmit = false; S.quests = [false, false, false]; S.todayCoins = 0; S.todayGmCoins = 0; S.todayGacha = []; S.todayItemsUsed = []; S.todayCoinsSpent = 0; S.lastSyncDate = new Date().toLocaleDateString('en-CA');
   [1,2,3].forEach(function(n){ var qc = document.getElementById('qc'+n); if(qc) { qc.classList.remove('on'); qc.textContent=''; } var qi = document.getElementById('qi'+n); if(qi) qi.classList.remove('done'); });
   qcnt = 0; var qbar = document.getElementById('qbar'); if(qbar) qbar.innerHTML = 'ติ๊ก <b>0</b>/3 ภารกิจ'; 
   S.achievement = ''; S.specialCoin = 0;
@@ -1435,6 +1463,8 @@ setTimeout(function() {
             
             // 💸 หักเงิน B-Coin
             S.coins -= amount;
+            S.todayCoinsSpent = (S.todayCoinsSpent || 0) + amount; // 🌟 แทรกบรรทัดนี้ลงไป
+            // 🎫 สร้างข้อมูลบัตร
             
             // 🎫 สร้างข้อมูลบัตร
             S.bcCount = (S.bcCount || 0) + 1;
@@ -1532,8 +1562,8 @@ setTimeout(function() {
             
             cfmShow('💧', 'ซื้อน้ำตาฟีนิกซ์?', 'ราคา 15 B-Coin', function() {
                 S.coins -= 15; 
-                S.phoenix = (S.phoenix || 0) + 1; 
-                S.phWeekBought = (S.phWeekBought || 0) + 1; 
+                S.todayCoinsSpent = (S.todayCoinsSpent || 0) + 15; // 🌟 แทรกบรรทัดนี้ลงไป
+                S.phoenix = (S.phoenix || 0) + 1;
                 
                 if (!S.todayItemsUsed) S.todayItemsUsed = [];
                 S.todayItemsUsed.push('🛒 ซื้อน้ำตาฟีนิกซ์ (-15 Coins)');
@@ -1557,8 +1587,8 @@ setTimeout(function() {
             
             cfmShow('🍜', 'ซื้อน้ำยาแสนอร่อย?', 'ราคา 50 B-Coin', function() {
                 S.coins -= 50; 
-                S.ticket = (S.ticket || 0) + 1; 
-                S.foodWeekBought = (S.foodWeekBought || 0) + 1; 
+                S.todayCoinsSpent = (S.todayCoinsSpent || 0) + 50; // 🌟 แทรกบรรทัดนี้ลงไป
+                S.ticket = (S.ticket || 0) + 1;
                 
                 if (!S.todayItemsUsed) S.todayItemsUsed = [];
                 S.todayItemsUsed.push('🛒 ซื้อน้ำยาแสนอร่อย (-50 Coins)');
