@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════════
 //  STATE (ตัวแปรระบบหลัก)
 // ══════════════════════════════════════════════════
-var APP_VERSION = "0.1.9 Beta";
+var APP_VERSION = "0.2.6 Beta";
 var AV = ['🧙','⚔️','🏹','🧜','🔥','⚡','🌊','🍃','❄️','💫','🦅','🐉','🌸','🗡️','🛡️','👑','🌙','☀️','🎭','✨','🦇','🐺','🧚','🧞','🧟','🤖','👽','👻','☠️','🤡','🦁','🐍','🐢','🐦','🦄','🐝','🦊','🐙','🕷️','🦂','💎','🔮','🪓','🔱','👁️','🪐','☄️','🌪️','🌌','♾️'];
 var AN = ['นักเวทย์','นักรบ','นักธนู','ไฮโดร','ไพโร','อิเล็กโตร','อควา','อะเนโม','ครายโอ','แอสโตร','ฮอว์ค','มังกร','ซากุระ','คาตา','พาลาดิน','ราชัน','ลูน่า','โซลาร์','มายา','ดาวเด่น','แวมไพร์','ไลแคน','แฟรี่','จินนี่','ซอมบี้','ไซบอร์ก','เอเลี่ยน','สเปกเตอร์','เนโครมันเซอร์','โจ๊กเกอร์','ราชสีห์','ไวเปอร์','เก็นบุ','ฟีนิกซ์','ยูนิคอร์น','คิลเลอร์บี','คิทซึเนะ','คราเคน','อารัคเน่','สคอร์เปียน','โกเลม','ออราเคิล','เบอร์เซิร์กเกอร์','โพไซดอน','ผู้หยั่งรู้','คอสมิก','เมเทโอ','พายุหมุน','เนบิวลา','อัลฟ่า'];
 var CHAR_NAMES=['นักดาบฝึกหัด','นักรบฝึกหัด','สำนักดาบ','ทหารยาม','อัศวินสามัญ','ผู้พิทักษ์','นักรบแนวหน้า','อัศวินศักดิ์สิทธิ์','พาลาดินศักดิ์สิทธิ์','เทมพลาร์หลวง','อัศวินองครักษ์','อัศวินเพลิง','จทัพศักดิ์สิทธิ์','นักดาบเงา','อัศวินรัตติกาล','จ้าวแห่งเพลิง','ผู้พิทักษ์เหมันต์','จ้าวแห่งพายุ','ผู้พิทักษ์สวรรค์','ตำนานนิรันดร์'];
@@ -20,7 +20,12 @@ function playTone(freq, type, duration, vol) {
     if(actx.state === 'suspended') actx.resume();
     var osc = actx.createOscillator(); var gain = actx.createGain();
     osc.type = type; osc.frequency.setValueAtTime(freq, actx.currentTime);
-    gain.gain.setValueAtTime(vol, actx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + duration);
+    
+    // 🌟 ระบบเพิ่มพลังเสียง (ตัวคูณ)
+    var globalVolume = vol * 3; // 👈 คูณ 4 เท่าจากค่าเดิม
+    
+    gain.gain.setValueAtTime(globalVolume, actx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + duration);
     osc.connect(gain); gain.connect(actx.destination);
     osc.start(); osc.stop(actx.currentTime + duration);
   } catch(e) {}
@@ -48,7 +53,8 @@ function sendToLine(msgType, msgContent) {
   fetch(SHEET_URL, {
     method: 'POST',
     mode: 'no-cors',
-    body: JSON.stringify({ action: "LINE_ALERT", message: msgContent })
+    // 🌟 เติม type เข้าไปตรงนี้ เพื่อให้ Google Apps Script รู้ว่าต้องดึงรูปไหน!
+    body: JSON.stringify({ action: "LINE_ALERT", type: msgType, message: msgContent })
   });
 }
 
@@ -231,6 +237,7 @@ function gasCall(fn, args, ok, fail) {
       if (args.addPhoenix) { S.phoenix++; extra.push('💧 น้ำตาฟีนิกซ์'); }
       if (args.addKey) { S.keys++; extra.push('🗝️ กุญแจทอง'); }
       if (args.addExp) { S.exp += 50; if(S.exp >= S.expMax) { S.lv = Math.min(100, S.lv + 1); S.exp -= S.expMax; } extra.push('⭐ 50 EXP'); }
+      if (args.addFood) { S.ticket = (S.ticket || 0) + 1; extra.push('🍜 ตั๋วเชฟทองคำ'); } // 🌟 เพิ่มบรรทัดนี้ลงไป
       setChar(chForLevel(S.lv));
       
       // 🌟 [ส่วนปรับปรุง God Mode] 🌟
@@ -287,18 +294,22 @@ function goP(p){
 }
 
 function buildStreak() {
-  const container = document.getElementById('st-slots');
+  var container = document.getElementById('st-slots');
   if(!container) return;
   container.innerHTML = '';
   
-  // สร้างช่องทางเดิน 7 ก้าว
-  for (let i = 0; i < 7; i++) {
-    const slot = document.createElement('div');
-    const isDone = i < S.currentDayIndex; // ก้าวที่ผ่านมาแล้ว
-    const isCurrent = i === S.currentDayIndex; // ก้าวปัจจุบันที่รอส่ง
-    const isBoss = i === 6; // ก้าวที่ 7 (หีบสมบัติ)
+  // แก๊งมอนสเตอร์ประจำด่าน (เผื่อเหนียว ป้องกันบั๊ก)
+  var monsters = ['👾', '🦇', '🕷️', '🦂', '🐍', '🐺'];
+  
+  // 🌟 ดึงค่าการก้าวเดิน (ใช้ S.streak เป็นค่ามาตรฐาน)
+  var currentStep = S.streak || 0; 
+  
+  for (var i = 0; i < 7; i++) {
+    var slot = document.createElement('div');
+    var isDone = i < currentStep;
+    var isCurrent = i === currentStep;
+    var isBoss = i === 6;
     
-    // ตกแต่งหน้าตาช่องก้าวเดิน
     slot.style.width = '35px';
     slot.style.height = '35px';
     slot.style.borderRadius = '50%';
@@ -312,19 +323,25 @@ function buildStreak() {
       slot.innerHTML = '✔️';
       slot.style.background = 'var(--gold)';
       slot.style.boxShadow = '0 0 10px var(--gold)';
+      slot.style.border = 'none'; // เอาขอบออกให้สีทองเนียนๆ
     } else if (isBoss) {
-      slot.innerHTML = '🎁';
-      slot.style.background = '#333';
-      slot.style.border = '2px dashed var(--gold)';
+      slot.innerHTML = '💎';
+      // 🌟 กล่องรางวัล: พื้นขาว ขอบทองแบบเส้นประ
+      slot.style.background = '#fff'; 
+      slot.style.border = '2px dashed var(--gold)'; 
+      slot.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)'; // แถมเงาเบาๆ
     } else if (isCurrent) {
       slot.innerHTML = '⚔️';
       slot.style.background = '#fff';
       slot.style.transform = 'scale(1.2)';
+      slot.style.boxShadow = '0 0 10px #fff';
+      slot.style.border = '2px solid var(--gold)'; // เพิ่มขอบทองให้จุดที่กำลังยืนอยู่
     } else {
-      slot.innerHTML = '•';
-      slot.style.background = '#222';
-      slot.style.color = '#555';
-      slot.style.border = '1px solid #444';
+      slot.innerHTML = monsters[i] || '👾'; 
+      // 🌟 มอนสเตอร์ที่ยังไปไม่ถึง: พื้นขาว ขอบทอง
+      slot.style.background = '#fff';
+      slot.style.border = '2px solid var(--gold)'; 
+      slot.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)'; // แถมเงาเบาๆ ให้ดูมีมิติ
     }
     container.appendChild(slot);
   }
@@ -448,26 +465,32 @@ if(r.lv>prevLv) {
       SFX.coin(); 
     }
 
-    var qd = [questData.q1, questData.q2, questData.q3].filter(Boolean).length;
-    var lineMsg = S.isResubmit ? "🔄 [อัปเดตแก้ไข] รายงานประจำวัน 🔄\n\n" : "🛡️ [BIFROST] รายงานประจำวัน 🛡️\n\n";
-    lineMsg += "📊 ภารกิจ: " + (qd===3 ? "✅ ทำครบ!" : "⚡ ทำได้ "+qd+"/3") + "\n";
-    if(questData.illness && questData.illness !== 'ไม่มี') lineMsg += "🤒 สถานะ: " + questData.illness + "\n";
-
-    var bStats = [];
-    if(questData.w) bStats.push("น้ำหนัก "+questData.w+"kg"); if(questData.h) bStats.push("สูง "+questData.h+"cm");
-    if(bStats.length) lineMsg += "⚖️ ร่างกาย: " + bStats.join(" | ") + "\n";
-    if(questData.laps) lineMsg += "🏊 จำนวนรอบ: " + questData.laps + " รอบ\n";
-
-    var swims = [];
-    if(questData.swimFr) swims.push("Fr:"+questData.swimFr); if(questData.swimBt) swims.push("Bt:"+questData.swimBt);
-    if(questData.swimFg) swims.push("Fg:"+questData.swimFg); if(questData.swimBk) swims.push("Bk:"+questData.swimBk);
-    if(swims.length > 0) lineMsg += "⏱️ ว่ายน้ำ: " + swims.join(" | ") + " วิ\n";
-    
+    // -----------------------------------------
+    // 🌟 สร้างข้อความแจ้งเตือน LINE สรุปรายวัน (รูปแบบใหม่)
+    // -----------------------------------------
     var earnCoin = r.totalCoinsEarned || 0;
-    lineMsg += "\n💰 เหรียญที่ได้วันนี้: +" + earnCoin + " B-Coin\n";
-    lineMsg += "📈 ยอดคงเหลือ: " + r.coins + " | Lv." + r.lv;
+    var dOpts = {year:'numeric', month:'short', day:'numeric'};
+    var todayStr = new Date().toLocaleDateString('th-TH', dOpts);
+    
+    var lineMsg = S.isResubmit ? "🔄 [อัปเดตแก้ไข] รายงานประจำวัน 🔄\n" : "🛡️ [BIFROST] สรุปรายงานประจำวัน 🛡️\n";
+    lineMsg += "📅 วันที่: " + todayStr + "\n\n";
+    
+    lineMsg += "💰 เหรียญทั้งหมดในกระเป๋า: " + r.coins + " B-Coin\n";
+    lineMsg += "✨ เหรียญที่ได้วันนี้: +" + earnCoin + " B-Coin\n\n";
+    
+    lineMsg += "📊 สถิติการฝึกซ้อม:\n";
+    lineMsg += "⚖️ น้ำหนัก: " + (questData.w ? questData.w + " kg" : "-") + "\n";
+    lineMsg += "🦒 ส่วนสูง: " + (questData.h ? questData.h + " cm" : "-") + "\n";
+    lineMsg += "🏊 จำนวนรอบว่ายน้ำ: " + (questData.laps ? questData.laps + " รอบ" : "-") + "\n\n";
+    
+    lineMsg += "⏱️ สถิติเวลาว่ายน้ำ:\n";
+    lineMsg += "🏊 ฟรีสไตล์: " + (questData.swimFr ? questData.swimFr + " วิ" : "-") + "\n";
+    lineMsg += "🏊 กรรเชียง: " + (questData.swimBk ? questData.swimBk + " วิ" : "-") + "\n";
+    lineMsg += "🏊 กบ: " + (questData.swimFg ? questData.swimFg + " วิ" : "-") + "\n";
+    lineMsg += "🏊 ผีเสื้อ: " + (questData.swimBt ? questData.swimBt + " วิ" : "-");
 
     sendToLine("DAILY_REPORT", lineMsg); 
+    // -----------------------------------------
     
     if(bar) { bar.style.width = '100%'; }
     setTimeout(function() {
@@ -493,6 +516,7 @@ function doGmSubmit(){
     addPhoenix: document.querySelector('#gm-add-ph')?.parentElement.classList.contains('active') || false,
     addKey: document.querySelector('#gm-add-key')?.parentElement.classList.contains('active') || false,
     addExp: document.querySelector('#gm-add-exp')?.parentElement.classList.contains('active') || false,
+    addFood: document.querySelector('#gm-add-food')?.parentElement.classList.contains('active') || false, // 🌟 เพิ่มบรรทัดนี้ลงไป
 
     // 🌟 ส่งข้อมูลแก้ไขใหม่ไปให้ระบบ
     swimType: document.getElementById('gm-swim-type')?.value || '',
@@ -603,9 +627,14 @@ function displayGachaResult(res) {
     action.style.display = 'block'; input.style.display = 'block'; input.value = '';
     btn.onclick = function() { 
       if(!input.value) { showToast('พิมพ์เมนูก่อนนะครับ!'); return; }
-      S.coins += res.val; S.todayCoins += res.val; S.todayGacha.push('👨‍🍳 สั่งเมนู: ' + input.value + ' (+'+res.val+' Coins)');
-      sendToLine("ORDER", "👨‍🍳 ออเดอร์พิเศษจากไบฟรอส!\nเมนู: " + input.value + "\n(ได้รับจากการเปิดกาชา!)");
-      saveLocal(); renderAll(); showToast('🍜 ส่งเมนูให้ปะป๊าเรียบร้อย! ได้รับ +5 B-Coin'); closeGacha(); 
+      S.coins += res.val; S.todayCoins += res.val;
+      S.todayGacha.push('👨‍🍳 สั่งเมนู: ' + input.value + ' (+'+res.val+' Coins)');
+      
+      // 🌟 แจ้งเตือน LINE: สั่งอาหารจาก "ตั๋วเชฟทองคำ" (กาชา)
+      sendToLine("CHEF_TICKET", "👨‍🍳 [BIFROST] ออเดอร์พิเศษ!\nเมนู: " + input.value + "\n(ได้รับจาก: 🎫 ตั๋วเชฟทองคำ ในกาชา)");
+      
+      saveLocal(); renderAll();
+      showToast('🍜 ส่งเมนูให้ปะป๊าเรียบร้อย! ได้รับ +5 B-Coin'); closeGacha(); 
     };
   } else {
     btn.onclick = function() { 
@@ -613,8 +642,11 @@ function displayGachaResult(res) {
       else if(res.type === 'item') { S.phoenix++; S.todayGacha.push(res.ico + ' หมุนได้ น้ำตาฟีนิกซ์'); }
       else if(res.type === 'info') { S.coins += res.val; S.todayCoins += res.val; S.todayGacha.push(res.ico + ' ภารกิจ: ' + res.ttl + ' (+'+res.val+' Coins)'); }
       saveLocal(); renderAll(); closeGacha();
-      var lineGachaMsg = res.rarity === 'LEGENDARY' ? "🏆 แจ็คพอตแตก!!\nไบฟรอสเปิดกล่องสมบัติได้รับ: " + res.ttl : "💎 ไบฟรอสเปิดกล่องสมบัติได้รับ: " + res.ttl;
-      sendToLine("GACHA", lineGachaMsg + "\n(ยอดเงินล่าสุด: " + S.coins + " B-Coin)");
+      
+      // 🌟 แจ้งเตือน LINE: ให้เด้งเฉพาะตอนได้รางวัล LEGENDARY (JACKPOT) เท่านั้น รางวัลอื่นเงียบกริบ!
+      if (res.rarity === 'LEGENDARY') {
+          sendToLine("GACHA", "🏆 [BIFROST] แจ็คพอตแตก!!! 🏆\nไบฟรอสเปิดกล่องสมบัติได้รับ:\n✨ " + res.ttl + "\n(ยอดเงินล่าสุด: " + S.coins + " B-Coin)");
+      }
     };
     action.style.display = 'block'; btn.textContent = "รับรางวัล"; document.getElementById('gacha-close').style.display = 'none';
   }
@@ -631,30 +663,29 @@ function updateLog() {
     const isTodayDone = S.submitted; // 🌟 เช็กว่าวันนี้กดส่งเควสไปหรือยัง?
 
     // ==========================================
-    // 🟢 โซนที่ 1: ข้อมูลภารกิจ (โชว์เฉพาะตอนส่งงานแล้ว)
+    // 🟢 โซนที่ 1: ข้อมูลภารกิจ (ลด margin-bottom เป็น 2px)
     // ==========================================
     if (isTodayDone) {
         let qCnt = S.quests ? S.quests.filter(Boolean).length : 0;
         if (qCnt > 0) {
             let qEarn = (S.quests[0]?2:0) + (S.quests[1]?2:0) + (S.quests[2]?2:0);
-            html += `<div style="margin-bottom:5px; color:#4caf50; font-weight:bold;">✅ ภารกิจรายวัน: ${qCnt === 3 ? 'ครบถ้วน' : qCnt+' ข้อ'} (+${qEarn} Coins)</div>`;
+            html += `<div style="margin-bottom:2px; color:#4caf50; font-weight:bold;">✅ ภารกิจรายวัน: ${qCnt === 3 ? 'ครบถ้วน' : qCnt+' ข้อ'} (+${qEarn} Coins)</div>`;
         }
         if (S.todayItemsUsed && S.todayItemsUsed.length > 0) {
-            html += `<div style="margin-bottom:5px; color:#2196f3; font-weight:bold;">🎒 ใช้ไอเทม: ${S.todayItemsUsed.join(', ')}</div>`;
+            html += `<div style="margin-bottom:2px; color:#2196f3; font-weight:bold;">🎒 ใช้ไอเทม: ${S.todayItemsUsed.join(', ')}</div>`;
         }
         if (S.todayGacha && S.todayGacha.length > 0) {
-            html += `<div style="margin-bottom:5px; color:#9c27b0; font-weight:bold;">💎 สมบัติ: ${S.todayGacha.join(', ')}</div>`;
+            html += `<div style="margin-bottom:2px; color:#9c27b0; font-weight:bold;">💎 สมบัติ: ${S.todayGacha.join(', ')}</div>`;
         }
     }
 
     // ==========================================
-    // 📊 โซนที่ 2: สถิติการผจญภัย
+    // 📊 โซนที่ 2: สถิติการผจญภัย (ลดความห่างของเส้นประ)
     // ==========================================
     html += `
-    <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--gbdr);">
-        <div style="color:var(--gold); font-weight:bold; margin-bottom:8px;">📊 สถิติการผจญภัย</div>`;
+    <div style="margin-top:-10px; padding-top:-10px; border-top:1px dashed var(--gbdr);">
+        <div style="color:var(--gold); font-weight:bold; margin-bottom:4px;">📊 สถิติการผจญภัย</div>`;
     
-    // 🌟 ดึงข้อมูล: ถ้าวันใหม่(ยังไม่ส่ง) จะไม่มีค่าปัจจุบัน ให้ดึงแต่อดีตมาเทียบ
     const d = isTodayDone ? (S.todayStats || {}) : {}; 
     const past = isTodayDone ? (S.compareStats || {}) : (S.lastStats || {});
 
@@ -679,11 +710,14 @@ function updateLog() {
     };
 
     function drawStatRow(label, icon, currentVal, prevVal, unit, isTimeBased = false) {
+        // 🌟 ไม้ตายก้นหีบ: บังคับความสูงและระยะห่างขั้นเด็ดขาด (ทับ CSS ทุกตัว 100%)
+        let baseStyle = "display:flex !important; align-items:center !important; justify-content:flex-start !important; padding: 0 !important; margin: 0 !important; height: 0px !important; line-height: 1 !important; font-size:13px !important; color:#333 !important; overflow:visible !important;";
+        
         // 🌟 กรณีที่ 1: พอกดข้ามวัน (ยังไม่ได้ส่งเควส) ให้โชว์ค่า (ล่าสุด: ...)
         if (!isTodayDone) {
             if (!prevVal || prevVal === '' || prevVal == 0) return '';
             return `
-            <div style="display:flex; align-items:center; justify-content:flex-start; padding:2px 0; font-size:13px; color:#333; gap:0 !important;">
+            <div style="${baseStyle}">
                 <span style="margin-right:8px; width:18px; text-align:center;">${icon}</span>
                 <span style="min-width:80px; margin-right:5px; color:#333;">${label}:</span>
                 <span style="font-weight:bold; color:#777;">(ล่าสุด: ${prevVal} ${unit})</span>
@@ -693,7 +727,7 @@ function updateLog() {
         // 🌟 กรณีที่ 2: ส่งเควสแล้ว โชว์ค่าปัจจุบัน + ลูกศร
         if (!currentVal || currentVal === '' || currentVal == 0) return '';
         let rowHtml = `
-        <div style="display:flex; align-items:center; justify-content:flex-start; padding:2px 0; font-size:13px; color:#333; gap:0 !important;">
+        <div style="${baseStyle}">
             <span style="margin-right:8px; width:18px; text-align:center;">${icon}</span>
             <span style="min-width:80px; margin-right:5px; color:#333;">${label}:</span>
             <span style="font-weight:900; color:#111;">${currentVal} ${unit}</span>`;
@@ -722,7 +756,7 @@ function updateLog() {
     statHtml += drawStatRow('ผีเสื้อ', '🏊', cv.bt, pv.bt, 'วิ', true);
     
     if (statHtml === '') {
-        html += `<div style="font-size:12px; color:#777; font-style:italic;">ยังไม่มีข้อมูลสถิติที่บันทึกไว้ครับ...</div>`;
+        html += `<div style="font-size:12px; color:#777; font-style:italic; margin-bottom:4px;">ยังไม่มีข้อมูลสถิติที่บันทึกไว้ครับ...</div>`;
     } else {
         html += statHtml;
     }
@@ -732,14 +766,14 @@ function updateLog() {
     // ==========================================
     // 📚 โซนที่ 3: ความรู้สึก และ วิชาการ
     // ==========================================
-    html += `<div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--gbdr);">`;
+    html += `<div style="margin-top:30px; padding-top:12px; border-top:1px dashed var(--gbdr);">`;
     
     if (isTodayDone && S.feeling !== undefined) {
         const FEEL = ['แย่มาก', 'ไม่ค่อยดี', 'พอสู้ได้', 'ดีทีเดียว', 'ยอดเยี่ยม'];
         const F_ICO = ['😫', '🙁', '😐', '🙂', '🌟'];
         let fidx = parseInt(S.feeling) - 1;
         if(fidx >= 0 && fidx < 5) { 
-            html += `<div style="margin-bottom:8px; font-size:13px; color:#333; display:flex; justify-content:flex-start; gap:0 !important;">
+            html += `<div style="margin-bottom:2px; font-size:13px; color:#333; display:flex; justify-content:flex-start; gap:0 !important;">
                         <span style="margin-right:8px; width:18px; text-align:center;">${F_ICO[fidx]}</span> 
                         <span style="min-width:80px; margin-right:5px;"><b style="color:var(--gold);">ความรู้สึก:</b></span> 
                         <span style="font-weight:bold;">${FEEL[fidx]}</span>
@@ -841,7 +875,7 @@ function checkGachaLock() {
 }
 function updateBestTable(){ var fmt=function(v){return(v===null||v===undefined||v==='')?'—':(v+' วิ');}; ['fr','bt','fg','bk'].forEach(function(k){ var mEl = document.getElementById('mb-'+k), aEl = document.getElementById('ab-'+k); if(mEl && S.monthBest) mEl.textContent=fmt(S.monthBest[k]); if(aEl && S.allBest) aEl.textContent=fmt(S.allBest[k]); }); }
 function syncInv(){ var invK = document.getElementById('inv-key'); if(invK) invK.textContent=S.keys||0; var invP = document.getElementById('inv-ph'); if(invP) invP.textContent=S.phoenix; var shP = document.getElementById('sh-ph'); if(shP) shP.textContent=S.phoenix; var invT = document.getElementById('inv-tk'); if(invT) invT.textContent=S.ticket; var shT = document.getElementById('sh-tk'); if(shT) shT.textContent=S.ticket; var invB = document.getElementById('inv-bc'); if(invB) invB.textContent=S.bcards; }
-function syncShopQuota(){ var pQ = document.getElementById('ph-quota'); if(pQ) pQ.textContent='✅ โควต้าคงเหลือ: '+(1-S.phWeekBought)+'/1'; var fQ = document.getElementById('food-quota'); if(fQ) fQ.textContent='✅ โควต้าคงเหลือ: '+(2-S.foodWeekBought)+'/2'; }
+function syncShopQuota(){ var pQ = document.getElementById('ph-quota'); if(pQ) pQ.textContent='✅ โควต้าคงเหลือ: '+(1-S.phWeekBought)+'/1'; var fQ = document.getElementById('food-quota'); if(fQ) fQ.textContent='✅ โควต้าคงเหลือ: '+(1-S.foodWeekBought)+'/1'; }
 
 function syncBCard(){ 
   var bcs = document.getElementById('bc-status'); var inputAmt = document.getElementById('in-bc-amount'); var btnB = document.getElementById('btn-bc');
@@ -856,25 +890,66 @@ var toastTm; function showToast(m){ var t=document.getElementById('toast'); if(!
 function cfmShow(ico,ttl,msg,cb){ var ci = document.getElementById('ci'); if(ci) ci.textContent=ico; var ct2 = document.getElementById('ct2'); if(ct2) ct2.textContent=ttl; var cm = document.getElementById('cm'); if(cm) cm.textContent=msg; S.pending=cb; var cfm = document.getElementById('cfm'); if(cfm) cfm.classList.add('on'); }
 
 function usePhoenix(){ if(S.phoenix<=0) showToast('❌ ไม่มีน้ำตาฟีนิกซ์ในคลัง'); else showToast('✅ กดใช้ที่ไอคอนรูปกะโหลก 💀 ในหน้า Streak ได้เลย!'); }
-function useTicket(){ if(S.ticket<=0){showToast('❌ ไม่มีตั๋วเชฟทองคำ\nซื้อที่ร้านค้าก่อนนะ! 🛒');return;} cfmShow('🍜','สั่งอาหารพิเศษ?','(คงเหลือ: '+S.ticket+' ใบ)',function(){ S.ticket--; saveLocal(); syncInv(); var fdM = document.getElementById('fd-mov'); if(fdM) fdM.classList.add('on'); }); }
-function useBcItem(){ if(S.bcards<=0){showToast('❌ ยังไม่มี B-Card ในคลัง');return;} cfmShow('🎫','แสดง B-Card?','⚠️ จะหักออก 1 ใบ หลังยืนยัน',function(){ gasCall('useBCard',undefined,function(r){applyData(r);openBcScreen();}); }); }
-function buyPh(){ if(S.coins < 15){ showToast('❌ B-Coin ไม่พอ!'); return; } if(S.phWeekBought >= 1){ showToast('❌ หมดโควต้าสัปดาห์นี้แล้ว!'); return; } if(S.phoenix >= 2){ showToast('❌ คลังเต็มแล้ว!'); return; } cfmShow('💧','ซื้อน้ำตาฟีนิกซ์?','ราคา 15 B-Coin',function(){ gasCall('buyItem','phoenix',function(r){applyData(r);showToast('💧 ซื้อสำเร็จ!');}); }); }
-function buyFood(){ if(S.coins < 50){ showToast('❌ B-Coin ไม่พอ!'); return; } if(S.foodWeekBought >= 2){ showToast('❌ หมดโควต้าสัปดาห์นี้แล้ว!'); return; } cfmShow('🍜','ซื้อน้ำยาแสนอร่อย?','ราคา 50 B-Coin',function(){ gasCall('buyItem','food',function(r){applyData(r);showToast('🍜 ซื้อสำเร็จ!');}); }); }
+function useTicket(){ 
+    if(S.ticket<=0){ showToast('❌ ไม่มีน้ำยาแสนอร่อย\nซื้อที่ร้านค้าก่อนนะ! 🛒'); return; } 
+    cfmShow('🍜','ดื่มน้ำยาแสนอร่อย?','(เพื่อสั่งเมนูพิเศษ คงเหลือ: '+S.ticket+' ขวด)', function(){ 
+        S.ticket--; saveLocal(); syncInv(); 
+        var fdM = document.getElementById('fd-mov'); if(fdM) fdM.classList.add('on'); 
+    }); 
+}
 
 function confirmFd(){ 
   var fdM = document.getElementById('fd-mov');
   if(fdM) {
     var inputEl = fdM.querySelector('input') || fdM.querySelector('textarea');
     var menuText = (inputEl && inputEl.value.trim() !== '') ? inputEl.value : 'เมนูพิเศษ (ไม่ได้ระบุ)';
-    if(!S.todayItemsUsed) S.todayItemsUsed = []; S.todayItemsUsed.push('👨‍🍳 สั่งเมนู: ' + menuText);
+    if(!S.todayItemsUsed) S.todayItemsUsed = []; S.todayItemsUsed.push('🍜 สั่งเมนู: ' + menuText);
     if(!S.chefUsed) S.chefUsed = 0; S.chefUsed++;
     saveLocal(); renderAll();
-    sendToLine("ORDER", "👨‍🍳 ออเดอร์พิเศษจากไบฟรอส!\nเมนู: " + menuText + "\n(กรุณาเตรียมความอร่อยให้พร้อม!)");
+    
+    // 🌟 แจ้งเตือน LINE: สั่งอาหารจาก "น้ำยาแสนอร่อย" (คลังไอเทม)
+    sendToLine("POTION", "👨‍🍳 [BIFROST] ออเดอร์พิเศษ!\nเมนู: " + menuText + "\n(ใช้ไอเทม: 🍜 น้ำยาแสนอร่อย)");
+    
     if(inputEl) inputEl.value = '';
     fdM.classList.remove('on'); 
     showChefCard(menuText);
   }
 }
+function useBcItem(){ if(S.bcards<=0){showToast('❌ ยังไม่มี B-Card ในคลัง');return;} cfmShow('🎫','แสดง B-Card?','⚠️ จะหักออก 1 ใบ หลังยืนยัน',function(){ gasCall('useBCard',undefined,function(r){applyData(r);openBcScreen();}); }); }
+function buyPh() {
+    if(S.coins < 15){ showToast('❌ B-Coin ไม่พอ!'); return; }
+    if(S.phWeekBought >= 1){ showToast('❌ หมดโควต้าสัปดาห์นี้แล้ว!'); return; }
+    if(S.phoenix >= 2){ showToast('❌ คลังเต็มแล้ว!'); return; }
+    
+    cfmShow('💧', 'ซื้อน้ำตาฟีนิกซ์?', 'ราคา 15 B-Coin', function() {
+        // 🌟 ให้ระบบหน้าจอ หักเงินและเพิ่มไอเทมเองทันที!
+        S.coins -= 15;
+        S.phoenix = (S.phoenix || 0) + 1;
+        S.phWeekBought = (S.phWeekBought || 0) + 1;
+        
+        saveLocal();
+        renderAll();
+        showToast('💧 ซื้อน้ำตาฟีนิกซ์สำเร็จ!');
+    });
+}
+
+function buyFood() {
+    if(S.coins < 50){ showToast('❌ B-Coin ไม่พอ!'); return; }
+    if(S.foodWeekBought >= 2){ showToast('❌ หมดโควต้าสัปดาห์นี้แล้ว!'); return; }
+    
+    cfmShow('🍜', 'ซื้อตั๋วเชฟทองคำ?', 'ราคา 50 B-Coin', function() {
+        // 🌟 ให้ระบบหน้าจอ หักเงินและเพิ่มตั๋วเองทันที!
+        S.coins -= 50;
+        S.ticket = (S.ticket || 0) + 1;
+        S.foodWeekBought = (S.foodWeekBought || 0) + 1;
+        
+        saveLocal();
+        renderAll();
+        showToast('🍜 ซื้อตั๋วเชฟทองคำสำเร็จ!');
+    });
+}
+
+
 
 function showChefCard(menuText) {
   var d = new Date(); var dateStr = d.toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'}); var serialStr = 'CHEF-' + String(S.chefUsed).padStart(4,'0');
@@ -1375,10 +1450,12 @@ setTimeout(function() {
             // 📝 บันทึกประวัติการซื้อ (สำหรับเก็บข้อมูล)
             if (!S.todayItemsUsed) S.todayItemsUsed = [];
             S.todayItemsUsed.push('🎟️ แลกบัตร B-Card (' + amount + ' B-Coin)');
+            // ส่งแจ้งเตือนเข้า LINE เมื่อแลก B-Card
+            sendToLine("BCARD", "🎫 [BIFROST] แจ้งเตือนด่วน!\nไบฟรอสได้ทำการแลก B-Card 1 ใบ!\n💎 มูลค่า: " + amount + " B-Coin\n💰 ยอดเงินคงเหลือ: " + S.coins + " B-Coin");
             
             saveLocal();
             renderAll();
-            showToast('🎟️ แลก B-Card สำเร็จ!');
+            
             
             // 📝 ยิงข้อความอัปเดตลง Log หน้าแรก (Dashboard) ทันที
             if (typeof updateLog === 'function') updateLog();
@@ -1437,3 +1514,59 @@ setTimeout(function() {
         renderAll(); // อัปเดตทันทีที่เปิดแอป
     }
 }, 500);
+
+// ==========================================
+// 🛒 ชุดแพตช์อัปเกรดร้านค้า V.3 (แยกระบบน้ำยาแสนอร่อย)
+// ==========================================
+setTimeout(function() {
+    // 1. ปุ่มซื้อ "น้ำตาฟีนิกซ์"
+    var btnPh = document.getElementById('sh-ph-btn');
+    if (btnPh) {
+        var newBtnPh = btnPh.cloneNode(true);
+        btnPh.parentNode.replaceChild(newBtnPh, btnPh);
+        
+        newBtnPh.onclick = function() {
+            if((S.coins||0) < 15){ showToast('❌ B-Coin ไม่พอ!'); return; }
+            if((S.phWeekBought||0) >= 1){ showToast('❌ หมดโควต้าสัปดาห์นี้แล้ว!'); return; }
+            if((S.phoenix||0) >= 2){ showToast('❌ คลังเต็มแล้ว!'); return; }
+            
+            cfmShow('💧', 'ซื้อน้ำตาฟีนิกซ์?', 'ราคา 15 B-Coin', function() {
+                S.coins -= 15; 
+                S.phoenix = (S.phoenix || 0) + 1; 
+                S.phWeekBought = (S.phWeekBought || 0) + 1; 
+                
+                if (!S.todayItemsUsed) S.todayItemsUsed = [];
+                S.todayItemsUsed.push('🛒 ซื้อน้ำตาฟีนิกซ์ (-15 Coins)');
+                
+                saveLocal(); renderAll();
+                if (typeof updateLog === 'function') updateLog();
+                showToast('💧 ซื้อน้ำตาฟีนิกซ์สำเร็จ!');
+            });
+        };
+    }
+
+    // 2. ปุ่มซื้อ "น้ำยาแสนอร่อย" (ตั้งโควต้าสัปดาห์ละ 1 ครั้ง)
+    var btnFood = document.getElementById('sh-food-btn');
+    if (btnFood) {
+        var newBtnFood = btnFood.cloneNode(true);
+        btnFood.parentNode.replaceChild(newBtnFood, btnFood);
+        
+        newBtnFood.onclick = function() {
+            if((S.coins||0) < 50){ showToast('❌ B-Coin ไม่พอ!'); return; }
+            if((S.foodWeekBought||0) >= 1){ showToast('❌ หมดโควต้าสัปดาห์นี้แล้ว!'); return; } // โควต้า 1 ครั้ง/สัปดาห์
+            
+            cfmShow('🍜', 'ซื้อน้ำยาแสนอร่อย?', 'ราคา 50 B-Coin', function() {
+                S.coins -= 50; 
+                S.ticket = (S.ticket || 0) + 1; 
+                S.foodWeekBought = (S.foodWeekBought || 0) + 1; 
+                
+                if (!S.todayItemsUsed) S.todayItemsUsed = [];
+                S.todayItemsUsed.push('🛒 ซื้อน้ำยาแสนอร่อย (-50 Coins)');
+                
+                saveLocal(); renderAll();
+                if (typeof updateLog === 'function') updateLog();
+                showToast('🍜 ซื้อน้ำยาแสนอร่อยสำเร็จ!');
+            });
+        };
+    }
+}, 600);
