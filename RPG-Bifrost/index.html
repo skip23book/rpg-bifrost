@@ -204,19 +204,19 @@
       </div>
       <div class="card" style="position:relative;">
     <div class="ct"><span class="d"></span>🗺️ เส้นทางนักผจญภัย</div>
-    <div style="position:absolute; top:15px; right:15px; background:linear-gradient(45deg, #ffd700, #ff8c00); color:#000; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">เป้าหมาย: 🗝️🗝️</div>
+    
     
     <div id="streak-path" style="display:flex; justify-content:space-between; align-items:center; position:relative; padding:15px 5px 5px 5px;">
-        <div style="position:absolute; top:55%; left:8%; right:8%; height:3px; background:var(--gbdr); z-index:0; transform: translateY(-50%);"></div>
-        
-        <div id="st-slots" style="display:flex; justify-content:space-between; width:100%; z-index:1;">
-        </div>
+    <div style="position:absolute; top:55%; left:8%; right:8%; height:3px; background:var(--gbdr); z-index:0; transform: translateY(-50%);"></div>
+    <div id="st-slots" style="display:flex; justify-content:space-between; width:100%; z-index:1;"></div>
+</div> <div style="font-size:12px; color:#aaa; text-align:center; margin-top:20px; margin-bottom:10px; letter-spacing:0.5px; width:100%;">
+    จัดการสัตว์ร้ายให้ครบ 7 ตัวซิ แล้วรับรางวัลไปเลย<br>
+        <b style="color:var(--gold);">✦ 🪙+18 Coin พร้อมกับกุญแจทองคำ 2 ดอก 🗝️🗝️ ✦</b>
     </div>
 </div>
-    
-    
-      <div class="card">
-        <div class="ct"><span class="d"></span>Hall of Fame</div>
+
+<div class="card">
+    <div class="ct"><span class="d"></span>Hall of Fame</div>
         <div class="hof">
           <div class="tr" onclick="showHof('shark')"><div class="tri off" id="hof-shark">🦈</div><div class="trl">ฉลามลมกรด</div></div>
           <div class="tr" onclick="showHof('book')"><div class="tri off" id="hof-book">📚</div><div class="trl">ม้วนคัมภีร์</div></div>
@@ -231,7 +231,7 @@
         </div>
         
         <div class="ir active" id="inv-tk-row">
-          <div class="ii">🍜 ตั๋วเชฟทองคำ</div>
+          <div class="ii">🍜 น้ำยาแสนอร่อย</div>
           <div class="ir-right"><span class="ic skeleton-target" id="inv-tk">0</span><span class="use-pill">ใช้งาน</span></div>
         </div>
         <div class="ir active" id="inv-bc-row">
@@ -549,6 +549,11 @@
       <div class="gm-item-sel" onclick="this.classList.toggle('active')" style="flex:1; background:rgba(255,255,255,0.05); border:1px solid rgba(184,144,32,0.3); border-radius:10px; padding:10px 5px; text-align:center; cursor:pointer;">
         <div class="gm-item-ico" style="font-size:20px; margin-bottom:5px;">⭐</div><div class="gm-item-txt" style="font-size:9px; color:var(--gold); font-weight:bold;">+50 EXP</div><input type="checkbox" id="gm-add-exp" style="display:none">
       </div>
+      <div class="gm-item-sel" onclick="this.classList.toggle('active')" style="flex:1; background:rgba(255,255,255,0.05); border:1px solid rgba(184,144,32,0.3); border-radius:10px; padding:10px; cursor:pointer; text-align:center;">
+    <div class="gm-item-ico" style="font-size:20px; margin-bottom:5px;">🍜</div>
+    <div class="gm-item-txt" style="font-size:9px; color:var(--gold); font-weight:bold;">+1 น้ำยา</div>
+    <input type="checkbox" id="gm-add-food" style="display:none;">
+</div>
     </div>
     
     <div style="background:var(--bg2); padding:15px; border-radius:10px; margin-top:15px; margin-bottom:15px; border:1px solid var(--gbdr);">
