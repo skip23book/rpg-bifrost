@@ -38,6 +38,13 @@
     .status{margin-top:12px;color:var(--muted);font-size:12px;line-height:1.7;text-align:center;background:rgba(0,0,0,.16);border:1px dashed rgba(255,215,0,.18);border-radius:12px;padding:10px}
     .status.bad{color:#ffd1d1;border-color:rgba(255,115,115,.35)}
     .status.good{color:#dcffdf;border-color:rgba(142,228,142,.35)}
+    .loading{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(8,10,24,.72);backdrop-filter:blur(6px)}
+    .loading.on{display:flex}
+    .loading-card{width:min(360px,100%);text-align:center;border:1px solid var(--line);border-radius:18px;padding:26px 22px;background:linear-gradient(180deg,rgba(43,45,80,.98),rgba(18,20,38,.98));box-shadow:0 24px 70px rgba(0,0,0,.48),inset 0 0 0 1px rgba(255,255,255,.07)}
+    .loading-mark{width:58px;height:58px;margin:0 auto 16px;border-radius:50%;border:3px solid rgba(255,215,0,.18);border-top-color:var(--gold);animation:spin .9s linear infinite}
+    .loading-title{font:700 23px Cinzel,serif;letter-spacing:2px;color:#fff;margin-bottom:7px;text-shadow:0 0 16px rgba(255,215,0,.34)}
+    .loading-text{font-size:13px;color:var(--muted);line-height:1.7}
+    @keyframes spin{to{transform:rotate(360deg)}}
     @media (min-width:860px){.grid{grid-template-columns:1fr 1fr}.hero h1{font-size:34px}}
     @media (max-width:620px){.scene{padding:14px 10px 24px}.top{align-items:flex-start}.brand{font-size:18px;letter-spacing:3px}.hero{padding:16px}.hero h1{font-size:24px}.summary{grid-template-columns:1fr 1fr}.chart-wrap{height:315px}.card{padding:12px}.card-head{display:block}.hint{text-align:left;margin-top:5px}}
     @media (max-width:360px){.summary{grid-template-columns:1fr}.back{padding:8px 10px;font-size:11px}}
@@ -81,6 +88,14 @@
     </div>
   </main>
 
+  <div class="loading on" id="loadingOverlay" role="status" aria-live="polite">
+    <div class="loading-card">
+      <div class="loading-mark"></div>
+      <div class="loading-title">กำลังโหลดข้อมูล</div>
+      <div class="loading-text">กำลังดึงสถิติจาก Archive_Data และ Main กรุณารอสักครู่...</div>
+    </div>
+  </div>
+
   <script>
     const SHEET_URL = "https://script.google.com/macros/s/AKfycbzhZ4vnKvSMhxay6Wz2Ur86cI3bBXhel3ms_v9yH27eEKT9m8M4QmcMFypts59iwXst/exec";
     const els = {
@@ -97,6 +112,10 @@
     function setStatus(message, type) {
       els.status.textContent = message;
       els.status.className = "status" + (type ? " " + type : "");
+    }
+
+    function setLoading(isLoading) {
+      document.getElementById("loadingOverlay")?.classList.toggle("on", isLoading);
     }
 
     function toNumber(value) {
@@ -273,26 +292,31 @@
     }
 
     async function loadArchive() {
+      setLoading(true);
       setStatus("กำลังโหลดข้อมูล Archive_Data และ Main...");
-      const [archiveResult, mainResult] = await Promise.allSettled([fetchJson("fetchArchive"), fetchJson("loadSave")]);
-      const archiveRows = archiveResult.status === "fulfilled" ? normalizeRows(extractRows(archiveResult.value), "Archive") : [];
-      let mainRows = mainResult.status === "fulfilled" ? mainRowsFromSave(mainResult.value) : [];
-      const localRows = mainRows.length ? [] : mainRowsFromSave(loadLocalSave());
-      if (!mainRows.length && localRows.length) mainRows = localRows;
-      const rows = mergeRows(archiveRows, mainRows);
-      renderSummary(rows);
-      renderCharts(rows);
-      if (!rows.length) {
-        const failures = [];
-        if (archiveResult.status === "rejected") failures.push("fetchArchive: " + archiveResult.reason.message);
-        if (mainResult.status === "rejected") failures.push("loadSave: " + mainResult.reason.message);
-        setStatus("ยังไม่มีข้อมูลสถิติจาก Archive_Data, Main หรือ localStorage" + (failures.length ? " (" + failures.join(" | ") + ")" : ""), "bad");
-        return;
+      try {
+        const [archiveResult, mainResult] = await Promise.allSettled([fetchJson("fetchArchive"), fetchJson("loadSave")]);
+        const archiveRows = archiveResult.status === "fulfilled" ? normalizeRows(extractRows(archiveResult.value), "Archive") : [];
+        let mainRows = mainResult.status === "fulfilled" ? mainRowsFromSave(mainResult.value) : [];
+        const localRows = mainRows.length ? [] : mainRowsFromSave(loadLocalSave());
+        if (!mainRows.length && localRows.length) mainRows = localRows;
+        const rows = mergeRows(archiveRows, mainRows);
+        renderSummary(rows);
+        renderCharts(rows);
+        if (!rows.length) {
+          const failures = [];
+          if (archiveResult.status === "rejected") failures.push("fetchArchive: " + archiveResult.reason.message);
+          if (mainResult.status === "rejected") failures.push("loadSave: " + mainResult.reason.message);
+          setStatus("ยังไม่มีข้อมูลสถิติจาก Archive_Data, Main หรือ localStorage" + (failures.length ? " (" + failures.join(" | ") + ")" : ""), "bad");
+          return;
+        }
+        const parts = [];
+        if (archiveRows.length) parts.push(`Archive_Data ${archiveRows.length.toLocaleString("th-TH")} รายการ`);
+        if (mainRows.length) parts.push(`${localRows.length ? "localStorage" : "Main"} ${mainRows.length.toLocaleString("th-TH")} รายการ`);
+        setStatus(`โหลดสำเร็จ: ${parts.join(" + ")}`, "good");
+      } finally {
+        setLoading(false);
       }
-      const parts = [];
-      if (archiveRows.length) parts.push(`Archive_Data ${archiveRows.length.toLocaleString("th-TH")} รายการ`);
-      if (mainRows.length) parts.push(`${localRows.length ? "localStorage" : "Main"} ${mainRows.length.toLocaleString("th-TH")} รายการ`);
-      setStatus(`โหลดสำเร็จ: ${parts.join(" + ")}`, "good");
     }
 
     function closeStatsPage() {
