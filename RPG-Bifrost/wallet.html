@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BIFROST E-Wallet</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Noto+Sans+Thai:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#fff4dc;--paper:#fffdf5;--ink:#2d2342;--muted:#786a8a;
+      --gold:#c98817;--gold2:#ffd86a;--sky:#72c7ec;--aqua:#63d3cb;--pink:#ff9dbb;
+      --green:#2f9a64;--red:#d24654;--line:rgba(201,136,23,.32);
+      --shadow:0 18px 46px rgba(89,61,20,.18);
+    }
+    html,body{min-height:100%;background:var(--bg);color:var(--ink)}
+    body{font-family:"Noto Sans Thai","Segoe UI",sans-serif;overflow-x:hidden}
+    .scene{
+      min-height:100vh;padding:18px 16px 28px;position:relative;isolation:isolate;
+      background:
+        radial-gradient(circle at 12% 12%,rgba(255,157,187,.34),transparent 28%),
+        radial-gradient(circle at 86% 8%,rgba(114,199,236,.42),transparent 31%),
+        radial-gradient(circle at 50% 92%,rgba(255,216,106,.38),transparent 36%),
+        linear-gradient(180deg,#fff8e8 0%,#eaf8ff 48%,#fff4dc 100%);
+    }
+    .scene::before{
+      content:"";position:absolute;inset:0;z-index:-1;opacity:.42;
+      background-image:
+        radial-gradient(circle,rgba(255,255,255,.86) 0 2px,transparent 3px),
+        linear-gradient(120deg,transparent 0 44%,rgba(255,255,255,.55) 45% 46%,transparent 47%),
+        linear-gradient(60deg,transparent 0 48%,rgba(201,136,23,.14) 49% 50%,transparent 51%);
+      background-size:38px 38px,92px 92px,118px 118px;
+    }
+    .app{max-width:430px;margin:0 auto}
+    .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .brand{letter-spacing:4px;color:var(--gold);font:700 17px Cinzel,serif;text-shadow:0 2px 0 #fff}
+    .sub{font-size:11px;color:var(--muted);letter-spacing:2px;margin-top:2px}
+    .back{
+      text-decoration:none;color:#7a4d04;background:rgba(255,255,255,.78);
+      border:2px solid rgba(255,216,106,.82);border-radius:999px;padding:8px 13px;font-weight:800;font-size:12px;
+      box-shadow:0 5px 0 rgba(201,136,23,.18);
+    }
+    .wallet-card{
+      position:relative;overflow:hidden;border:1px solid rgba(185,138,24,.4);border-radius:18px;
+      background:
+        radial-gradient(circle at 18% 22%,rgba(255,255,255,.78),transparent 28%),
+        linear-gradient(145deg,#fffdf5 0%,#fff0b8 42%,#c9f4ff 100%);
+      box-shadow:var(--shadow),inset 0 0 0 4px rgba(255,255,255,.52);padding:22px 20px 20px;
+    }
+    .wallet-card::before{
+      content:"";position:absolute;right:-52px;top:-56px;width:160px;height:160px;border-radius:50%;
+      border:24px solid rgba(255,255,255,.45);
+    }
+    .wallet-card::after{
+      content:"✦";position:absolute;right:28px;top:26px;color:#fff;font-size:42px;
+      text-shadow:0 0 12px rgba(255,216,106,.9),0 3px 0 rgba(201,136,23,.18);
+      animation:twinkle 2.4s ease-in-out infinite;
+    }
+    @keyframes twinkle{0%,100%{transform:scale(1) rotate(0deg);opacity:.88}50%{transform:scale(1.18) rotate(10deg);opacity:1}}
+    .treasure{
+      display:flex;align-items:center;justify-content:center;width:92px;height:92px;margin:0 auto 12px;
+      border-radius:28px;background:linear-gradient(150deg,#fff 0%,#fff0ae 45%,#8fe4f0 100%);
+      border:3px solid rgba(255,216,106,.9);box-shadow:0 12px 26px rgba(88,123,154,.18),inset 0 0 0 5px rgba(255,255,255,.6);
+      font-size:52px;position:relative;
+    }
+    .treasure::before,.treasure::after{position:absolute;font-size:18px;color:var(--gold);text-shadow:0 2px 0 #fff}
+    .treasure::before{content:"✦";left:-10px;top:6px}.treasure::after{content:"◆";right:-9px;bottom:9px;color:var(--sky)}
+    .label{font-size:12px;color:var(--muted);letter-spacing:2px;font-weight:700}
+    .coin-row{display:flex;align-items:flex-end;justify-content:center;gap:10px;margin-top:8px;position:relative}
+    .coin{font-size:50px;line-height:1;font-weight:800;color:#7b5510;text-shadow:0 3px 0 #fff,0 8px 18px rgba(201,136,23,.18)}
+    .unit{font-size:14px;color:var(--gold);font-weight:800;margin-bottom:8px}
+    .meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+    .pill{background:rgba(255,255,255,.72);border:2px solid rgba(255,216,106,.54);border-radius:14px;padding:10px;box-shadow:0 5px 0 rgba(201,136,23,.12)}
+    .pill b{display:block;font-size:17px;color:var(--ink)}
+    .pill span{font-size:11px;color:var(--muted)}
+    .panel{
+      margin-top:14px;background:rgba(255,255,255,.78);border:2px solid rgba(255,216,106,.42);
+      border-radius:18px;padding:16px;box-shadow:0 8px 24px rgba(70,46,18,.08),inset 0 0 0 3px rgba(255,255,255,.38);
+    }
+    .panel-title{font:700 13px Cinzel,serif;color:var(--gold);letter-spacing:2px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+    .panel-title::before{content:"✦";color:var(--pink);font-family:"Noto Sans Thai";font-size:15px}
+    .amounts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+    .chip{
+      border:2px solid rgba(255,216,106,.64);background:#fffaf0;color:var(--ink);
+      border-radius:14px;padding:11px 6px;font:800 13px "Noto Sans Thai";cursor:pointer;
+      box-shadow:0 5px 0 rgba(201,136,23,.14);
+    }
+    .chip.on{background:linear-gradient(135deg,#ff9dbb,var(--gold2));color:white;box-shadow:0 8px 18px rgba(255,157,187,.28)}
+    .field{display:grid;gap:6px;margin-bottom:12px}
+    .field label{font-size:12px;color:var(--muted);font-weight:700}
+    .field input{
+      width:100%;border:2px solid rgba(114,199,236,.32);background:white;border-radius:14px;
+      padding:12px 13px;font:700 16px "Noto Sans Thai";color:var(--ink);outline:none;
+      box-shadow:inset 0 2px 0 rgba(114,199,236,.08);
+    }
+    .field input:focus{border-color:var(--sky);box-shadow:0 0 0 4px rgba(114,199,236,.18)}
+    .quote{
+      display:flex;justify-content:space-between;align-items:center;background:#eefbff;
+      border:2px solid rgba(99,211,203,.34);border-radius:15px;padding:12px;margin-bottom:12px;
+    }
+    .quote span{font-size:12px;color:var(--muted)}
+    .quote b{font-size:22px;color:var(--green)}
+    .primary{
+      width:100%;border:0;border-radius:12px;padding:14px 16px;cursor:pointer;
+      background:linear-gradient(135deg,#5aafe5,var(--aqua));color:white;
+      font:800 15px "Noto Sans Thai";box-shadow:0 7px 0 rgba(47,117,168,.22),0 14px 24px rgba(47,117,168,.2);
+    }
+    .primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+    .note{font-size:11px;line-height:1.8;color:var(--muted);margin-top:10px}
+    .history{display:grid;gap:8px}
+    .tx{display:flex;justify-content:space-between;gap:12px;background:#fff;border:2px solid rgba(114,199,236,.18);border-radius:14px;padding:10px 12px}
+    .tx strong{font-size:13px}.tx small{display:block;color:var(--muted);font-size:10px;margin-top:2px}.tx b{color:var(--red);white-space:nowrap}
+    .toast{
+      position:fixed;left:50%;top:16px;transform:translate(-50%,-86px);z-index:50;transition:.3s;
+      max-width:330px;width:calc(100% - 32px);background:#241b2f;color:white;border-radius:12px;
+      padding:12px 16px;text-align:center;font-size:13px;box-shadow:0 12px 30px rgba(0,0,0,.24);
+    }
+    .toast.on{transform:translate(-50%,0)}
+    .modal{position:fixed;inset:0;background:rgba(26,18,34,.48);display:none;align-items:center;justify-content:center;padding:18px;z-index:40}
+    .modal.on{display:flex}
+    .pinbox{width:100%;max-width:330px;background:#fffdf7;border:3px solid rgba(255,216,106,.72);border-radius:22px;padding:20px;box-shadow:var(--shadow),inset 0 0 0 4px rgba(255,255,255,.58);text-align:center}
+    .pin-title{font-weight:800;color:var(--ink);font-size:18px}.pin-sub{font-size:12px;color:var(--muted);margin-top:4px}
+    .dots{display:flex;justify-content:center;gap:10px;margin:18px 0}
+    .dot{width:13px;height:13px;border-radius:50%;border:2px solid rgba(185,138,24,.38)}.dot.on{background:var(--gold);border-color:var(--gold)}
+    .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+    .key{border:2px solid rgba(114,199,236,.2);background:white;border-radius:14px;padding:13px 0;font-weight:800;font-size:18px;cursor:pointer;box-shadow:0 5px 0 rgba(114,199,236,.14)}
+    .key.muted{font-size:12px;color:var(--muted)}
+    .reward-screen{
+      position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;
+      padding:22px;background:radial-gradient(circle at center,rgba(255,218,90,.34),rgba(52,30,8,.78));
+      backdrop-filter:blur(5px);
+    }
+    .reward-screen.on{display:flex}
+    .gold-card{
+      width:min(330px,100%);min-height:416px;position:relative;overflow:hidden;text-align:center;
+      background:
+        linear-gradient(#f6d982 0 0) left top/100% 10px no-repeat,
+        linear-gradient(#f6d982 0 0) left bottom/100% 10px no-repeat,
+        radial-gradient(circle at 50% 18%,rgba(255,255,255,.92),transparent 25%),
+        linear-gradient(180deg,#fffdf1 0%,#fff4ca 58%,#fff9e6 100%);
+      border:8px solid #9b6a00;border-radius:24px;padding:20px 20px 18px;
+      box-shadow:0 26px 70px rgba(48,27,0,.55),inset 0 0 0 2px rgba(255,255,255,.9);
+      animation:cardPop .36s cubic-bezier(.22,1.35,.36,1) both;
+    }
+    .gold-card::before,.gold-card::after{
+      content:"";position:absolute;top:50%;width:34px;height:34px;border-radius:50%;background:#b67b00;transform:translateY(-50%);
+    }
+    .gold-card::before{left:-21px}.gold-card::after{right:-21px}
+    @keyframes cardPop{from{opacity:0;transform:translateY(18px) scale(.92)}to{opacity:1;transform:translateY(0) scale(1)}}
+    .card-star{position:absolute;color:#e5ae10;font-size:24px;text-shadow:0 2px 0 #ffe98d,0 4px 10px rgba(155,106,0,.24)}
+    .card-star.s1{left:18px;top:16px}.card-star.s2{right:18px;top:16px}.card-star.s3{left:18px;bottom:16px}.card-star.s4{right:18px;bottom:16px}
+    .card-brand{font:700 12px Cinzel,serif;letter-spacing:5px;color:#7c5200;margin-top:2px}
+    .card-small-stars{font-size:13px;color:#d49900;letter-spacing:4px;margin:5px 0 14px}
+    .dash{border:0;border-top:2px dashed rgba(155,106,0,.28);margin:0 0 14px}
+    .reward-amount{font:700 64px/1 Cinzel,serif;color:#3c2508;text-shadow:0 3px 0 rgba(255,255,255,.8);letter-spacing:1px}
+    .reward-type{font:700 27px/1.15 Cinzel,serif;color:#8d5b00;letter-spacing:3px;margin-top:8px}
+    .reward-note{margin:15px 8px 14px;padding:12px;border-radius:10px;background:rgba(245,216,130,.42);color:#7d4e00;font-size:12px;line-height:1.8}
+    .reward-owner{font:700 14px Cinzel,serif;color:#3c2508;letter-spacing:1px;margin-top:12px}
+    .reward-date{font-size:11px;color:#8b650e;margin-top:4px}
+    .reward-serial{font:700 11px Cinzel,serif;color:#b77c07;letter-spacing:3px;margin-top:8px}
+    .use-card{
+      width:100%;margin-top:14px;border:0;border-radius:12px;padding:12px 16px;cursor:pointer;
+      background:linear-gradient(135deg,#a66d00,#ffd76a,#b57b00);color:#3c2508;
+      font:800 15px "Noto Sans Thai";box-shadow:0 6px 0 rgba(86,50,0,.22);
+    }
+    @media (max-width:360px){.coin{font-size:38px}.amounts{grid-template-columns:1fr 1fr}.meta{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <main class="scene">
+    <div class="app">
+      <header class="top">
+        <div>
+          <div class="brand">BIFROST</div>
+          <div class="sub">E-WALLET</div>
+        </div>
+        <button class="back" id="closePageBtn" type="button">ปิดหน้านี้</button>
+      </header>
+
+      <section class="wallet-card">
+        <div class="treasure">💎</div>
+        <div class="label">ยอดเหรียญปัจจุบัน</div>
+        <div class="coin-row">
+          <div class="coin" id="coinBalance">...</div>
+          <div class="unit">B-Coin</div>
+        </div>
+        <div class="meta">
+          <div class="pill"><b id="rateText">100 = 100</b><span>B-Coin เป็นบาท</span></div>
+          <div class="pill"><b id="statusText">กำลังซิงค์</b><span>สถานะข้อมูล</span></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title">MORA EXCHANGE</div>
+        <div class="amounts" id="amountButtons">
+          <button class="chip on" data-act="all">แลกทั้งหมด</button>
+        </div>
+        <div class="field">
+          <label for="coinAmount">จำนวน B-Coin ที่ต้องการแลก</label>
+          <input id="coinAmount" type="number" min="1" step="1" inputmode="numeric" value="100">
+        </div>
+        <div class="quote">
+          <span>จะได้รับเงิน</span>
+          <b id="bahtPreview">10 บาท</b>
+        </div>
+        <button class="primary" id="exchangeBtn">✨ แลกเงิน ✨</button>
+        <p class="note">ระบบจะให้ใส่ PIN 4 หลักก่อนยืนยัน แล้วหักเหรียญจาก Cloud Save และแจ้งเตือนเข้า LINE OA อัตโนมัติ</p>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title">RECENT EXCHANGE</div>
+        <div class="history" id="historyList">
+          <div class="tx"><div><strong>ยังไม่มีรายการในหน้านี้</strong><small>รายการใหม่จะแสดงหลังแลกสำเร็จ</small></div><b>-</b></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div class="modal" id="pinModal">
+    <div class="pinbox">
+      <div class="pin-title">ยืนยันด้วย PIN</div>
+      <div class="pin-sub" id="pinSummary">แลก 100 B-Coin เป็น 10 บาท</div>
+      <div class="dots" id="pinDots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+      <div class="pad" id="pinPad">
+        <button class="key">1</button><button class="key">2</button><button class="key">3</button>
+        <button class="key">4</button><button class="key">5</button><button class="key">6</button>
+        <button class="key">7</button><button class="key">8</button><button class="key">9</button>
+        <button class="key muted" data-act="clear">ล้าง</button><button class="key">0</button><button class="key muted" data-act="close">ปิด</button>
+      </div>
+    </div>
+  </div>
+  <div class="reward-screen" id="rewardScreen">
+    <div class="gold-card">
+      <div class="card-star s1">⭐</div>
+      <div class="card-star s2">⭐</div>
+      <div class="card-star s3">⭐</div>
+      <div class="card-star s4">⭐</div>
+      <div class="card-brand">✦ RPG BIFROST ✦</div>
+      <div class="card-small-stars">★★★★★</div>
+      <hr class="dash">
+      <div class="reward-amount" id="rewardAmount">100</div>
+      <div class="reward-type">B-CARD<br>INVESTMENT</div>
+      <div class="reward-note">นำการ์ดใบนี้ไปแลกเปลี่ยนเป็นรางวัล<br>ในโลกจริงตามมูลค่าสำคัญทุกวัย!</div>
+      <hr class="dash">
+      <div class="reward-owner">HERO BIFROST</div>
+      <div class="reward-date" id="rewardDate">28 เม.ย. 2569</div>
+      <div class="reward-serial" id="rewardSerial">BIFROST-BCARD-0001</div>
+      <button class="use-card" id="useCardBtn">ใช้แล้ว</button>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const SHEET_URL = "https://script.google.com/macros/s/AKfycbzhZ4vnKvSMhxay6Wz2Ur86cI3bBXhel3ms_v9yH27eEKT9m8M4QmcMFypts59iwXst/exec";
+    const RATE_COIN = 100;
+    const RATE_BAHT = 100;
+    const DEMO_COINS = 1200;
+    const DEMO_MODE = false;
+
+    const state = { coins:0, amount:100, pin:"", save:null, busy:false, status:"กำลังซิงค์" };
+    const el = (id) => document.getElementById(id);
+    const money = (n) => Number(n || 0).toLocaleString("th-TH");
+
+    function toast(msg){
+      el("toast").textContent = msg;
+      el("toast").classList.add("on");
+      setTimeout(() => el("toast").classList.remove("on"), 2600);
+    }
+
+    function loadLocal(){
+      if (DEMO_MODE) {
+        state.save = Object.assign(state.save || {}, { coins: DEMO_COINS, PIN: "5918" });
+        state.coins = DEMO_COINS;
+        localStorage.setItem("bifrost_data", JSON.stringify(state.save));
+        render("โหมดทดลอง");
+        return;
+      }
+      try {
+        const raw = localStorage.getItem("bifrost_data");
+        if (raw) {
+          state.save = JSON.parse(raw);
+          state.coins = Number(state.save.coins || 0);
+          render("ออฟไลน์");
+        }
+      } catch(e) {}
+    }
+
+    async function loadCloud(){
+      try {
+        const res = await fetch(SHEET_URL + "?action=walletBalance&ts=" + Date.now());
+        const data = await res.json();
+        if (data && data.result !== "error") {
+          state.save = Object.assign(state.save || {}, data);
+          state.coins = Number(data.coins || 0);
+          localStorage.setItem("bifrost_data", JSON.stringify(state.save));
+          render("ซิงค์แล้ว");
+        }
+      } catch(e) {
+        render(state.save ? "ใช้ข้อมูลเครื่อง" : "ซิงค์ไม่สำเร็จ");
+      }
+    }
+
+    function render(status){
+      if (status) state.status = status;
+      el("coinBalance").textContent = money(state.coins);
+      el("statusText").textContent = state.status || "พร้อมใช้";
+      el("rateText").textContent = RATE_COIN + " = " + RATE_BAHT;
+      const baht = Math.floor((state.amount / RATE_COIN) * RATE_BAHT);
+      el("bahtPreview").textContent = money(baht) + " บาท";
+      el("exchangeBtn").disabled = state.busy || state.amount < 1;
+      if (!state.busy && state.amount > state.coins) {
+        el("statusText").textContent = "B-Coin ไม่พอ";
+      }
+    }
+
+    function setAmount(amount){
+      state.amount = Math.max(0, parseInt(amount, 10) || 0);
+      el("coinAmount").value = state.amount || "";
+      document.querySelectorAll(".chip").forEach(btn => btn.classList.toggle("on", btn.dataset.act === "all" && state.amount === state.coins));
+      render();
+    }
+
+    function openPin(){
+      if (state.amount < 1) return toast("กรุณาใส่จำนวน B-Coin ที่ต้องการแลก");
+      if (state.amount > state.coins) return toast("B-Coin ไม่พอ ขาดอีก " + money(state.amount - state.coins) + " เหรียญ");
+      state.pin = "";
+      updatePin();
+      el("pinSummary").textContent = "แลก " + money(state.amount) + " B-Coin เป็น " + money((state.amount / RATE_COIN) * RATE_BAHT) + " บาท";
+      el("pinModal").classList.add("on");
+    }
+
+    function updatePin(){
+      [...el("pinDots").children].forEach((dot, i) => dot.classList.toggle("on", i < state.pin.length));
+      if (state.pin.length === 4) exchange();
+    }
+
+    async function exchange(){
+      if (state.busy) return;
+      state.busy = true;
+      render("กำลังแลก");
+      if (DEMO_MODE) {
+        try {
+          if (state.pin !== "5918") throw new Error("PIN ไม่ถูกต้อง");
+          if (state.amount > state.coins) throw new Error("B-Coin ไม่พอ");
+          const demoData = {
+            result: "success",
+            amount: state.amount,
+            baht: (state.amount / RATE_COIN) * RATE_BAHT,
+            coins: state.coins - state.amount,
+            date: new Date().toLocaleString("th-TH"),
+            save: Object.assign(state.save || {}, { coins: state.coins - state.amount, PIN: "5918" })
+          };
+          state.coins = demoData.coins;
+          state.save = demoData.save;
+          localStorage.setItem("bifrost_data", JSON.stringify(state.save));
+          addHistory(demoData);
+          showRewardCard(demoData);
+          sendWalletLineNotice(demoData);
+          el("pinModal").classList.remove("on");
+          toast("ทดลองแลกสำเร็จ ได้รับ " + money(demoData.baht) + " บาท");
+        } catch(e) {
+          state.pin = "";
+          updatePin();
+          toast(e.message || "เกิดข้อผิดพลาด");
+        } finally {
+          state.busy = false;
+          render("โหมดทดลอง");
+        }
+        return;
+      }
+      try {
+        const res = await fetch(SHEET_URL, {
+          method: "POST",
+          body: JSON.stringify({ action:"WALLET_EXCHANGE", amount:state.amount, pin:state.pin, rateCoin:RATE_COIN, rateBaht:RATE_BAHT })
+        });
+        const data = await res.json();
+        if (!data || data.result !== "success") throw new Error((data && data.message) || (data && data.error) || "แลกไม่สำเร็จ");
+
+        state.coins = Number(data.coins || 0);
+        state.save = Object.assign(state.save || {}, data.save || {}, { coins: state.coins });
+        localStorage.setItem("bifrost_data", JSON.stringify(state.save));
+        addHistory(data);
+        showRewardCard(data);
+        el("pinModal").classList.remove("on");
+        toast("แลกสำเร็จ ได้รับ " + money(data.baht) + " บาท");
+      } catch(e) {
+        state.pin = "";
+        updatePin();
+        toast(e.message || "เกิดข้อผิดพลาด");
+      } finally {
+        state.busy = false;
+        render("พร้อมใช้");
+      }
+    }
+
+    function addHistory(data){
+      const list = el("historyList");
+      if (list.children.length === 1 && list.textContent.includes("ยังไม่มี")) list.innerHTML = "";
+      const row = document.createElement("div");
+      row.className = "tx";
+      row.innerHTML = "<div><strong>แลกเงินสำเร็จ</strong><small>" + (data.date || new Date().toLocaleString("th-TH")) + "</small></div><b>-" + money(data.amount) + " B</b>";
+      list.prepend(row);
+    }
+
+    function showRewardCard(data){
+      el("rewardAmount").textContent = money(data.baht || 0);
+      el("rewardDate").textContent = new Date().toLocaleDateString("th-TH", { day:"numeric", month:"short", year:"numeric" });
+      el("rewardSerial").textContent = "BIFROST-BCARD-" + String(Date.now()).slice(-4);
+      el("rewardScreen").classList.add("on");
+    }
+
+    function sendWalletLineNotice(data){
+      fetch(SHEET_URL, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({
+          action: "LINE_ALERT",
+          type: "BCARD",
+          message:
+            "💳 [BIFROST] แจ้งเตือนด่วน!\n" +
+            "ไบฟรอสได้ทำการแลก B-Card 1 ใบ!\n" +
+            "💎 มูลค่า: " + money(data.baht) + " บาท\n" +
+            "🪙 ใช้เหรียญ: " + money(data.amount) + " B-Coin\n" +
+            "💰 ยอดเงินคงเหลือ: " + money(data.coins) + " B-Coin"
+        })
+      }).catch(() => {});
+    }
+
+    document.querySelectorAll(".chip").forEach(btn => btn.addEventListener("click", () => {
+      if (btn.dataset.act === "all") setAmount(state.coins);
+    }));
+    el("coinAmount").addEventListener("input", (e) => setAmount(e.target.value));
+    el("exchangeBtn").addEventListener("click", openPin);
+    el("useCardBtn").addEventListener("click", () => el("rewardScreen").classList.remove("on"));
+    el("closePageBtn").addEventListener("click", closeWalletPage);
+    el("pinPad").addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      const act = btn.dataset.act;
+      if (act === "close") return el("pinModal").classList.remove("on");
+      if (act === "clear") state.pin = "";
+      else if (state.pin.length < 4) state.pin += btn.textContent.trim();
+      updatePin();
+    });
+
+    loadLocal();
+    render("กำลังซิงค์");
+    loadCloud();
+
+    function closeWalletPage(){
+      try {
+        if (window.liff && typeof liff.isInClient === "function" && liff.isInClient()) {
+          liff.closeWindow();
+          return;
+        }
+      } catch(e) {}
+
+      window.close();
+
+      setTimeout(() => {
+        if (history.length > 1) {
+          history.back();
+        } else {
+          location.href = "index.html";
+        }
+      }, 180);
+    }
+  </script>
+</body>
+</html>
