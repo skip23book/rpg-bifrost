@@ -52,6 +52,8 @@ body{font-family:'Noto Sans Thai','Segoe UI',sans-serif;font-size:14px;color:var
 .cbig{display:flex;align-items:center;gap:7px;font-size:22px;font-weight:700;color:var(--yel)}
 .ctd-l{font-size:10px;color:var(--txt3);text-align:right}
 .ctd-v{font-size:13px;color:var(--grn);font-weight:700}
+.ctd-v.spend{color:var(--red)}
+.ctd-stack{display:flex;flex-direction:column;gap:3px;text-align:right}
 /* STREAK */
 .sg{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
 .sd{display:flex;flex-direction:column;align-items:center;gap:2px}

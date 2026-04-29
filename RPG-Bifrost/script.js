@@ -62,7 +62,7 @@ var SFX = {
 var SHEET_URL = BIFROST_API_URL; 
 
 function sendToLine(msgType, msgContent) {
-  if (LINE_MUTE_MODE) { console.log("[DEV] LINE muted", msgType, msgContent); return; }
+  if (LINE_MUTE_MODE) { console.log("[LINE muted]", msgType, msgContent); return; }
   // return; // 🛑 เปิดแจ้งเตือน Line ให้ลบสองขีดหน้ารีเทินออก
   if(!SHEET_URL || SHEET_URL.length < 10) return;
   fetch(SHEET_URL, {
@@ -908,7 +908,7 @@ function updateLog() {
 }
 
 function renderAll(){ 
-  var cd = document.getElementById('coin-d'); if(cd) cd.textContent=S.coins; var td = document.getElementById('td-d'); if(td) td.textContent=S.todayCoins + (S.todayGmCoins||0); var shc = document.getElementById('sh-c'); if(shc) shc.textContent=S.coins; var wd = document.getElementById('dw'); if(wd) wd.textContent=S.w||'—'; var hd = document.getElementById('dh'); if(hd) hd.textContent=S.h||'—'; var lvt = document.getElementById('lv-txt'); if(lvt) lvt.textContent=S.lv>=100?'MAX':S.lv; var cav = document.getElementById('cur-av'); if(cav) cav.textContent=AV[S.curAv];
+  var cd = document.getElementById('coin-d'); if(cd) cd.textContent=S.coins; var td = document.getElementById('td-d'); if(td) td.textContent=S.todayCoins + (S.todayGmCoins||0); var spentD = document.getElementById('spent-d'); if(spentD) spentD.textContent=S.todayCoinsSpent || 0; var shc = document.getElementById('sh-c'); if(shc) shc.textContent=S.coins; var wd = document.getElementById('dw'); if(wd) wd.textContent=S.w||'—'; var hd = document.getElementById('dh'); if(hd) hd.textContent=S.h||'—'; var lvt = document.getElementById('lv-txt'); if(lvt) lvt.textContent=S.lv>=100?'MAX':S.lv; var cav = document.getElementById('cur-av'); if(cav) cav.textContent=AV[S.curAv];
   var pct=S.lv>=100?100:(S.exp/S.expMax*100); var expf = document.getElementById('exp-f'); if(expf) expf.style.width=pct+'%'; var expt = document.getElementById('exp-txt'); if(expt) expt.textContent=S.lv>=100?'MAX':(S.exp+' / '+S.expMax+' EXP');
   if(!S.hof) S.hof = { shark: false, book: false, heart: false }; var hS = document.getElementById('hof-shark'); if(hS) hS.className = S.hof.shark ? 'tri on' : 'tri off'; var hB = document.getElementById('hof-book'); if(hB) hB.className = S.hof.book ? 'tri on' : 'tri off'; var hH = document.getElementById('hof-heart'); if(hH) hH.className = S.hof.heart ? 'tri on' : 'tri off';
   var bgSub = document.getElementById('btn-gm-submit');
