@@ -290,7 +290,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
   display: flex;
   pointer-events: none; /* เพื่อให้ยังกดลูกศรได้ปกติ */
 }
-/* 🛠️ DEV TOOLS */
+/* 🛠️ TEST TOOLS */
 .dev-tools {
   position: fixed;
   bottom: 20px;

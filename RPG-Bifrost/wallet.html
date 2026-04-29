@@ -37,6 +37,7 @@
     .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
     .brand{letter-spacing:4px;color:var(--gold);font:700 17px Cinzel,serif;text-shadow:0 2px 0 #fff}
     .sub{font-size:11px;color:var(--muted);letter-spacing:2px;margin-top:2px}
+    .version-tag{font-size:10px;color:#9a6a16;opacity:.72;letter-spacing:1px;margin-top:3px;font-weight:800}
     .back{
       text-decoration:none;color:#7a4d04;background:rgba(255,255,255,.78);
       border:2px solid rgba(255,216,106,.82);border-radius:999px;padding:8px 13px;font-weight:800;font-size:12px;
@@ -127,6 +128,8 @@
     .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
     .key{border:2px solid rgba(114,199,236,.2);background:white;border-radius:14px;padding:13px 0;font-weight:800;font-size:18px;cursor:pointer;box-shadow:0 5px 0 rgba(114,199,236,.14)}
     .key.muted{font-size:12px;color:var(--muted)}
+    .pin-busy{display:none;margin-top:10px;padding:10px;border-radius:12px;background:rgba(114,199,236,.14);color:#23607d;font-size:12px;font-weight:800;line-height:1.5}
+    .pin-busy.on{display:block}
     .reward-screen{
       position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;
       padding:22px;background:radial-gradient(circle at center,rgba(255,218,90,.34),rgba(52,30,8,.78));
@@ -175,6 +178,7 @@
         <div>
           <div class="brand">BIFROST</div>
           <div class="sub">E-WALLET</div>
+          <div class="version-tag" id="walletVersion"></div>
         </div>
         <button class="back" id="closePageBtn" type="button">ปิดหน้านี้</button>
       </header>
@@ -229,6 +233,8 @@
         <button class="key">7</button><button class="key">8</button><button class="key">9</button>
         <button class="key muted" data-act="clear">ล้าง</button><button class="key">0</button><button class="key muted" data-act="close">ปิด</button>
       </div>
+      <button class="primary" id="pinConfirmBtn" style="margin-top:14px; width:100%; padding:13px; font-size:15px;" disabled>ยืนยัน</button>
+      <div class="pin-busy" id="pinBusyText">กรุณารอซักครู่ ระบบกำลังคำนวนยอดเงิน</div>
     </div>
   </div>
   <div class="reward-screen" id="rewardScreen">
@@ -253,7 +259,9 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    const SHEET_URL = "https://script.google.com/macros/s/AKfycbzhZ4vnKvSMhxay6Wz2Ur86cI3bBXhel3ms_v9yH27eEKT9m8M4QmcMFypts59iwXst/exec";
+    const APP_VERSION = "1.0.2";
+    const BIFROST_API_URL = "https://script.google.com/macros/s/AKfycbzhZ4vnKvSMhxay6Wz2Ur86cI3bBXhel3ms_v9yH27eEKT9m8M4QmcMFypts59iwXst/exec";
+    const SHEET_URL = BIFROST_API_URL;
     const RATE_COIN = 100;
     const RATE_BAHT = 100;
     const DEMO_COINS = 1200;
@@ -331,15 +339,25 @@
       el("pinModal").classList.add("on");
     }
 
+    function setPinBusy(isBusy){
+      const busyText = el("pinBusyText");
+      if (busyText) busyText.classList.toggle("on", !!isBusy);
+      const confirmBtn = el("pinConfirmBtn");
+      if (confirmBtn) confirmBtn.textContent = isBusy ? "กำลังคำนวน..." : "ยืนยัน";
+    }
+
     function updatePin(){
       [...el("pinDots").children].forEach((dot, i) => dot.classList.toggle("on", i < state.pin.length));
-      if (state.pin.length === 4) exchange();
+      const confirmBtn = el("pinConfirmBtn");
+      if (confirmBtn) confirmBtn.disabled = state.busy || state.pin.length !== 4;
     }
 
     async function exchange(){
       if (state.busy) return;
       state.busy = true;
-      render("กำลังแลก");
+      setPinBusy(true);
+      updatePin();
+      render("กำลังคำนวนยอดเงิน");
       if (DEMO_MODE) {
         try {
           if (state.pin !== "5918") throw new Error("PIN ไม่ถูกต้อง");
@@ -354,18 +372,23 @@
           };
           state.coins = demoData.coins;
           state.save = demoData.save;
+          recordWalletExchangeInSave(demoData);
           localStorage.setItem("bifrost_data", JSON.stringify(state.save));
           addHistory(demoData);
           showRewardCard(demoData);
           sendWalletLineNotice(demoData);
           el("pinModal").classList.remove("on");
+          setPinBusy(false);
           toast("ทดลองแลกสำเร็จ ได้รับ " + money(demoData.baht) + " บาท");
         } catch(e) {
           state.pin = "";
+          setPinBusy(false);
           updatePin();
           toast(e.message || "เกิดข้อผิดพลาด");
         } finally {
           state.busy = false;
+          setPinBusy(false);
+          updatePin();
           render("โหมดทดลอง");
         }
         return;
@@ -380,21 +403,37 @@
 
         state.coins = Number(data.coins || 0);
         state.save = Object.assign(state.save || {}, data.save || {}, { coins: state.coins });
+        recordWalletExchangeInSave(data);
         localStorage.setItem("bifrost_data", JSON.stringify(state.save));
         addHistory(data);
         showRewardCard(data);
         el("pinModal").classList.remove("on");
+        setPinBusy(false);
         toast("แลกสำเร็จ ได้รับ " + money(data.baht) + " บาท");
       } catch(e) {
         state.pin = "";
-        updatePin();
-        toast(e.message || "เกิดข้อผิดพลาด");
+          setPinBusy(false);
+          updatePin();
+          toast(e.message || "เกิดข้อผิดพลาด");
       } finally {
         state.busy = false;
+        setPinBusy(false);
+        updatePin();
         render("พร้อมใช้");
       }
     }
 
+    function recordWalletExchangeInSave(data){
+      if (!state.save) state.save = {};
+      const amount = Number(data.amount || state.amount || 0);
+      const baht = Number(data.baht || (amount / RATE_COIN) * RATE_BAHT || 0);
+      if (!Array.isArray(state.save.todayItemsUsed)) state.save.todayItemsUsed = [];
+      const alreadyRecorded = state.save.todayItemsUsed.some(item => String(item).includes("E-Wallet") && String(item).includes(String(amount)) && String(item).includes("แลกเงิน"));
+      if (!alreadyRecorded) {
+        state.save.todayCoinsSpent = Number(state.save.todayCoinsSpent || 0) + amount;
+        state.save.todayItemsUsed.push("💳 E-Wallet แลกเงิน -" + money(amount) + " B-Coin = " + money(baht) + " บาท");
+      }
+    }
     function addHistory(data){
       const list = el("historyList");
       if (list.children.length === 1 && list.textContent.includes("ยังไม่มี")) list.innerHTML = "";
@@ -433,18 +472,23 @@
     }));
     el("coinAmount").addEventListener("input", (e) => setAmount(e.target.value));
     el("exchangeBtn").addEventListener("click", openPin);
+    el("pinConfirmBtn")?.addEventListener("click", () => {
+      if (state.pin.length !== 4) return toast("กรุณากรอก PIN 4 หลัก");
+      exchange();
+    });
     el("useCardBtn").addEventListener("click", () => el("rewardScreen").classList.remove("on"));
     el("closePageBtn").addEventListener("click", closeWalletPage);
     el("pinPad").addEventListener("click", (e) => {
       const btn = e.target.closest("button");
       if (!btn) return;
       const act = btn.dataset.act;
-      if (act === "close") return el("pinModal").classList.remove("on");
+      if (act === "close") { state.pin = ""; updatePin(); return el("pinModal").classList.remove("on"); }
       if (act === "clear") state.pin = "";
       else if (state.pin.length < 4) state.pin += btn.textContent.trim();
       updatePin();
     });
 
+    el("walletVersion").textContent = "Ver." + APP_VERSION;
     loadLocal();
     render("กำลังซิงค์");
     loadCloud();

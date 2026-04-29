@@ -131,7 +131,7 @@
 <body style="padding-bottom: 80px;">
 
 <div id="dev-tools-bar" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: rgba(15, 15, 15, 0.98); border-bottom: 2px solid #00e676; z-index: 9999999; box-shadow: 0 4px 15px rgba(0, 230, 118, 0.3); align-items: center; justify-content: flex-start; gap: 8px; padding: 0 15px; overflow-x: auto; box-sizing: border-box; white-space: nowrap; backdrop-filter: blur(5px);">
-  <div style="color: #00e676; font-weight: 900; font-size: 14px; margin-right: 5px; flex-shrink: 0; letter-spacing: 1px;">🛠️ DEV</div>
+  <div style="color: #00e676; font-weight: 900; font-size: 14px; margin-right: 5px; flex-shrink: 0; letter-spacing: 1px;">🛠️ TEST</div>
   <button style="background: #e91e63; color: #fff; border: none; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; flex-shrink: 0; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.5);" onclick="devQuickComplete()">🎯 จบเควส</button>
     <button style="background: #ff9800; color: #fff; border: 1px solid #f57c00; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; flex-shrink: 0; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.5);" onclick="devLevelUp()">🔼 อัปเลเวล</button>
     <button style="background: #333; color: #fff; border: 1px solid #555; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; flex-shrink: 0; cursor: pointer;" onclick="devAddExp()">⭐ +50E</button>
@@ -159,6 +159,7 @@
   <header class="hdr">
     <div class="hdr-t" style="cursor:pointer; user-select:none;">✦ RPG BIFROST ✦</div>
     <div class="hdr-s">HERO QUEST SYSTEM</div>
+    <div id="main-app-version" style="font-size:10px; color:#b89020; opacity:.78; letter-spacing:1px; margin-top:3px; font-weight:700;"></div>
   </header>
   
   <div class="pages">
@@ -234,10 +235,7 @@
           <div class="ii">🍜 น้ำยาแสนอร่อย</div>
           <div class="ir-right"><span class="ic skeleton-target" id="inv-tk">0</span><span class="use-pill">ใช้งาน</span></div>
         </div>
-        <div class="ir active" id="inv-bc-row">
-          <div class="ii">🎫 B-Card</div>
-          <div class="ir-right"><span class="ic skeleton-target" id="inv-bc">0</span><span class="use-pill bc">แสดงบัตร</span></div>
-        </div>
+      </div>
       </div>
       
       <div class="card">
@@ -336,13 +334,8 @@
         <div class="ct"><span class="d"></span>🏪 Item Shop</div>
         <div style="font-size:10px;color:var(--txt3);margin-bottom:10px;padding:7px 10px;background:var(--gbg);border-radius:8px;border:1px solid var(--gbdr)">💡 ซื้อสะสมไว้ในคลัง → ใช้งานที่ <b style="color:var(--gold)">Dashboard → คลังไอเทม</b></div>
         <div class="shi">
-          <div class="shic">💧</div>
-          <div style="flex:1"><div class="shn">น้ำตาฟีนิกซ์</div><div class="shd">ชุบชีวิต Streak ✦ เก็บได้สูงสุด 2 ชิ้น<br>ซื้อได้ 1 ครั้ง/สัปดาห์ (รีเซ็ตวันจันทร์)</div><div><span class="quota ok" id="ph-quota">✅ โควต้าคงเหลือ: 1/1</span></div><div class="shs">คลัง: <span id="sh-ph" class="skeleton-target">0</span> ชิ้น</div></div>
-          <div class="shr"><div class="shp">🪙 15</div><button class="shb" id="sh-ph-btn">ซื้อ</button></div>
-        </div>
-        <div class="shi">
           <div class="shic">🍜</div>
-          <div style="flex:1"><div class="shn">น้ำยาแสนอร่อย</div><div class="shd">ซื้อเก็บตั๋วไว้ก่อน → ใช้งานที่คลังไอเทม<br>ซื้อได้ 2 ครั้ง/สัปดาห์ (รีเซ็ตวันจันทร์)</div><div><span class="quota ok" id="food-quota">✅ โควต้าคงเหลือ: 2/2</span></div><div class="shs">ตั๋ว: <span id="sh-tk" class="skeleton-target">0</span> ใบ</div></div>
+          <div style="flex:1"><div class="shn">น้ำยาแสนอร่อย</div><div class="shd">ซื้อเก็บตั๋วไว้ก่อน → ใช้งานที่คลังไอเทม<br>ซื้อได้ 1 ครั้ง/สัปดาห์ (รีเซ็ตวันจันทร์)</div><div><span class="quota ok" id="food-quota">✅ โควต้าคงเหลือ: 1/1</span></div><div class="shs">ตั๋ว: <span id="sh-tk" class="skeleton-target">0</span> ใบ</div></div>
           <div class="shr"><div class="shp">🪙 50</div><button class="shb" id="sh-food-btn">ซื้อ</button></div>
         </div>
       </div>
@@ -359,21 +352,6 @@
           <span style="background: rgba(0,0,0,0.6); padding: 6px 12px; border-radius: 12px; font-size: 12px; color: var(--gold); border: 1px solid var(--gold);">🗝️ กุญแจของคุณ: <b id="gacha-key-display" class="skeleton-target" style="font-size: 14px;">0</b> ดอก</span>
         </div>
         <button class="btn bg" onclick="doGacha()" style="width: 100%; background: var(--gold); color: #000; font-weight: bold; border-radius: 8px; position: relative; z-index: 2;">💎 เปิดกล่องสมบัติ (ใช้ 1 กุญแจ) 💎</button>
-      </div>
-      
-      <div class="card" style="background: linear-gradient(145deg, #2b220b, #120e03); border: 2px solid #e8c651; box-shadow: 0 8px 25px rgba(232,198,81,0.3); position: relative; overflow: hidden; margin: 15px 14px 25px;">
-        <div style="position:absolute; top:-50%; left:-50%; width:200%; height:200%; background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 45%, rgba(255,255,255,0.2) 50%, transparent 55%); animation: shimmerText 4s infinite linear; pointer-events: none;"></div>
-        <div class="ct" style="color: #e8c651; text-shadow: 0 0 8px rgba(232,198,81,0.5); position:relative; z-index:1;"><span class="d" style="background:#e8c651;"></span>🎫 B-CARD INVESTMENT</div>
-        <div style="font-size:10px; color:#c7b173; text-align:center; margin-bottom:12px; position:relative; z-index:1;">ระบุจำนวน B-Coin ที่ต้องการแลก (ขั้นต่ำ 100 เหรียญ)</div>
-        
-        <div style="display:flex; gap:10px; margin-bottom:5px; position:relative; z-index:1;">
-           <input type="number" id="in-bc-amount" class="fi" placeholder="ระบุตัวเลข..." min="100" style="flex:2; text-align:center; font-size:16px; font-weight:bold; background:rgba(0,0,0,0.5); border:2px solid #e8c651; color:#e8c651; text-shadow:0 0 5px rgba(232,198,81,0.3);">
-           <button class="bcbtn" id="btn-bc" style="flex:1; padding:10px; display:flex; align-items:center; justify-content:center; flex-direction:column; background:linear-gradient(135deg, #ffe066 0%, #f5c830 40%, #d4aa22 100%); color:#3a2000; border:2px solid #fffdf0; box-shadow:0 4px 15px rgba(212,170,34,0.6), inset 0 0 10px rgba(255,255,255,0.6); border-radius:12px; transition: transform 0.2s;">
-             <span style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-bottom:2px;">🎫</span>
-             <span style="font-size:13px; font-weight:900; letter-spacing:1px; text-shadow:0 1px 1px rgba(255,255,255,0.8);">แลกเลย!</span>
-           </button>
-        </div>
-        <div style="font-size:11px; color:#c7b173; text-align:center; margin-top:7px; position:relative; z-index:1;" id="bc-status"></div>
       </div>
     </div>
   </div> 
@@ -409,85 +387,15 @@
     <div class="cfm-r"><button class="bdim" id="cfm-no">ยกเลิก</button><button class="btn bg" id="cfm-yes">ยืนยัน</button></div>
   </div>
 </div>
-
-<div id="bc-screen" style="z-index: 999999;">
-  <button class="bc-close" id="bc-close-btn">✕</button>
-  <div class="ticket">
-    <div class="tk-star" style="top:10px;left:14px">⭐</div><div class="tk-star" style="top:10px;right:14px">⭐</div>
-    <div class="tk-top"><div class="tk-logo">✦ RPG BIFROST ✦</div><div class="tk-stars">★ ★ ★ ★ ★</div></div><hr class="tk-div">
-    <div class="tk-main">
-       <div class="tk-big" id="bc-value">100</div>
-       <div class="tk-type">B-Card Investment</div>
-       <div class="tk-desc">นำการ์ดใบนี้ไปแลกเปลี่ยนเป็นรางวัล<br>ในโลกจริงตามมูลค่าที่ลงทุนไว้! 🎮</div>
-    </div><hr class="tk-div">
-    <div class="tk-bottom"><div class="tk-hero">HERO BIFROST</div><div class="tk-date" id="bc-date">—</div><div class="tk-serial" id="bc-serial">BIFROST-BCARD-0001</div></div>
-    <div class="tk-star" style="bottom:10px;left:14px">⭐</div><div class="tk-star" style="bottom:10px;right:14px">⭐</div>
-  </div>
-</div>
-
-<div class="boss-overlay" id="boss-overlay" style="z-index: 100000;">
-  <div class="boss-modal">
-    <div class="bm-stars">✦ ✦ ✦ ✦ ✦</div><div class="bm-title">BOSS DEFEATED</div><div class="bm-subtitle">กำจัดอัลตร้าบอสสำเร็จ!</div>
-    <div class="bm-list" id="bm-list"></div>
-    <button class="bm-btn" id="btn-boss-claim">รับรางวัล ✦</button>
-  </div>
-</div>
-
-<div class="mov" id="hof-mov">
-  <div class="mpan" style="text-align:center; padding: 30px 20px;">
-    <div id="hof-m-ico" style="font-size:56px; margin-bottom:10px; transition: all 0.3s;">🏆</div>
-    <div id="hof-m-ttl" style="font-family:'Cinzel',serif; font-size:20px; font-weight:700; color:var(--gold2);">ชื่อรางวัล</div>
-    <div id="hof-m-sts" style="display:inline-block; font-size:11px; font-weight:700; padding:4px 12px; border-radius:12px; margin:12px 0; transition: all 0.3s;">สถานะ</div>
-    <div id="hof-m-desc" style="font-size:13px; color:var(--txt2); line-height:1.6; margin-top:5px; white-space:pre-line;">รายละเอียด</div>
-    <div id="hof-m-cond" style="font-size:11px; color:var(--yel); font-weight:600; margin-top:15px; padding-top:15px; border-top:1px dashed var(--gbdr);">🎯 เงื่อนไข:</div>
-    <button class="btn bg bf" style="margin-top:20px;" onclick="document.getElementById('hof-mov').classList.remove('on')">ปิดหน้าต่าง</button>
-  </div>
-</div>
-
-<div class="mov" id="boss-detail-mov">
-  <div class="mpan" style="border: 2px solid var(--gold); background: #0f0f0f;">
-    <div id="bd-ico" style="font-size:64px; text-align:center; margin-bottom:10px; filter: drop-shadow(0 0 10px var(--gold));">❓</div>
-    <div id="bd-ttl" style="text-align:center; font-family:'Cinzel',serif; font-size:22px; color:var(--gold); font-weight:700;">ชื่อบอส</div>
-    <div style="margin-top:20px; background: rgba(255,255,255,0.05); padding:15px; border-radius:10px;">
-      <div style="color:var(--gold); font-size:12px; font-weight:bold; margin-bottom:5px;">🎯 ภารกิจที่ต้องทำ:</div>
-      <div id="bd-cond" style="color:#fff; font-size:14px; line-height:1.4;">รายละเอียด...</div>
+<div class="mov" id="version-update-modal" style="z-index: 3000000; align-items:center; justify-content:center; padding:18px;">
+  <div class="mpan" style="background:linear-gradient(145deg,#1a1a2e,#0b0b16); border:2px solid var(--gold); border-radius:18px; max-width:360px; transform:none; margin:0 auto; position:relative; box-shadow:0 0 30px rgba(184,144,32,0.35);">
+    <div style="text-align:center; margin-bottom:12px;">
+      <div style="font-size:48px; filter:drop-shadow(0 0 12px rgba(255,215,0,0.55));">✨</div>
+      <div style="font-family:'Cinzel',serif; color:var(--gold); font-size:20px; font-weight:900; letter-spacing:2px;">VERSION UPDATE</div>
+      <div id="version-update-title" style="color:#fff; font-size:14px; font-weight:bold; margin-top:6px;">RPG BIFROST</div>
     </div>
-    <div style="margin-top:10px; background: rgba(184,144,32,0.1); padding:15px; border-radius:10px; border: 1px solid rgba(184,144,32,0.3);">
-      <div style="color:#ffd700; font-size:12px; font-weight:bold; margin-bottom:5px;">💰 ของรางวัลที่จะได้รับ:</div>
-      <div id="bd-reward" style="color:#fff; font-size:16px; font-weight:bold;">+0 B-Coin</div>
-    </div>
-    <div id="bd-note" style="margin-top:15px; font-size:11px; color:var(--txt3); text-align:center; font-style:italic;">*หมายเหตุ*</div>
-    <button class="btn bg" style="width:100%; margin-top:25px; background:var(--gold); color:#000;" onclick="document.getElementById('boss-detail-mov').classList.remove('on')">รับทราบ!</button>
-  </div>
-</div>
-
-<div class="mov" id="gacha-mov" style="background: rgba(0,0,0,0.95); z-index: 9999;">
-  <div id="gacha-light" class="gacha-light"></div>
-  <div class="firework fw-1">🎆</div><div class="firework fw-2">🎇</div><div class="firework fw-3">✨</div>
-  <div class="mpan" id="gacha-panel" style="background: transparent; border: none; box-shadow: none; overflow: visible;">
-    <div id="chest-anim" class="chest-container"><div class="chest-box">📦</div></div>
-    <div id="gacha-result" class="gacha-result" style="position: relative;">
-      <div id="gr-rarity" class="gr-rarity">COMMON</div>
-      <div id="gr-ico" class="gr-ico">🎁</div>
-      <div id="gr-big-coin" class="gr-big-coin">+300 B-Coin</div>
-      <div id="gr-ttl" class="gr-ttl">รางวัลที่ได้รับ</div>
-      <div id="gr-desc" class="gr-desc">รายละเอียด</div>
-      <div id="gr-action" class="gr-action" style="display: none;">
-        <input type="text" id="gr-input" class="fi" style="background: #fff; color: #000; margin-top: 10px;" placeholder="พิมพ์เมนูที่ต้องการ...">
-        <button class="btn bg" id="gr-btn" style="width: 100%; margin-top: 15px;">ตกลง</button>
-      </div>
-      <button class="btn" id="gacha-close" style="width: 100%; margin-top: 20px; background: #333; color: #fff; display: none;" onclick="closeGacha()">รับรางวัล</button>
-    </div>
-  </div>
-</div>
-<div class="level-overlay" id="level-overlay">
-  <div class="level-modal">
-    <div class="lm-glow"></div>
-    <div class="lm-icon">🌟</div>
-    <div class="lm-title">LEVEL UP!</div>
-    <div class="lm-desc">ยินดีด้วย! ฮีโร่พัฒนาขึ้นไปอีกขั้นแล้ว</div>
-    <div class="lm-lv">Lv.<span id="lm-lv-val">2</span></div>
-    <button class="lm-btn" onclick="document.getElementById('level-overlay').classList.remove('on'); SFX.pop();">สุดยอด!</button>
+    <div id="version-update-list" style="background:rgba(255,255,255,0.06); border-left:4px solid var(--gold); border-radius:10px; padding:14px; color:#fff; font-size:14px; line-height:1.7; margin-bottom:16px;"></div>
+    <button class="btn bg bf" onclick="acknowledgeVersionUpdate()" style="padding:14px; font-size:15px;">รับทราบ</button>
   </div>
 </div>
 <div class="toast" id="toast" style="z-index: 1000000;"></div>
@@ -652,6 +560,7 @@
 </div>
       <button class="btn" id="btn-gm-submit" style="width:100%; background:var(--gold); color:#000; font-weight:bold; padding:15px;">⚙️ รันคำสั่งลับ</button>
       
+      <button class="btn" id="btn-open-repair" style="width:100%; background:#243b55; color:#fff; border:1px solid #4fc3f7; padding:15px; margin-bottom:8px;">🛠️ เปิดศูนย์ซ่อมข้อมูล</button>
       <button class="btn" style="width:100%; background:#333; color:#fff; border:1px solid #555; padding:15px;" onclick="document.getElementById('gm-modal').classList.remove('on'); ">ปิดหน้าต่าง</button>
     </div>
   </div>
@@ -689,7 +598,41 @@
       </div>
     </div>
   </div>
-  <div class="mov" id="gm-notif-modal" style="z-index: 2000000;">
+  <div class="mov" id="repair-modal" style="z-index:1000000;">
+  <div class="mpan" style="background:#0a0a0a; border:2px solid #4fc3f7; max-height:85vh; overflow-y:auto;">
+    <div style="text-align:center; font-size:26px; margin-bottom:6px;">🛠️</div>
+    <div class="gm-title" style="color:#4fc3f7; text-align:center; font-weight:bold; letter-spacing:2px; margin-bottom:12px;">GM REPAIR CENTER</div>
+    <div style="font-size:11px; color:var(--txt2); line-height:1.7; margin-bottom:12px;">แก้เฉพาะช่องที่กรอก ระบบจะ backup ก่อนแก้และบันทึกเหตุผลลง Admin_Audit_Log</div>
+    <input class="fi gm-input" id="rp-pin" type="password" inputmode="numeric" maxlength="4" placeholder="PIN ผู้ปกครอง" style="margin-bottom:8px; background:rgba(255,255,255,0.05); color:#fff; border-color:#4fc3f7;">
+    <input class="fi gm-input" id="rp-reason" type="text" placeholder="เหตุผล เช่น แก้เหรียญผิดหลังแลก Wallet" style="margin-bottom:12px; background:rgba(255,255,255,0.05); color:#fff; border-color:#4fc3f7;">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <input class="fi gm-input" id="rp-coins" type="number" placeholder="B-Coin รวม">
+      <input class="fi gm-input" id="rp-today-coins" type="number" placeholder="เหรียญที่ได้วันนี้">
+      <input class="fi gm-input" id="rp-today-spent" type="number" placeholder="เหรียญที่ใช้วันนี้">
+      <input class="fi gm-input" id="rp-lv" type="number" placeholder="Level">
+      <input class="fi gm-input" id="rp-exp" type="number" placeholder="EXP">
+      <input class="fi gm-input" id="rp-keys" type="number" placeholder="กุญแจทอง">
+      <input class="fi gm-input" id="rp-ticket" type="number" placeholder="น้ำยาแสนอร่อย">
+      <input class="fi gm-input" id="rp-food-week" type="number" placeholder="โควต้าน้ำยาสัปดาห์นี้">
+      <input class="fi gm-input" id="rp-step" type="number" min="0" max="6" placeholder="ก้าว Streak 0-6">
+      <input class="fi gm-input" id="rp-w" type="number" step="0.01" placeholder="น้ำหนัก">
+      <input class="fi gm-input" id="rp-h" type="number" step="0.01" placeholder="ส่วนสูง">
+      <input class="fi gm-input" id="rp-fr" type="number" step="0.01" placeholder="ฟรีสไตล์">
+      <input class="fi gm-input" id="rp-bk" type="number" step="0.01" placeholder="กรรเชียง">
+      <input class="fi gm-input" id="rp-fg" type="number" step="0.01" placeholder="กบ">
+      <input class="fi gm-input" id="rp-bt" type="number" step="0.01" placeholder="ผีเสื้อ">
+      <input class="fi gm-input" id="rp-boss-speed" type="number" placeholder="บอสฉลามเป้าหมาย">
+      <input class="fi gm-input" id="rp-boss-height" type="number" placeholder="ฐานส่วนสูงบอส">
+      <input class="fi gm-input" id="rp-boss-weight" type="number" placeholder="ฐานน้ำหนักบอส">
+    </div>
+    <textarea class="fi gm-input" id="rp-log" rows="5" placeholder="Daily Adventure Log วันนี้ บรรทัดละ 1 รายการ" style="margin-top:10px; resize:vertical; background:rgba(255,255,255,0.05); color:#fff; border-color:#4fc3f7;"></textarea>
+    <div class="brow" style="display:flex; gap:8px; margin-top:14px;">
+      <button class="btn" id="btn-repair-submit" style="flex:1; background:#4fc3f7; color:#05131d; padding:13px;">บันทึกซ่อมข้อมูล</button>
+      <button class="btn" id="btn-repair-close" style="flex:1; background:#333; color:#fff; border:1px solid #555; padding:13px;">ปิด</button>
+    </div>
+  </div>
+</div>
+<div class="mov" id="gm-notif-modal" style="z-index: 2000000;">
   <div class="mpan" style="background: linear-gradient(145deg, #1e1e1e, #0a0a0a); border: 2px solid var(--gold); position: relative;">
     <div onclick="document.getElementById('gm-notif-modal').classList.remove('on')" style="position:absolute; top:10px; right:15px; color:var(--txt3); cursor:pointer; font-size:20px; font-weight:bold;">✕</div>
     

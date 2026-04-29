@@ -1,7 +1,20 @@
 // ══════════════════════════════════════════════════
 //  STATE (ตัวแปรระบบหลัก)
 // ══════════════════════════════════════════════════
-var APP_VERSION = "1.0.0";
+var APP_VERSION = "1.0.2";
+var LINE_MUTE_MODE = false;
+// Web App URL ของ Apps Script สำหรับใช้งานจริง
+var BIFROST_API_URL = "https://script.google.com/macros/s/AKfycbzhZ4vnKvSMhxay6Wz2Ur86cI3bBXhel3ms_v9yH27eEKT9m8M4QmcMFypts59iwXst/exec";
+
+// กรอกเลขเวอร์ชันและรายละเอียดอัปเดตตรงนี้ได้เลย
+// เพิ่ม/ลบบรรทัดใน APP_UPDATE_NOTES ได้ตามต้องการ เมื่อ APP_VERSION เปลี่ยน popup จะแสดงครั้งแรกอัตโนมัติ
+var APP_UPDATE_NOTES = [
+  "เพิ่ม GM Repair Center สำหรับซ่อมข้อมูลพร้อม Backup และ Audit Log",
+  "ปรับ E-Wallet ให้ใช้ PIN 5918 พร้อมปุ่มยืนยันและสถานะกำลังคำนวนยอดเงิน",
+  "เอา B-Card ออกจากคลังหลัก และให้แลกเงินผ่าน Wallet เท่านั้น",
+  "ปรับ Daily Adventure Log ให้บันทึกการใช้เหรียญและรายการ Wallet ชัดเจนขึ้น",
+  "แก้ระบบ Stats, Draft และ Cloud Save ให้รองรับการซิงค์ข้อมูลได้เสถียรขึ้น"
+];
 var AV = ['🧙','⚔️','🏹','🧜','🔥','⚡','🌊','🍃','❄️','💫','🦅','🐉','🌸','🗡️','🛡️','👑','🌙','☀️','🎭','✨','🦇','🐺','🧚','🧞','🧟','🤖','👽','👻','☠️','🤡','🦁','🐍','🐢','🐦','🦄','🐝','🦊','🐙','🕷️','🦂','💎','🔮','🪓','🔱','👁️','🪐','☄️','🌪️','🌌','♾️'];
 var AN = ['นักเวทย์','นักรบ','นักธนู','ไฮโดร','ไพโร','อิเล็กโตร','อควา','อะเนโม','ครายโอ','แอสโตร','ฮอว์ค','มังกร','ซากุระ','คาตา','พาลาดิน','ราชัน','ลูน่า','โซลาร์','มายา','ดาวเด่น','แวมไพร์','ไลแคน','แฟรี่','จินนี่','ซอมบี้','ไซบอร์ก','เอเลี่ยน','สเปกเตอร์','เนโครมันเซอร์','โจ๊กเกอร์','ราชสีห์','ไวเปอร์','เก็นบุ','ฟีนิกซ์','ยูนิคอร์น','คิลเลอร์บี','คิทซึเนะ','คราเคน','อารัคเน่','สคอร์เปียน','โกเลม','ออราเคิล','เบอร์เซิร์กเกอร์','โพไซดอน','ผู้หยั่งรู้','คอสมิก','เมเทโอ','พายุหมุน','เนบิวลา','อัลฟ่า'];
 var CHAR_NAMES=['นักดาบฝึกหัด','นักรบฝึกหัด','สำนักดาบ','ทหารยาม','อัศวินสามัญ','ผู้พิทักษ์','นักรบแนวหน้า','อัศวินศักดิ์สิทธิ์','พาลาดินศักดิ์สิทธิ์','เทมพลาร์หลวง','อัศวินองครักษ์','อัศวินเพลิง','จทัพศักดิ์สิทธิ์','นักดาบเงา','อัศวินรัตติกาล','จ้าวแห่งเพลิง','ผู้พิทักษ์เหมันต์','จ้าวแห่งพายุ','ผู้พิทักษ์สวรรค์','ตำนานนิรันดร์'];
@@ -9,7 +22,7 @@ var FEEL=[null,{i:'😫',l:'เหนื่อยมาก'},{i:'😔',l:'ค่
 var HOF_INFO = { shark: { i: '🦈', t: 'บอสฉลามขาว', c: 'ว่ายฟรีสไตล์ต่ำกว่าเป้าหมาย' }, book:  { i: '📚', t: 'บอสหมอโหด', c: 'สอบได้คะแนน >= 90% (โดนยึดคืนถ้าคะแนนตก)' }, heart: { i: '❤️', t: 'บอสมุ่งมั่น', c: 'ได้ดาบทอง 7 วันรวด (โดนยึดคืนถ้าพลาด)' }, pole: { i: '🦒', t: 'บอสเสาไฟ', c: 'ส่วนสูงเพิ่มขึ้นทุกๆ 2 ซม.' }, shrimp: { i: '💪', t: 'บอสกุ้งแห้งเล่นเวท', c: 'น้ำหนักเพิ่มขึ้นทุกๆ 2 กก.' } };
 var BOSS_DETAILS = { shark: { i: '🦈', t: 'บอสฉลามขาว', c: 'ว่าย Sprint ฟรีสไตล์ 25 เมตร เพื่อล้มบอสไปทีละด่าน!\n(ทีละ 1 วิ)', r: '🏆 ล้มบอสระดับ 25-21 วิ รับ 50 B-Coin |\nระดับ 20 วิลงไป รับ 200 B-Coin!', n: 'บอสจะโผล่มาให้สู้ทีละด่านเท่านั้น เริ่มต้นที่ด่าน 25 วิ!' }, book: { i: '📚', t: 'บอสหมอโหด', c: 'ทำคะแนนสอบวิชาใดก็ได้ให้ได้ตั้งแต่ 90% ขึ้นไป', r: '💎 +300 B-Coin และปลดล็อกตราคัมภีร์', n: 'ระวัง!\nถ้าสอบครั้งถัดไปได้น้อยกว่า 90% ตราจะหายไปนะ' }, heart: { i: '❤️', t: 'บอสมุ่งมั่น', c: 'ทำภารกิจรายวัน (โซน 1) ให้ครบทั้ง 3 ข้อ ติดต่อกัน 7 วัน (จันทร์-อาทิตย์)', r: '🌟 +18 B-Coin และปลดล็อกตราหัวใจเหล็กไหล (พร้อมกุญแจทอง 2 ดอก)', n: 'ถ้าพลาดแม้แต่วันเดียวในสัปดาห์ ตราจะโดนยึดคืนทันที' }, pole: { i: '🦒', t: 'บอสเสาไฟ', c: 'ส่วนสูงเพิ่มขึ้นทุกๆ 2 เซนติเมตร จากฐานความสูงเดิมของคุณ', r: '💰 +30 B-Coin (รับได้เรื่อยๆ ทุกครั้งที่สูงขึ้น)', n: 'ปัดเศษทศนิยมทิ้ง นับเฉพาะจำนวนเต็มที่เพิ่มขึ้น' }, shrimp: { i: '💪', t: 'บอสกุ้งแห้งเล่นเวท', c: 'น้ำหนักตัวเพิ่มขึ้นทุกๆ 2 กิโลกรัม จากฐานน้ำหนักเดิม (เน้นความแข็งแรง)', r: '🍖 +30 B-Coin (รับได้เรื่อยๆ เมื่อตัวหนาขึ้น)', n: 'กินอาหารที่มีประโยชน์เพื่อเอาชนะบอสตัวนี้!' } };
 
-var S={ coins:0, todayCoins:0, todayGmCoins:0, w:'', h:'', exp:0, expMax:100, lv:1, curAv:0, selAv:0, phoenix:0, ticket:0, bcards:0, bcUsed:0, bcTotal: 0, bcList: [], keys:0, streak:['grey','grey','grey','grey','grey','grey','grey'], currentDayIndex: 0, lastSyncDate: null, quests:[false,false,false], pin:'', PIN:'2308', pending:null, submitted:false, gmSubmitted:false, isResubmit: false, feeling:3, illness:'ไม่มี', swimFr:'', swimBt:'', swimFg:'', swimBk:'', laps:'', achievement:'', specialCoin:0, gpa:'', score:'', weekKey:'', phWeekBought:0, foodWeekBought:0, monthBest:{fr:null,bt:null,fg:null,bk:null}, allBest:{fr:null,bt:null,fg:null,bk:null}, hof: { shark: false, book: false, heart: false }, bossTargets: { speed: 25, heightBase: 129, weightBase: 24 }, todayGacha: [], todayItemsUsed: [], bcList: [], gmBuffs: { jackpot: false, prophecy: '', buddy: false }, gmPopupSeen: true, gmPopupSeen: true, prophecySeen: true };
+var S={ coins:0, todayCoins:0, todayGmCoins:0, w:'', h:'', exp:0, expMax:100, lv:1, curAv:0, selAv:0, phoenix:0, ticket:0, bcards:0, bcUsed:0, bcTotal: 0, bcList: [], keys:0, streak:['grey','grey','grey','grey','grey','grey','grey'], currentDayIndex: 0, lastSyncDate: null, quests:[false,false,false], pin:'', PIN:'5918', pending:null, submitted:false, gmSubmitted:false, isResubmit: false, feeling:3, illness:'ไม่มี', swimFr:'', swimBt:'', swimFg:'', swimBk:'', laps:'', achievement:'', specialCoin:0, gpa:'', score:'', weekKey:'', phWeekBought:0, foodWeekBought:0, monthBest:{fr:null,bt:null,fg:null,bk:null}, allBest:{fr:null,bt:null,fg:null,bk:null}, hof: { shark: false, book: false, heart: false }, bossTargets: { speed: 25, heightBase: 129, weightBase: 24 }, todayGacha: [], todayItemsUsed: [], bcList: [], gmBuffs: { jackpot: false, prophecy: '', buddy: false }, gmPopupSeen: true, gmPopupSeen: true, prophecySeen: true };
 var qcnt=0, chIdx=0;
 
 // 🔊 เสียง 8-Bit
@@ -46,9 +59,10 @@ var SFX = {
 };
 
 // 🔗 URL Apps Script
-var SHEET_URL = "https://script.google.com/macros/s/AKfycbzhZ4vnKvSMhxay6Wz2Ur86cI3bBXhel3ms_v9yH27eEKT9m8M4QmcMFypts59iwXst/exec"; 
+var SHEET_URL = BIFROST_API_URL; 
 
 function sendToLine(msgType, msgContent) {
+  if (LINE_MUTE_MODE) { console.log("[DEV] LINE muted", msgType, msgContent); return; }
   // return; // 🛑 เปิดแจ้งเตือน Line ให้ลบสองขีดหน้ารีเทินออก
   if(!SHEET_URL || SHEET_URL.length < 10) return;
   fetch(SHEET_URL, {
@@ -59,8 +73,69 @@ function sendToLine(msgType, msgContent) {
   });
 }
 
+function showVersionUpdateIfNeeded() {
+  try {
+    var seenVersion = localStorage.getItem('bifrost_seen_version');
+    if (seenVersion === APP_VERSION || !APP_UPDATE_NOTES || APP_UPDATE_NOTES.length === 0) return false;
+
+    var modal = document.getElementById('version-update-modal');
+    var title = document.getElementById('version-update-title');
+    var list = document.getElementById('version-update-list');
+    if (!modal || !title || !list) return false;
+
+    title.textContent = 'อัปเดตเวอร์ชัน ' + APP_VERSION;
+    list.innerHTML = APP_UPDATE_NOTES.map(function(note) {
+      return '<div style="display:flex; gap:8px; margin-bottom:8px;"><span style="color:var(--gold); font-weight:bold;">✦</span><span>' + escapeHtml(note) + '</span></div>';
+    }).join('');
+    modal.classList.add('on');
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function escapeHtml(text) {
+  return String(text).replace(/[&<>"]/g, function(ch) {
+    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch];
+  });
+}
+
+window.acknowledgeVersionUpdate = function() {
+  localStorage.setItem('bifrost_seen_version', APP_VERSION);
+  var modal = document.getElementById('version-update-modal');
+  if (modal) modal.classList.remove('on');
+  showProphecyIfAny();
+};
+function syncWalletActivityFromLocal() {
+  try {
+    var raw = localStorage.getItem('bifrost_data');
+    if (!raw) return false;
+    var saved = JSON.parse(raw);
+    var changed = false;
+    ['coins', 'todayCoinsSpent'].forEach(function(key) {
+      if (saved[key] !== undefined && saved[key] !== S[key]) { S[key] = saved[key]; changed = true; }
+    });
+    if (Array.isArray(saved.todayItemsUsed)) {
+      if (!Array.isArray(S.todayItemsUsed)) S.todayItemsUsed = [];
+      saved.todayItemsUsed.forEach(function(item) {
+        if (S.todayItemsUsed.indexOf(item) === -1) { S.todayItemsUsed.push(item); changed = true; }
+      });
+    }
+    return changed;
+  } catch (e) {
+    return false;
+  }
+}
+
+function refreshWalletActivityLog() {
+  if (syncWalletActivityFromLocal()) {
+    saveLocal();
+    renderAll();
+  }
+}
 function loadLocal() { var data = localStorage.getItem('bifrost_data'); if (data) Object.assign(S, JSON.parse(data)); if(S.keys === undefined) S.keys = 0; if(!S.todayItemsUsed) S.todayItemsUsed = []; }
 function saveLocal() { 
+  S._clientUpdatedAt = new Date().toISOString();
   localStorage.setItem('bifrost_data', JSON.stringify(S)); 
   // 🌟 ส่งเซฟขึ้น Cloud ทันทีที่เครื่องมีการอัปเดต
   if (navigator.onLine && SHEET_URL && SHEET_URL.length > 10) {
@@ -89,6 +164,7 @@ function showProphecyIfAny() {
 }
 
 function autoSyncDraft(e) {
+  if(!SHEET_URL || SHEET_URL.length < 10) return;
   var todayStr = new Date().toLocaleDateString('en-CA');
   var payload = { 
     w: document.getElementById('in-w')?.value || '', 
@@ -841,7 +917,7 @@ if(bgSub) {
   bgSub.style.display = 'block'; 
 }
   var gkDisp = document.getElementById('gacha-key-display'); if(gkDisp) gkDisp.textContent = S.keys || 0;
-  syncInv(); syncShopQuota(); syncBCard(); updateLog(); updateBestTable(); checkGachaLock(); 
+  syncInv(); syncShopQuota(); updateLog(); updateBestTable(); checkGachaLock(); 
 
   [1,2,3].forEach(function(n){ var c=document.getElementById('qc'+n), qi=document.getElementById('qi'+n); if(c) { c.classList.toggle('on',S.quests[n-1]); c.textContent=S.quests[n-1]?'✓':''; } if(qi) qi.classList.toggle('done',S.quests[n-1]); });
   qcnt=S.quests.filter(Boolean).length; var qbar = document.getElementById('qbar'); if(qbar) qbar.innerHTML=qcnt===3?'<span class="qsuc">✦ ภารกิจพร้อมส่ง! ✦</span>':'ติ๊ก <b>'+qcnt+'</b>/3 ภารกิจ';
@@ -902,17 +978,8 @@ function checkGachaLock() {
   }
 }
 function updateBestTable(){ var fmt=function(v){return(v===null||v===undefined||v==='')?'—':(v+' วิ');}; ['fr','bt','fg','bk'].forEach(function(k){ var mEl = document.getElementById('mb-'+k), aEl = document.getElementById('ab-'+k); if(mEl && S.monthBest) mEl.textContent=fmt(S.monthBest[k]); if(aEl && S.allBest) aEl.textContent=fmt(S.allBest[k]); }); }
-function syncInv(){ var invK = document.getElementById('inv-key'); if(invK) invK.textContent=S.keys||0; var invP = document.getElementById('inv-ph'); if(invP) invP.textContent=S.phoenix; var shP = document.getElementById('sh-ph'); if(shP) shP.textContent=S.phoenix; var invT = document.getElementById('inv-tk'); if(invT) invT.textContent=S.ticket; var shT = document.getElementById('sh-tk'); if(shT) shT.textContent=S.ticket; var invB = document.getElementById('inv-bc'); if(invB) invB.textContent=S.bcards; }
-function syncShopQuota(){ var pQ = document.getElementById('ph-quota'); if(pQ) pQ.textContent='✅ โควต้าคงเหลือ: '+(1-S.phWeekBought)+'/1'; var fQ = document.getElementById('food-quota'); if(fQ) fQ.textContent='✅ โควต้าคงเหลือ: '+(1-S.foodWeekBought)+'/1'; }
-
-function syncBCard(){ 
-  var bcs = document.getElementById('bc-status'); var inputAmt = document.getElementById('in-bc-amount'); var btnB = document.getElementById('btn-bc');
-  if(bcs) {
-      if(S.coins >= 100) bcs.innerHTML='<span style="color:var(--grn);font-weight:700">✅ พร้อมแลก B-Card แล้ว!</span>';
-      else bcs.innerHTML='ต้องการอีก '+Math.max(0,100-S.coins)+' Coins เพื่อการันตีขั้นต่ำ';
-  }
-  if(btnB) btnB.disabled = S.coins < 100; 
-}
+function syncInv(){ var invK = document.getElementById('inv-key'); if(invK) invK.textContent=S.keys||0; var invP = document.getElementById('inv-ph'); if(invP) invP.textContent=S.phoenix; var shP = document.getElementById('sh-ph'); if(shP) shP.textContent=S.phoenix; var invT = document.getElementById('inv-tk'); if(invT) invT.textContent=S.ticket; var shT = document.getElementById('sh-tk'); if(shT) shT.textContent=S.ticket; }
+function syncShopQuota(){ var fQ = document.getElementById('food-quota'); if(fQ) fQ.textContent='✅ โควต้าคงเหลือ: '+Math.max(0, 1-(S.foodWeekBought||0))+'/1'; }
 
 var toastTm; function showToast(m){ var t=document.getElementById('toast'); if(!t) return; t.textContent=m;t.classList.add('on'); clearTimeout(toastTm);toastTm=setTimeout(function(){t.classList.remove('on');},3200); }
 function cfmShow(ico,ttl,msg,cb){ var ci = document.getElementById('ci'); if(ci) ci.textContent=ico; var ct2 = document.getElementById('ct2'); if(ct2) ct2.textContent=ttl; var cm = document.getElementById('cm'); if(cm) cm.textContent=msg; S.pending=cb; var cfm = document.getElementById('cfm'); if(cfm) cfm.classList.add('on'); }
@@ -943,33 +1010,18 @@ function confirmFd(){
     showChefCard(menuText);
   }
 }
-function useBcItem(){ if(S.bcards<=0){showToast('❌ ยังไม่มี B-Card ในคลัง');return;} cfmShow('🎫','แสดง B-Card?','⚠️ จะหักออก 1 ใบ หลังยืนยัน',function(){ gasCall('useBCard',undefined,function(r){applyData(r);openBcScreen();}); }); }
-function buyPh() {
-    if(S.coins < 15){ showToast('❌ B-Coin ไม่พอ!'); return; }
-    if(S.phWeekBought >= 1){ showToast('❌ หมดโควต้าสัปดาห์นี้แล้ว!'); return; }
-    if(S.phoenix >= 2){ showToast('❌ คลังเต็มแล้ว!'); return; }
-    
-    cfmShow('💧', 'ซื้อน้ำตาฟีนิกซ์?', 'ราคา 15 B-Coin', function() {
-        // 🌟 ให้ระบบหน้าจอ หักเงินและเพิ่มไอเทมเองทันที!
-        S.coins -= 15;
-        S.phoenix = (S.phoenix || 0) + 1;
-        S.phWeekBought = (S.phWeekBought || 0) + 1;
-        
-        saveLocal();
-        renderAll();
-        showToast('💧 ซื้อน้ำตาฟีนิกซ์สำเร็จ!');
-    });
-}
-
 function buyFood() {
     if(S.coins < 50){ showToast('❌ B-Coin ไม่พอ!'); return; }
-    if(S.foodWeekBought >= 2){ showToast('❌ หมดโควต้าสัปดาห์นี้แล้ว!'); return; }
+    if(S.foodWeekBought >= 1){ showToast('❌ หมดโควต้าสัปดาห์นี้แล้ว!'); return; }
     
     cfmShow('🍜', 'ซื้อตั๋วเชฟทองคำ?', 'ราคา 50 B-Coin', function() {
         // 🌟 ให้ระบบหน้าจอ หักเงินและเพิ่มตั๋วเองทันที!
         S.coins -= 50;
+        S.todayCoinsSpent = (S.todayCoinsSpent || 0) + 50;
         S.ticket = (S.ticket || 0) + 1;
         S.foodWeekBought = (S.foodWeekBought || 0) + 1;
+        if (!S.todayItemsUsed) S.todayItemsUsed = [];
+        S.todayItemsUsed.push('🛒 ซื้อน้ำยาแสนอร่อย (-50 Coins)');
         
         saveLocal();
         renderAll();
@@ -987,54 +1039,101 @@ function showChefCard(menuText) {
   if(chefScreen) { SFX.card(); chefScreen.style.display = 'flex'; var chefCard = chefScreen.children[1]; if(chefCard) { chefCard.classList.remove('card-slide-up'); void chefCard.offsetWidth; chefCard.classList.add('card-slide-up'); } }
 }
 
-function exchangeBCard(){ 
-    var inputAmt = document.getElementById('in-bc-amount'); // ดึงค่าจากช่องกรอก [cite: 512]
-    var amt = parseInt(inputAmt.value);
-    
-    if(isNaN(amt) || amt < 100) { showToast('❌ ต้องแลกขั้นต่ำ 100 B-Coin ขึ้นไป!'); return; }
-    if(S.coins < amt) { showToast('❌ เหรียญไม่พอ! (มีแค่ ' + S.coins + ' เหรียญ)'); return; }
-    
-    cfmShow('🎫','สร้าง B-Card?','จะใช้เหรียญทั้งหมด ' + amt + ' B-Coin', function(){ 
-        gasCall('exchangeBCard', amt, function(r){
-            applyData(r); 
-            if(inputAmt) inputAmt.value = ''; 
-            showToast('🎫 สร้าง B-Card สำเร็จ!');
-            
-            if(!S.todayItemsUsed) S.todayItemsUsed = [];
-            S.todayItemsUsed.push('🎫 แลก B-Card มูลค่า ' + amt + ' Coins');
-            saveLocal(); renderAll();
-            
-            // ส่งแจ้งเตือนเข้า LINE [cite: 130]
-            sendToLine("BCARD", "🎫 แจ้งเตือน! ไบฟรอสแลก B-Card 1 ใบ!\nมูลค่า: " + amt + " B-Coin\n(ยอดเงินล่าสุด: " + S.coins + " B-Coin)");
-            openBcScreen(); // 👈 สั่งให้โชว์การ์ดทันที
-        }); 
-    });
-}
-
 function openAv(){ S.selAv=S.curAv; buildAg(); var avM = document.getElementById('av-mov'); if(avM) avM.classList.add('on'); }
 function buildAg(){ var html=''; AV.forEach(function(em,i){ var reqLv = (i === 0) ? 1 : (i * 2) + 1; var un = S.lv >= reqLv; var sel = i === S.selAv; html += '<div class="ao '+(un?'u':'lk')+' '+(sel?'sel':'')+'" data-ai="'+i+'">'; html += '<div>'+em+'</div><div class="ao-l">'+AN[i]+'</div>'; if (!un) { html += '<div class="lko">🔒<span>Lv.'+reqLv+'</span></div>'; } html += '</div>'; }); var avg = document.getElementById('av-g'); if(avg) avg.innerHTML=html; document.querySelectorAll('.ao.u').forEach(function(el){ el.addEventListener('click',function(){ S.selAv=parseInt(el.getAttribute('data-ai')); document.querySelectorAll('.ao').forEach(function(e,j){ e.classList.toggle('sel',j===S.selAv); }); }); }); }
 
-function openBcScreen(){ 
-  var d=new Date(); 
-  var bcd = document.getElementById('bc-date'); if(bcd) bcd.textContent=d.toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'}); 
-  
-  // 🌟 เปลี่ยนมาใช้ bcTotal เพื่อให้เลขไม่เป็น 0000
-  var bcs = document.getElementById('bc-serial'); if(bcs) bcs.textContent='BIFROST-BCARD-'+String(S.bcTotal).padStart(4,'0');
-  
-  // 💰 ดึงมูลค่าล่าสุดที่เพิ่งแลกมาโชว์บนการ์ด [cite: 550]
-  var valEl = document.getElementById('bc-value'); 
-  var lastVal = (S.bcList && S.bcList.length > 0) ? S.bcList[S.bcList.length - 1].amount : 100; 
-  if(valEl) valEl.textContent = lastVal;
-
-  var scr = document.getElementById('bc-screen'); 
-  if(scr) {
-    SFX.card(); 
-    scr.style.display='flex'; 
-    var ticket = scr.querySelector('.ticket');
-    if(ticket) { ticket.classList.remove('card-slide-up'); void ticket.offsetWidth; ticket.classList.add('card-slide-up'); } 
-  }
+function readRepairNumber(id) {
+  var el = document.getElementById(id);
+  if (!el || el.value === '') return undefined;
+  var n = Number(el.value);
+  return Number.isFinite(n) ? n : undefined;
 }
 
+function readRepairText(id) {
+  var el = document.getElementById(id);
+  if (!el || el.value === '') return undefined;
+  return el.value;
+}
+
+function setRepairValue(id, value) {
+  var el = document.getElementById(id);
+  if (el) el.value = (value === undefined || value === null) ? '' : value;
+}
+
+function fillRepairCenter() {
+  setRepairValue('rp-coins', S.coins);
+  setRepairValue('rp-today-coins', S.todayCoins);
+  setRepairValue('rp-today-spent', S.todayCoinsSpent || 0);
+  setRepairValue('rp-lv', S.lv);
+  setRepairValue('rp-exp', S.exp);
+  setRepairValue('rp-keys', S.keys || 0);
+  setRepairValue('rp-ticket', S.ticket || 0);
+  setRepairValue('rp-food-week', S.foodWeekBought || 0);
+  setRepairValue('rp-step', S.currentDayIndex || 0);
+  setRepairValue('rp-w', S.w || '');
+  setRepairValue('rp-h', S.h || '');
+  setRepairValue('rp-fr', S.swimFr || '');
+  setRepairValue('rp-bk', S.swimBk || '');
+  setRepairValue('rp-fg', S.swimFg || '');
+  setRepairValue('rp-bt', S.swimBt || '');
+  setRepairValue('rp-boss-speed', S.bossTargets ? S.bossTargets.speed : '');
+  setRepairValue('rp-boss-height', S.bossTargets ? S.bossTargets.heightBase : '');
+  setRepairValue('rp-boss-weight', S.bossTargets ? S.bossTargets.weightBase : '');
+  setRepairValue('rp-log', Array.isArray(S.todayItemsUsed) ? S.todayItemsUsed.join('\n') : '');
+}
+
+function openRepairCenter() {
+  fillRepairCenter();
+  var m = document.getElementById('repair-modal');
+  if (m) m.classList.add('on');
+}
+
+function closeRepairCenter() {
+  var m = document.getElementById('repair-modal');
+  if (m) m.classList.remove('on');
+}
+
+function doRepairSubmit() {
+  var pin = readRepairText('rp-pin') || '';
+  var reason = readRepairText('rp-reason') || '';
+  if (pin.length < 4) { showToast('กรุณากรอก PIN ก่อนซ่อมข้อมูล'); return; }
+  if (!reason) { showToast('กรุณาระบุเหตุผลการแก้ไข'); return; }
+
+  var fields = {};
+  var numberMap = {
+    coins:'rp-coins', todayCoins:'rp-today-coins', todayCoinsSpent:'rp-today-spent', lv:'rp-lv', exp:'rp-exp', keys:'rp-keys', ticket:'rp-ticket', foodWeekBought:'rp-food-week', currentDayIndex:'rp-step', w:'rp-w', h:'rp-h', swimFr:'rp-fr', swimBk:'rp-bk', swimFg:'rp-fg', swimBt:'rp-bt'
+  };
+  Object.keys(numberMap).forEach(function(key) {
+    var val = readRepairNumber(numberMap[key]);
+    if (val !== undefined) fields[key] = val;
+  });
+
+  var nested = {};
+  var bossSpeed = readRepairNumber('rp-boss-speed');
+  var bossHeight = readRepairNumber('rp-boss-height');
+  var bossWeight = readRepairNumber('rp-boss-weight');
+  if (bossSpeed !== undefined || bossHeight !== undefined || bossWeight !== undefined) {
+    nested.bossTargets = {};
+    if (bossSpeed !== undefined) nested.bossTargets.speed = bossSpeed;
+    if (bossHeight !== undefined) nested.bossTargets.heightBase = bossHeight;
+    if (bossWeight !== undefined) nested.bossTargets.weightBase = bossWeight;
+  }
+
+  var logText = readRepairText('rp-log');
+  if (logText !== undefined) fields.todayItemsUsed = logText.split('\n').map(function(x){ return x.trim(); }).filter(Boolean);
+
+  fetch(SHEET_URL, { method:'POST', body:JSON.stringify({ action:'ADMIN_REPAIR', pin:pin, reason:reason, fields:fields, nested:nested }) })
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if (!data || data.result !== 'success') throw new Error((data && (data.message || data.error)) || 'ซ่อมข้อมูลไม่สำเร็จ');
+      Object.assign(S, data.save || {});
+      localStorage.setItem('bifrost_data', JSON.stringify(S));
+      renderAll();
+      closeRepairCenter();
+      showToast('🛠️ ซ่อมข้อมูลสำเร็จ พร้อม backup แล้ว');
+    })
+    .catch(function(err){ showToast(err.message || 'ซ่อมข้อมูลไม่สำเร็จ'); });
+}
 function bindAll(){
   var a = (id, e, f) => { var el = document.getElementById(id); if(el) el.addEventListener(e, f); };
   a('ni-d', 'click', () => goP('dashboard')); a('ni-q', 'click', () => goP('quest')); a('ni-s', 'click', () => goP('shop'));
@@ -1047,17 +1146,17 @@ function bindAll(){
   [1,2,3].forEach(function(n){ a('qi'+n, 'click', () => tQ(n)); });
   a('feel-sl', 'input', function(){ updateFeel(this.value); });
    
-  a('btn-submit', 'click', doSubmit); a('btn-reset', 'click', doReset); a('btn-gm-submit', 'click', doGmSubmit);
-  a('inv-ph-row', 'click', usePhoenix); a('inv-tk-row', 'click', useTicket); a('inv-bc-row', 'click', useBcItem);
-  a('sh-ph-btn', 'click', buyPh); a('sh-food-btn', 'click', buyFood); a('btn-bc', 'click', exchangeBCard);
+  a('btn-submit', 'click', doSubmit); a('btn-reset', 'click', doReset); a('btn-gm-submit', 'click', doGmSubmit); a('btn-open-repair', 'click', openRepairCenter); a('btn-repair-submit', 'click', doRepairSubmit); a('btn-repair-close', 'click', closeRepairCenter);
+  a('inv-ph-row', 'click', usePhoenix); a('inv-tk-row', 'click', useTicket);
+  a('sh-food-btn', 'click', buyFood);
   var fdm = document.getElementById('fd-mov'); if(fdm) fdm.addEventListener('click', function(e){ if(e.target===this) this.classList.remove('on'); });
   a('btn-fd-confirm', 'click', confirmFd);
   a('cfm-yes', 'click', () => { var c = document.getElementById('cfm'); if(c) c.classList.remove('on'); if(S.pending){S.pending();S.pending=null;} });
   a('cfm-no', 'click', () => { var c = document.getElementById('cfm'); if(c) c.classList.remove('on'); S.pending=null; });
-  a('bc-close-btn', 'click', () => { var scr = document.getElementById('bc-screen'); if(scr) scr.style.display='none'; });
   a('chef-close-btn', 'click', () => { var scr = document.getElementById('chef-screen'); if(scr) scr.style.display='none'; });
   a('btn-boss-claim', 'click', () => { SFX.coin(); var bo = document.getElementById('boss-overlay'); if(bo) bo.classList.remove('on'); goP('dashboard'); setChar(chForLevel(S.lv)); });
-  document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'visible') { fetchDraftFromCloud(); } });
+  document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'visible') { fetchDraftFromCloud(); refreshWalletActivityLog(); } });
+  window.addEventListener('focus', refreshWalletActivityLog);
   document.querySelectorAll('input').forEach(function(input) { input.addEventListener('blur', autoSyncDraft); });
 
  // 👑 ตรวจสอบ URL ว่ามีตัว @ อยู่ด้านหลังสุดหรือไม่ (รองรับทั้ง ?@ และ #@)
@@ -1081,7 +1180,7 @@ function bindAll(){
     }
   }
 
-  // 🛠️ ทางเข้า DEV MODE สำหรับเทสแอป (กด 5 ครั้งที่ชื่อฮีโร่)
+  // 🛠️ ทางเข้า TEST MODE สำหรับเทสแอป (กด 5 ครั้งที่ชื่อฮีโร่)
   var testClicks = 0; var testTm;
   var heroNameEl = document.querySelector('.hero-nm');
   if(heroNameEl) {
@@ -1093,7 +1192,7 @@ function bindAll(){
       if(testClicks >= 5) { 
         var devBar = document.getElementById('dev-tools-bar');
         if(devBar) devBar.style.display = 'flex';
-        showToast('🛠️ เปิดโหมดทดสอบ (DEV MODE) แล้ว!');
+        showToast('🛠️ เปิดโหมดทดสอบ (TEST MODE) แล้ว!');
         testClicks = 0;
       }
       testTm = setTimeout(function(){ testClicks = 0; }, 1000);
@@ -1102,7 +1201,7 @@ function bindAll(){
 }
 
 // ==========================================
-// 🛠️ DEV MODE FUNCTIONS
+// 🛠️ TEST MODE FUNCTIONS
 // ==========================================
 window.devQuickComplete = function() {
     if (S.submitted) { showToast('วันนี้ส่งภารกิจไปแล้ว กดข้ามวันก่อนครับ!'); return; }
@@ -1199,7 +1298,9 @@ window.devHardReset = function() {
 document.addEventListener('DOMContentLoaded',function(){ 
   // ส่งเลขเวอร์ชันไปแสดงที่หน้าจอ
   var verEl = document.getElementById('app-version');
-  if(verEl) verEl.textContent = 'Ver. ' + APP_VERSION;
+  if(verEl) verEl.textContent = 'Ver.' + APP_VERSION;
+  var mainVerEl = document.getElementById('main-app-version');
+  if(mainVerEl) mainVerEl.textContent = 'Ver.' + APP_VERSION;
   loadLocal(); 
   loadDraft();
   window.addEventListener('online', () => { document.getElementById('offline-overlay').style.display = 'none'; showToast('🟢 สัญญาณอินเทอร์เน็ตกลับมาแล้ว!'); });
@@ -1211,7 +1312,7 @@ document.addEventListener('DOMContentLoaded',function(){
   function closeIntro() { 
     if(vOverlay) { 
       vOverlay.style.opacity = '0'; 
-      setTimeout(() => { vOverlay.style.display='none'; showProphecyIfAny(); }, 800); 
+      setTimeout(() => { vOverlay.style.display='none'; if(!showVersionUpdateIfNeeded()) showProphecyIfAny(); }, 800); 
     } 
   }
   if(vOverlay) {
@@ -1244,8 +1345,9 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 function fetchDraftFromCloud() {
+  if(!SHEET_URL || SHEET_URL.length < 10) return;
   var todayStr = new Date().toLocaleDateString('en-CA');
-  fetch(SHEET_URL + "?date=" + todayStr)
+  fetch(SHEET_URL + "?action=fetchDraft&date=" + todayStr)
     .then(res => res.json())
     .then(data => {
       if (data.w) document.getElementById('in-w').value = data.w;
@@ -1435,168 +1537,3 @@ function loadDraft() {
     }
 }
 
-// ==========================================
-// 🎟️ ชุดแพตช์อัปเกรด B-CARD V.2 (โชว์ Popup + อัปเดต Log ทันที)
-// ==========================================
-
-setTimeout(function() {
-    // 1. ถอดปลั๊กปุ่มแลกบัตรอันเก่าทิ้งถาวร
-    var oldBtnBc = document.getElementById('btn-bc');
-    if (oldBtnBc) {
-        var newBtnBc = oldBtnBc.cloneNode(true);
-        oldBtnBc.parentNode.replaceChild(newBtnBc, oldBtnBc);
-        
-        // 🌟 ใส่สมอง V.2 ให้ปุ่มแลกบัตร
-        newBtnBc.onclick = function() {
-            var inputEl = document.getElementById('in-bc-amount');
-            var amount = parseInt(inputEl.value);
-            
-            // เช็กเงื่อนไข (เงินพอไหม / พิมพ์เลขถูกไหม)
-            if (isNaN(amount) || amount < 100) {
-                showToast('❌ ต้องแลกขั้นต่ำ 100 B-Coin ขึ้นไปครับ!');
-                return;
-            }
-            if ((S.coins || 0) < amount) {
-                showToast('❌ B-Coin ไม่พอครับ! ขาดอีก ' + (amount - S.coins) + ' เหรียญ');
-                return;
-            }
-            
-            // 💸 หักเงิน B-Coin
-            S.coins -= amount;
-            S.todayCoinsSpent = (S.todayCoinsSpent || 0) + amount; // 🌟 แทรกบรรทัดนี้ลงไป
-            // 🎫 สร้างข้อมูลบัตร
-            
-            // 🎫 สร้างข้อมูลบัตร
-            S.bcCount = (S.bcCount || 0) + 1;
-            S.bcTotalIssued = (S.bcTotalIssued || 0) + 1;
-            S.bcLastValue = amount;
-            S.bcLastSerial = "BIFROST-BCARD-" + String(S.bcTotalIssued).padStart(4, '0'); // รันเลข 0001, 0002...
-            
-            var dateOpts = { year: 'numeric', month: 'short', day: 'numeric' };
-            S.bcLastDate = new Date().toLocaleDateString('th-TH', dateOpts);
-            
-            inputEl.value = ''; // เคลียร์ช่องพิมพ์ตัวเลข
-            
-            // 📝 บันทึกประวัติการซื้อ (สำหรับเก็บข้อมูล)
-            if (!S.todayItemsUsed) S.todayItemsUsed = [];
-            S.todayItemsUsed.push('🎟️ แลกบัตร B-Card (' + amount + ' B-Coin)');
-            // ส่งแจ้งเตือนเข้า LINE เมื่อแลก B-Card
-            sendToLine("BCARD", "🎫 [BIFROST] แจ้งเตือนด่วน!\nไบฟรอสได้ทำการแลก B-Card 1 ใบ!\n💎 มูลค่า: " + amount + " B-Coin\n💰 ยอดเงินคงเหลือ: " + S.coins + " B-Coin");
-            
-            saveLocal();
-            renderAll();
-            
-            
-            // 📝 ยิงข้อความอัปเดตลง Log หน้าแรก (Dashboard) ทันที
-            if (typeof updateLog === 'function') updateLog();
-            var logBox = document.getElementById('log-txt');
-            if (logBox) {
-                var timeStr = new Date().toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
-                var newLog = '<div style="color:var(--gold); padding:5px 0; border-bottom:1px dashed #444; font-weight:bold;">🎟️ [' + timeStr + '] ทำการแลก B-Card มูลค่า ' + amount + ' เหรียญ</div>';
-                if (logBox.innerHTML.includes('กำลังโหลด')) logBox.innerHTML = '';
-                logBox.innerHTML = newLog + logBox.innerHTML; // เอาดันไว้บรรทัดบนสุด
-            }
-            
-            // 🌟 ไฮไลท์! สั่งเปิด Popup โชว์บัตรทันทีที่แลกเสร็จ!
-            document.getElementById('bc-value').textContent = S.bcLastValue;
-            document.getElementById('bc-serial').textContent = S.bcLastSerial;
-            document.getElementById('bc-date').textContent = S.bcLastDate;
-            document.getElementById('bc-screen').style.display = 'flex';
-        };
-    }
-
-    // 2. จัดการปุ่ม "แสดงบัตร" ในหน้าคลังไอเทม
-    var oldUseBc = document.querySelector('.use-pill.bc');
-    if (oldUseBc) {
-        var newUseBc = oldUseBc.cloneNode(true);
-        oldUseBc.parentNode.replaceChild(newUseBc, oldUseBc);
-        
-        newUseBc.onclick = function() {
-            if (!S.bcCount || S.bcCount <= 0) {
-                showToast('❌ คุณยังไม่มี B-Card ในคลังครับ');
-                return;
-            }
-            // เปิด Popup โชว์บัตรใบล่าสุด
-            document.getElementById('bc-value').textContent = S.bcLastValue;
-            document.getElementById('bc-serial').textContent = S.bcLastSerial;
-            document.getElementById('bc-date').textContent = S.bcLastDate;
-            document.getElementById('bc-screen').style.display = 'flex';
-        };
-    }
-    
-    // 3. ป้องกันปุ่มปิดบัตรพัง (กดกากบาทแล้วต้องปิดได้)
-    var bcCloseBtn = document.getElementById('bc-close-btn');
-    if (bcCloseBtn) {
-        bcCloseBtn.onclick = function() {
-            document.getElementById('bc-screen').style.display = 'none';
-        };
-    }
-
-    // 4. แอบแทรกคำสั่งอัปเดตเลขในคลัง (ทำครั้งเดียวเพื่อไม่ให้จอโหลดซ้ำซ้อน)
-    if (typeof renderAll === 'function' && !window.bcPatchApplied) {
-        window.bcPatchApplied = true; 
-        var originalRenderAll_BC = renderAll;
-        renderAll = function() {
-            originalRenderAll_BC(); 
-            var invBc = document.getElementById('inv-bc');
-            if (invBc) invBc.textContent = S.bcCount || 0;
-        };
-        renderAll(); // อัปเดตทันทีที่เปิดแอป
-    }
-}, 500);
-
-// ==========================================
-// 🛒 ชุดแพตช์อัปเกรดร้านค้า V.3 (แยกระบบน้ำยาแสนอร่อย)
-// ==========================================
-setTimeout(function() {
-    // 1. ปุ่มซื้อ "น้ำตาฟีนิกซ์"
-    var btnPh = document.getElementById('sh-ph-btn');
-    if (btnPh) {
-        var newBtnPh = btnPh.cloneNode(true);
-        btnPh.parentNode.replaceChild(newBtnPh, btnPh);
-        
-        newBtnPh.onclick = function() {
-            if((S.coins||0) < 15){ showToast('❌ B-Coin ไม่พอ!'); return; }
-            if((S.phWeekBought||0) >= 1){ showToast('❌ หมดโควต้าสัปดาห์นี้แล้ว!'); return; }
-            if((S.phoenix||0) >= 2){ showToast('❌ คลังเต็มแล้ว!'); return; }
-            
-            cfmShow('💧', 'ซื้อน้ำตาฟีนิกซ์?', 'ราคา 15 B-Coin', function() {
-                S.coins -= 15; 
-                S.todayCoinsSpent = (S.todayCoinsSpent || 0) + 15; // 🌟 แทรกบรรทัดนี้ลงไป
-                S.phoenix = (S.phoenix || 0) + 1;
-                
-                if (!S.todayItemsUsed) S.todayItemsUsed = [];
-                S.todayItemsUsed.push('🛒 ซื้อน้ำตาฟีนิกซ์ (-15 Coins)');
-                
-                saveLocal(); renderAll();
-                if (typeof updateLog === 'function') updateLog();
-                showToast('💧 ซื้อน้ำตาฟีนิกซ์สำเร็จ!');
-            });
-        };
-    }
-
-    // 2. ปุ่มซื้อ "น้ำยาแสนอร่อย" (ตั้งโควต้าสัปดาห์ละ 1 ครั้ง)
-    var btnFood = document.getElementById('sh-food-btn');
-    if (btnFood) {
-        var newBtnFood = btnFood.cloneNode(true);
-        btnFood.parentNode.replaceChild(newBtnFood, btnFood);
-        
-        newBtnFood.onclick = function() {
-            if((S.coins||0) < 50){ showToast('❌ B-Coin ไม่พอ!'); return; }
-            if((S.foodWeekBought||0) >= 1){ showToast('❌ หมดโควต้าสัปดาห์นี้แล้ว!'); return; } // โควต้า 1 ครั้ง/สัปดาห์
-            
-            cfmShow('🍜', 'ซื้อน้ำยาแสนอร่อย?', 'ราคา 50 B-Coin', function() {
-                S.coins -= 50; 
-                S.todayCoinsSpent = (S.todayCoinsSpent || 0) + 50; // 🌟 แทรกบรรทัดนี้ลงไป
-                S.ticket = (S.ticket || 0) + 1;
-                
-                if (!S.todayItemsUsed) S.todayItemsUsed = [];
-                S.todayItemsUsed.push('🛒 ซื้อน้ำยาแสนอร่อย (-50 Coins)');
-                
-                saveLocal(); renderAll();
-                if (typeof updateLog === 'function') updateLog();
-                showToast('🍜 ซื้อน้ำยาแสนอร่อยสำเร็จ!');
-            });
-        };
-    }
-}, 600);
