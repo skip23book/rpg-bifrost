@@ -9,12 +9,15 @@ var BIFROST_API_URL = "https://script.google.com/macros/s/AKfycbzhZ4vnKvSMhxay6W
 // กรอกเลขเวอร์ชันและรายละเอียดอัปเดตตรงนี้ได้เลย
 // เพิ่ม/ลบบรรทัดใน APP_UPDATE_NOTES ได้ตามต้องการ เมื่อ APP_VERSION เปลี่ยน popup จะแสดงครั้งแรกอัตโนมัติ
 var APP_UPDATE_NOTES = [
+  "เพิ่มระบบ Auto Update/Force Reload ให้โหลดไฟล์เวอร์ชันใหม่อัตโนมัติ ไม่ต้องลบ PWA แล้วลงใหม่",
+  "เพิ่มตัวตรวจเวอร์ชันจาก backend เพื่อป้องกันมือถือหรือ PWA ใช้ script เก่าค้างอยู่",
   "แก้ระบบ CloudSave ไม่ให้ข้อมูลเก่าทับข้อมูลใหม่หลังส่งภารกิจหรือเปิดแอปใหม่",
   "อัปเดต LINE Token ใหม่เพื่อให้ Flex Message และแจ้งเตือน LINE กลับมาทำงาน",
   "เพิ่มรายจ่ายวันนี้บน Dashboard และนับการแลกเงินผ่าน Wallet เป็นรายจ่าย",
   "แก้ Daily Adventure Log ไม่ให้หลุดไปแสดงบนหน้า Quest และ Shop",
   "ปรับความเสถียรของการซิงค์ข้อมูลเหรียญ ไอเท็ม และสถิติข้ามอุปกรณ์"
-];var AV = ['🧙','⚔️','🏹','🧜','🔥','⚡','🌊','🍃','❄️','💫','🦅','🐉','🌸','🗡️','🛡️','👑','🌙','☀️','🎭','✨','🦇','🐺','🧚','🧞','🧟','🤖','👽','👻','☠️','🤡','🦁','🐍','🐢','🐦','🦄','🐝','🦊','🐙','🕷️','🦂','💎','🔮','🪓','🔱','👁️','🪐','☄️','🌪️','🌌','♾️'];
+];
+var AV = ['🧙','⚔️','🏹','🧜','🔥','⚡','🌊','🍃','❄️','💫','🦅','🐉','🌸','🗡️','🛡️','👑','🌙','☀️','🎭','✨','🦇','🐺','🧚','🧞','🧟','🤖','👽','👻','☠️','🤡','🦁','🐍','🐢','🐦','🦄','🐝','🦊','🐙','🕷️','🦂','💎','🔮','🪓','🔱','👁️','🪐','☄️','🌪️','🌌','♾️'];
 var AN = ['นักเวทย์','นักรบ','นักธนู','ไฮโดร','ไพโร','อิเล็กโตร','อควา','อะเนโม','ครายโอ','แอสโตร','ฮอว์ค','มังกร','ซากุระ','คาตา','พาลาดิน','ราชัน','ลูน่า','โซลาร์','มายา','ดาวเด่น','แวมไพร์','ไลแคน','แฟรี่','จินนี่','ซอมบี้','ไซบอร์ก','เอเลี่ยน','สเปกเตอร์','เนโครมันเซอร์','โจ๊กเกอร์','ราชสีห์','ไวเปอร์','เก็นบุ','ฟีนิกซ์','ยูนิคอร์น','คิลเลอร์บี','คิทซึเนะ','คราเคน','อารัคเน่','สคอร์เปียน','โกเลม','ออราเคิล','เบอร์เซิร์กเกอร์','โพไซดอน','ผู้หยั่งรู้','คอสมิก','เมเทโอ','พายุหมุน','เนบิวลา','อัลฟ่า'];
 var CHAR_NAMES=['นักดาบฝึกหัด','นักรบฝึกหัด','สำนักดาบ','ทหารยาม','อัศวินสามัญ','ผู้พิทักษ์','นักรบแนวหน้า','อัศวินศักดิ์สิทธิ์','พาลาดินศักดิ์สิทธิ์','เทมพลาร์หลวง','อัศวินองครักษ์','อัศวินเพลิง','จทัพศักดิ์สิทธิ์','นักดาบเงา','อัศวินรัตติกาล','จ้าวแห่งเพลิง','ผู้พิทักษ์เหมันต์','จ้าวแห่งพายุ','ผู้พิทักษ์สวรรค์','ตำนานนิรันดร์'];
 var FEEL=[null,{i:'😫',l:'เหนื่อยมาก'},{i:'😔',l:'ค่อนข้างเหนื่อย'},{i:'😐',l:'พอสู้ได้'},{i:'😊',l:'ดีมาก'},{i:'🌟',l:'ยอดเยี่ยม!'}];
@@ -60,6 +63,54 @@ var SFX = {
 // 🔗 URL Apps Script
 var SHEET_URL = BIFROST_API_URL; 
 
+
+function clearBrowserCachesForUpdate_() {
+  try {
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        regs.forEach(function(reg) { reg.unregister(); });
+      });
+    }
+    if (window.caches && caches.keys) {
+      caches.keys().then(function(keys) {
+        keys.forEach(function(key) { caches.delete(key); });
+      });
+    }
+  } catch (e) {}
+}
+
+function reloadForAssetVersion_(assetVersion) {
+  clearBrowserCachesForUpdate_();
+  var base = window.location.origin + window.location.pathname;
+  var hash = window.location.hash || '';
+  var nextUrl = base + '?appv=' + encodeURIComponent(assetVersion) + '&t=' + Date.now() + hash;
+  window.location.replace(nextUrl);
+}
+
+function checkRemoteVersion() {
+  try {
+    if (!navigator.onLine || !BIFROST_API_URL || BIFROST_API_URL.length < 10) return Promise.resolve(false);
+    return fetch(BIFROST_API_URL + '?action=version&ts=' + Date.now(), { cache: 'no-store' })
+      .then(function(res) { return res.json(); })
+      .then(function(info) {
+        if (!info || info.result !== 'success' || !info.assetVersion) return false;
+        var remoteVersion = String(info.assetVersion);
+        var rememberedVersion = localStorage.getItem('bifrost_asset_version');
+        if (!rememberedVersion) localStorage.setItem('bifrost_asset_version', APP_VERSION);
+        if (remoteVersion !== APP_VERSION) {
+          localStorage.setItem('bifrost_asset_version', remoteVersion);
+          localStorage.removeItem('bifrost_seen_version');
+          reloadForAssetVersion_(remoteVersion);
+          return true;
+        }
+        localStorage.setItem('bifrost_asset_version', remoteVersion);
+        return false;
+      })
+      .catch(function() { return false; });
+  } catch (e) {
+    return Promise.resolve(false);
+  }
+}
 function sendToLine(msgType, msgContent) {
   if (LINE_MUTE_MODE) { console.log("[LINE muted]", msgType, msgContent); return; }
   // return; // 🛑 เปิดแจ้งเตือน Line ให้ลบสองขีดหน้ารีเทินออก
@@ -1294,7 +1345,7 @@ window.devHardReset = function() {
 };
 // ==========================================
 
-document.addEventListener('DOMContentLoaded',function(){ 
+document.addEventListener('DOMContentLoaded',function(){ checkRemoteVersion(); 
   // ส่งเลขเวอร์ชันไปแสดงที่หน้าจอ
   var verEl = document.getElementById('app-version');
   if(verEl) verEl.textContent = 'Ver.' + APP_VERSION;
