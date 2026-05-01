@@ -1,21 +1,20 @@
 // ══════════════════════════════════════════════════
 //  STATE (ตัวแปรระบบหลัก)
 // ══════════════════════════════════════════════════
-var APP_VERSION = "1.0.3";
-var LINE_MUTE_MODE = false;
+var APP_VERSION = "1.0.4";
+var BIFROST_DEV_MODE = false;
 // Web App URL ของ Apps Script สำหรับใช้งานจริง
 var BIFROST_API_URL = "https://script.google.com/macros/s/AKfycbzhZ4vnKvSMhxay6Wz2Ur86cI3bBXhel3ms_v9yH27eEKT9m8M4QmcMFypts59iwXst/exec";
 
 // กรอกเลขเวอร์ชันและรายละเอียดอัปเดตตรงนี้ได้เลย
 // เพิ่ม/ลบบรรทัดใน APP_UPDATE_NOTES ได้ตามต้องการ เมื่อ APP_VERSION เปลี่ยน popup จะแสดงครั้งแรกอัตโนมัติ
 var APP_UPDATE_NOTES = [
-  "เพิ่มระบบ Auto Update/Force Reload ให้โหลดไฟล์เวอร์ชันใหม่อัตโนมัติ ไม่ต้องลบ PWA แล้วลงใหม่",
-  "เพิ่มตัวตรวจเวอร์ชันจาก backend เพื่อป้องกันมือถือหรือ PWA ใช้ script เก่าค้างอยู่",
-  "แก้ระบบ CloudSave ไม่ให้ข้อมูลเก่าทับข้อมูลใหม่หลังส่งภารกิจหรือเปิดแอปใหม่",
-  "อัปเดต LINE Token ใหม่เพื่อให้ Flex Message และแจ้งเตือน LINE กลับมาทำงาน",
-  "เพิ่มรายจ่ายวันนี้บน Dashboard และนับการแลกเงินผ่าน Wallet เป็นรายจ่าย",
-  "แก้ Daily Adventure Log ไม่ให้หลุดไปแสดงบนหน้า Quest และ Shop",
-  "ปรับความเสถียรของการซิงค์ข้อมูลเหรียญ ไอเท็ม และสถิติข้ามอุปกรณ์"
+  "เพิ่มระบบ Draft/อัปเดตภารกิจให้ซิงก์ข้ามอุปกรณ์ พร้อมบอกชัดว่ายังไม่ได้ส่งภารกิจจริง",
+  "ล้างข้อมูลร่างอัตโนมัติหลังส่งภารกิจจริง เพื่อลดความสับสนเมื่อเปิดจากมือถืออีกเครื่อง",
+  "เพิ่มปุ่ม ❓ อธิบายทุกฟังก์ชันใน GM Mode",
+  "เพิ่ม LINE Flex Message สำหรับภารกิจลับพิเศษจาก GM",
+  "เปลี่ยนรูป LINE Flex Message เป็นไฟล์ JPG ขนาดเล็กลง เพื่อให้โหลดไวขึ้น",
+  "อัปเดต BB STATS: การ์ดสถิติเพิ่มเติม ระบบซ่อน/กู้คืน/ลบข้อมูลเฉพาะเครื่อง และ Hidden History แบบใส่รหัส"
 ];
 var AV = ['🧙','⚔️','🏹','🧜','🔥','⚡','🌊','🍃','❄️','💫','🦅','🐉','🌸','🗡️','🛡️','👑','🌙','☀️','🎭','✨','🦇','🐺','🧚','🧞','🧟','🤖','👽','👻','☠️','🤡','🦁','🐍','🐢','🐦','🦄','🐝','🦊','🐙','🕷️','🦂','💎','🔮','🪓','🔱','👁️','🪐','☄️','🌪️','🌌','♾️'];
 var AN = ['นักเวทย์','นักรบ','นักธนู','ไฮโดร','ไพโร','อิเล็กโตร','อควา','อะเนโม','ครายโอ','แอสโตร','ฮอว์ค','มังกร','ซากุระ','คาตา','พาลาดิน','ราชัน','ลูน่า','โซลาร์','มายา','ดาวเด่น','แวมไพร์','ไลแคน','แฟรี่','จินนี่','ซอมบี้','ไซบอร์ก','เอเลี่ยน','สเปกเตอร์','เนโครมันเซอร์','โจ๊กเกอร์','ราชสีห์','ไวเปอร์','เก็นบุ','ฟีนิกซ์','ยูนิคอร์น','คิลเลอร์บี','คิทซึเนะ','คราเคน','อารัคเน่','สคอร์เปียน','โกเลม','ออราเคิล','เบอร์เซิร์กเกอร์','โพไซดอน','ผู้หยั่งรู้','คอสมิก','เมเทโอ','พายุหมุน','เนบิวลา','อัลฟ่า'];
@@ -24,7 +23,7 @@ var FEEL=[null,{i:'😫',l:'เหนื่อยมาก'},{i:'😔',l:'ค่
 var HOF_INFO = { shark: { i: '🦈', t: 'บอสฉลามขาว', c: 'ว่ายฟรีสไตล์ต่ำกว่าเป้าหมาย' }, book:  { i: '📚', t: 'บอสหมอโหด', c: 'สอบได้คะแนน >= 90% (โดนยึดคืนถ้าคะแนนตก)' }, heart: { i: '❤️', t: 'บอสมุ่งมั่น', c: 'ได้ดาบทอง 7 วันรวด (โดนยึดคืนถ้าพลาด)' }, pole: { i: '🦒', t: 'บอสเสาไฟ', c: 'ส่วนสูงเพิ่มขึ้นทุกๆ 2 ซม.' }, shrimp: { i: '💪', t: 'บอสกุ้งแห้งเล่นเวท', c: 'น้ำหนักเพิ่มขึ้นทุกๆ 2 กก.' } };
 var BOSS_DETAILS = { shark: { i: '🦈', t: 'บอสฉลามขาว', c: 'ว่าย Sprint ฟรีสไตล์ 25 เมตร เพื่อล้มบอสไปทีละด่าน!\n(ทีละ 1 วิ)', r: '🏆 ล้มบอสระดับ 25-21 วิ รับ 50 B-Coin |\nระดับ 20 วิลงไป รับ 200 B-Coin!', n: 'บอสจะโผล่มาให้สู้ทีละด่านเท่านั้น เริ่มต้นที่ด่าน 25 วิ!' }, book: { i: '📚', t: 'บอสหมอโหด', c: 'ทำคะแนนสอบวิชาใดก็ได้ให้ได้ตั้งแต่ 90% ขึ้นไป', r: '💎 +300 B-Coin และปลดล็อกตราคัมภีร์', n: 'ระวัง!\nถ้าสอบครั้งถัดไปได้น้อยกว่า 90% ตราจะหายไปนะ' }, heart: { i: '❤️', t: 'บอสมุ่งมั่น', c: 'ทำภารกิจรายวัน (โซน 1) ให้ครบทั้ง 3 ข้อ ติดต่อกัน 7 วัน (จันทร์-อาทิตย์)', r: '🌟 +18 B-Coin และปลดล็อกตราหัวใจเหล็กไหล (พร้อมกุญแจทอง 2 ดอก)', n: 'ถ้าพลาดแม้แต่วันเดียวในสัปดาห์ ตราจะโดนยึดคืนทันที' }, pole: { i: '🦒', t: 'บอสเสาไฟ', c: 'ส่วนสูงเพิ่มขึ้นทุกๆ 2 เซนติเมตร จากฐานความสูงเดิมของคุณ', r: '💰 +30 B-Coin (รับได้เรื่อยๆ ทุกครั้งที่สูงขึ้น)', n: 'ปัดเศษทศนิยมทิ้ง นับเฉพาะจำนวนเต็มที่เพิ่มขึ้น' }, shrimp: { i: '💪', t: 'บอสกุ้งแห้งเล่นเวท', c: 'น้ำหนักตัวเพิ่มขึ้นทุกๆ 2 กิโลกรัม จากฐานน้ำหนักเดิม (เน้นความแข็งแรง)', r: '🍖 +30 B-Coin (รับได้เรื่อยๆ เมื่อตัวหนาขึ้น)', n: 'กินอาหารที่มีประโยชน์เพื่อเอาชนะบอสตัวนี้!' } };
 
-var S={ coins:0, todayCoins:0, todayGmCoins:0, w:'', h:'', exp:0, expMax:100, lv:1, curAv:0, selAv:0, phoenix:0, ticket:0, bcards:0, bcUsed:0, bcTotal: 0, bcList: [], keys:0, streak:['grey','grey','grey','grey','grey','grey','grey'], currentDayIndex: 0, lastSyncDate: null, quests:[false,false,false], pin:'', PIN:'5918', pending:null, submitted:false, gmSubmitted:false, isResubmit: false, feeling:3, illness:'ไม่มี', swimFr:'', swimBt:'', swimFg:'', swimBk:'', laps:'', achievement:'', specialCoin:0, gpa:'', score:'', weekKey:'', phWeekBought:0, foodWeekBought:0, monthBest:{fr:null,bt:null,fg:null,bk:null}, allBest:{fr:null,bt:null,fg:null,bk:null}, hof: { shark: false, book: false, heart: false }, bossTargets: { speed: 25, heightBase: 129, weightBase: 24 }, todayGacha: [], todayItemsUsed: [], bcList: [], gmBuffs: { jackpot: false, prophecy: '', buddy: false }, gmPopupSeen: true, gmPopupSeen: true, prophecySeen: true };
+var S={ coins:0, todayCoins:0, todayGmCoins:0, w:'', h:'', exp:0, expMax:100, lv:1, curAv:0, selAv:0, phoenix:0, ticket:0, bcards:0, bcUsed:0, bcTotal: 0, bcList: [], keys:0, streak:['grey','grey','grey','grey','grey','grey','grey'], currentDayIndex: 0, lastSyncDate: null, quests:[false,false,false], pin:'', PIN:'2308', pending:null, submitted:false, gmSubmitted:false, isResubmit: false, feeling:3, illness:'ไม่มี', swimFr:'', swimBt:'', swimFg:'', swimBk:'', laps:'', achievement:'', specialCoin:0, gpa:'', score:'', weekKey:'', phWeekBought:0, foodWeekBought:0, monthBest:{fr:null,bt:null,fg:null,bk:null}, allBest:{fr:null,bt:null,fg:null,bk:null}, hof: { shark: false, book: false, heart: false }, bossTargets: { speed: 25, heightBase: 129, weightBase: 24 }, todayGacha: [], todayItemsUsed: [], bcList: [], gmBuffs: { jackpot: false, prophecy: '', buddy: false }, gmPopupSeen: true, gmPopupSeen: true, prophecySeen: true };
 var qcnt=0, chIdx=0;
 
 // 🔊 เสียง 8-Bit
@@ -61,7 +60,7 @@ var SFX = {
 };
 
 // 🔗 URL Apps Script
-var SHEET_URL = BIFROST_API_URL; 
+var SHEET_URL = BIFROST_API_URL;
 
 
 function clearBrowserCachesForUpdate_() {
@@ -112,7 +111,7 @@ function checkRemoteVersion() {
   }
 }
 function sendToLine(msgType, msgContent) {
-  if (LINE_MUTE_MODE) { console.log("[LINE muted]", msgType, msgContent); return; }
+  if (BIFROST_DEV_MODE) { console.log("[LINE muted]", msgType, msgContent); return; }
   // return; // 🛑 เปิดแจ้งเตือน Line ให้ลบสองขีดหน้ารีเทินออก
   if(!SHEET_URL || SHEET_URL.length < 10) return;
   fetch(SHEET_URL, {
@@ -184,14 +183,28 @@ function refreshWalletActivityLog() {
   }
 }
 function loadLocal() { var data = localStorage.getItem('bifrost_data'); if (data) Object.assign(S, JSON.parse(data)); if(S.keys === undefined) S.keys = 0; if(!S.todayItemsUsed) S.todayItemsUsed = []; }
+function getSaveTimestamp_(data) {
+  if (!data) return 0;
+  return Date.parse(data._clientUpdatedAt || data._serverUpdatedAt || '') || 0;
+}
+function getSaveRevision_(data) {
+  return Number((data && data._revision) || 0);
+}
+function isCloudSaveNewer_(cloudData, localData) {
+  var cloudTime = getSaveTimestamp_(cloudData);
+  var localTime = getSaveTimestamp_(localData);
+  if (cloudTime || localTime) return cloudTime >= localTime;
+  return getSaveRevision_(cloudData) >= getSaveRevision_(localData);
+}
 function saveLocal() { 
   S._clientUpdatedAt = new Date().toISOString();
   localStorage.setItem('bifrost_data', JSON.stringify(S)); 
-  // 🌟 ส่งเซฟขึ้น Cloud ทันทีที่เครื่องมีการอัปเดต
+  // ส่งเซฟขึ้น Cloud ทันทีที่เครื่องมีการอัปเดต
   if (navigator.onLine && SHEET_URL && SHEET_URL.length > 10) {
     fetch(SHEET_URL, {
       method: 'POST',
       mode: 'no-cors',
+      keepalive: true,
       body: JSON.stringify({ action: "saveCloud", payload: S })
     });
   }
@@ -213,28 +226,122 @@ function showProphecyIfAny() {
     }
 }
 
-function autoSyncDraft(e) {
-  if(!SHEET_URL || SHEET_URL.length < 10) return;
-  var todayStr = new Date().toLocaleDateString('en-CA');
-  var payload = { 
-    w: document.getElementById('in-w')?.value || '', 
-    h: document.getElementById('in-h')?.value || '', 
-    fr: document.getElementById('in-fr')?.value || '', 
-    bt: document.getElementById('in-bt')?.value || '', 
-    fg: document.getElementById('in-fg')?.value || '', 
-    bk: document.getElementById('in-bk')?.value || '', 
-    sc: document.getElementById('in-sc')?.value || '', 
-    lp: document.getElementById('in-lp')?.value || '' 
+function getDraftDeviceId_() {
+  var id = localStorage.getItem('bifrost_draft_device_id');
+  if (!id) {
+    id = 'dev-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
+    localStorage.setItem('bifrost_draft_device_id', id);
+  }
+  return id;
+}
+function getDraftDeviceName_() {
+  var ua = navigator.userAgent || '';
+  if (/iPhone|iPad|iPod/i.test(ua)) return 'iPhone/iPad';
+  if (/Android/i.test(ua)) return 'Android';
+  if (/Windows/i.test(ua)) return 'Windows';
+  if (/Mac/i.test(ua)) return 'Mac';
+  return 'เครื่องนี้';
+}
+function formatDraftTime_(iso) {
+  var d = iso ? new Date(iso) : new Date();
+  if (isNaN(d.getTime())) d = new Date();
+  return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+}
+function setDraftSyncStatus_(message, kind) {
+  var el = document.getElementById('draft-sync-status');
+  if (!el) return;
+  el.textContent = message || '';
+  el.className = 'draft-sync-status' + (message ? ' on' : '') + (kind ? ' ' + kind : '');
+}
+function getQuestDraftPayload_() {
+  return {
+    ill: document.getElementById('in-ill')?.value || 'ไม่มี',
+    w: document.getElementById('in-w')?.value || '',
+    h: document.getElementById('in-h')?.value || '',
+    lp: document.getElementById('in-lp')?.value || '',
+    fr: document.getElementById('in-fr')?.value || '',
+    bt: document.getElementById('in-bt')?.value || '',
+    fg: document.getElementById('in-fg')?.value || '',
+    bk: document.getElementById('in-bk')?.value || '',
+    gpa: document.getElementById('in-gpa')?.value || '',
+    sc: document.getElementById('in-sc')?.value || '',
+    feel: document.getElementById('feel-sl')?.value || S.feeling || 3,
+    quests: Array.isArray(S.quests) ? S.quests.slice() : [false, false, false],
+    _draftUpdatedAt: new Date().toISOString(),
+    _draftDeviceId: getDraftDeviceId_(),
+    _draftDeviceName: getDraftDeviceName_(),
+    _draftSubmitted: false
   };
-  fetch(SHEET_URL, {
-    method: 'POST', mode: 'no-cors',
-    body: JSON.stringify({ syncType: "DRAFT", syncDate: todayStr, payload: payload })
-  }).then(function() {
-     SFX.save(); 
-     if(e && e.target) { e.target.classList.remove('save-glow'); void e.target.offsetWidth; e.target.classList.add('save-glow'); }
+}
+function isDraftEmpty_(draft) {
+  if (!draft || draft._draftCleared) return true;
+  var keys = ['w','h','lp','fr','bt','fg','bk','gpa','sc'];
+  var hasValue = keys.some(function(k){ return draft[k] !== undefined && String(draft[k]).trim() !== ''; });
+  var hasQuest = Array.isArray(draft.quests) && draft.quests.some(Boolean);
+  var hasIll = draft.ill && draft.ill !== 'ไม่มี';
+  return !hasValue && !hasQuest && !hasIll;
+}
+function applyDraftToForm_(draft, source) {
+  if (!draft || S.submitted || isDraftEmpty_(draft)) {
+    setDraftSyncStatus_(S.submitted ? 'วันนี้ส่งภารกิจจริงแล้ว' : 'ยังไม่มีข้อมูลร่างที่รอส่ง', S.submitted ? 'ok' : '');
+    return false;
+  }
+  var map = { ill:'in-ill', w:'in-w', h:'in-h', lp:'in-lp', fr:'in-fr', bt:'in-bt', fg:'in-fg', bk:'in-bk', gpa:'in-gpa', sc:'in-sc' };
+  Object.keys(map).forEach(function(k) { var el = document.getElementById(map[k]); if (el && draft[k] !== undefined) el.value = draft[k]; });
+  if (draft.feel) { var fsl = document.getElementById('feel-sl'); if (fsl) { fsl.value = draft.feel; fsl.dispatchEvent(new Event('input')); } }
+  if (Array.isArray(draft.quests)) {
+    S.quests = draft.quests.map(Boolean).slice(0, 3);
+    [1,2,3].forEach(function(n) {
+      var done = !!S.quests[n-1];
+      var c = document.getElementById('qc' + n);
+      var qi = document.getElementById('qi' + n);
+      if (c) { c.classList.toggle('on', done); c.textContent = done ? '✓' : ''; }
+      if (qi) qi.classList.toggle('done', done);
+    });
+    var qcnt = S.quests.filter(Boolean).length;
+    var qbar = document.getElementById('qbar');
+    if (qbar) qbar.innerHTML = (qcnt === 3) ? '<span class="qsuc">✦ ภารกิจพร้อมส่ง! ✦</span>' : 'ติ๊ก <b>' + qcnt + '</b>/3 ภารกิจ';
+    var bSub = document.getElementById('btn-submit');
+    var bDraft = document.getElementById('btn-draft');
+    if (qcnt === 3) { if (bSub) bSub.style.display = 'block'; if (bDraft) bDraft.style.display = 'none'; }
+    else { if (bSub) bSub.style.display = 'none'; if (bDraft) bDraft.style.display = 'block'; }
+  }
+  S.draft = draft;
+  localStorage.setItem('bifrost_data', JSON.stringify(S));
+  var isRemote = draft._draftDeviceId && draft._draftDeviceId !== getDraftDeviceId_();
+  var origin = isRemote ? 'โหลดข้อมูลร่างจาก ' + (draft._draftDeviceName || 'อีกเครื่อง') : 'ข้อมูลร่างบันทึกไว้แล้ว';
+  setDraftSyncStatus_(origin + ' เวลา ' + formatDraftTime_(draft._draftUpdatedAt) + ' • ยังไม่ได้ส่งภารกิจจริง', isRemote || source === 'cloud' ? 'remote' : 'ok');
+  return true;
+}
+function clearCloudDraft_() {
+  S.draft = {};
+  localStorage.setItem('bifrost_data', JSON.stringify(S));
+  setDraftSyncStatus_('ล้างข้อมูลร่างแล้ว', 'ok');
+  if(!SHEET_URL || SHEET_URL.length < 10 || !navigator.onLine) return;
+  var todayStr = new Date().toLocaleDateString('en-CA');
+  var payload = { _draftCleared: true, _draftUpdatedAt: new Date().toISOString(), _draftDeviceId: getDraftDeviceId_(), _draftDeviceName: getDraftDeviceName_() };
+  fetch(SHEET_URL, { method: 'POST', mode: 'no-cors', keepalive: true, body: JSON.stringify({ syncType: 'DRAFT', syncDate: todayStr, payload: payload, clearDraft: true }) });
+}
+function autoSyncDraft(e) {
+  if (S.submitted) { clearCloudDraft_(); return; }
+  var payload = getQuestDraftPayload_();
+  S.draft = payload;
+  localStorage.setItem('bifrost_data', JSON.stringify(S));
+  if (isDraftEmpty_(payload)) setDraftSyncStatus_('ยังไม่มีข้อมูลร่างที่รอส่ง', '');
+  else setDraftSyncStatus_('กำลังบันทึกข้อมูลร่างขึ้น Cloud...', 'warn');
+  if(!SHEET_URL || SHEET_URL.length < 10 || !navigator.onLine) {
+    if (!isDraftEmpty_(payload)) setDraftSyncStatus_('บันทึกในเครื่องแล้ว รออินเทอร์เน็ตเพื่อซิงก์', 'warn');
+    return;
+  }
+  var todayStr = new Date().toLocaleDateString('en-CA');
+  fetch(SHEET_URL, { method: 'POST', mode: 'no-cors', keepalive: true, body: JSON.stringify({ syncType: 'DRAFT', syncDate: todayStr, payload: payload }) }).then(function() {
+    if (!isDraftEmpty_(payload)) setDraftSyncStatus_('บันทึกข้อมูลร่างขึ้น Cloud แล้ว เวลา ' + formatDraftTime_(payload._draftUpdatedAt) + ' • ยังไม่ได้ส่งภารกิจจริง', 'ok');
+    SFX.save();
+    if(e && e.target) { e.target.classList.remove('save-glow'); void e.target.offsetWidth; e.target.classList.add('save-glow'); }
+  }).catch(function() {
+    if (!isDraftEmpty_(payload)) setDraftSyncStatus_('บันทึกในเครื่องแล้ว แต่ยังซิงก์ Cloud ไม่สำเร็จ', 'warn');
   });
 }
-
 function processAutoNextDay() {
   var now = new Date();
   var todayStr = now.toLocaleDateString('en-CA'); 
@@ -515,21 +622,53 @@ function tQ(n) {
   // --------------------------------
 
   saveLocal();
+  if (!S.submitted) autoSyncDraft();
 }
 function updateFeel(v){ S.feeling=parseInt(v);var f=FEEL[S.feeling]; var ico = document.getElementById('feel-ico'), lbl = document.getElementById('feel-lbl'), sl = document.getElementById('feel-sl'); if(ico) ico.textContent=f.i; if(lbl) lbl.textContent=f.l; var pct=(S.feeling-1)/4*100; if(sl) sl.style.background='linear-gradient(90deg,var(--gold) '+pct+'%,var(--bg2) '+pct+'%)'; }
 
 function checkPin(){ if(S.pin.length<4){showToast('กรุณากรอกรหัส 4 หลักให้ครบ');return false;} if(S.pin!==S.PIN){showToast('🔐 รหัสผ่านไม่ถูกต้อง!');clrPin();return false;} return true; }
 function showBossDetail(id) { var info = BOSS_DETAILS[id]; document.getElementById('bd-ico').textContent = info.i; document.getElementById('bd-ttl').textContent = info.t; document.getElementById('bd-cond').textContent = info.c; document.getElementById('bd-reward').textContent = info.r; document.getElementById('bd-note').textContent = '* ' + info.n; var mov = document.getElementById('boss-detail-mov'); if(mov) mov.classList.add('on'); }
 
+var questSubmitBusy = false;
+function setQuestSubmitState_(mode, title, message, coinsText) {
+  var ok = document.getElementById('submit-ok');
+  var ico = ok ? ok.querySelector('.sok-ico') : null;
+  var ttl = ok ? ok.querySelector('.sok-ttl') : null;
+  var coins = document.getElementById('sok-coins');
+  var msg = document.getElementById('sok-msg');
+  var bar = document.getElementById('sok-bar');
+  if (ico) ico.textContent = mode === 'loading' ? '⏳' : (mode === 'error' ? '⚠️' : '✅');
+  if (ttl) ttl.textContent = title || '';
+  if (coins) { coins.textContent = coinsText || ''; coins.style.display = coinsText ? 'block' : 'none'; }
+  if (msg) msg.textContent = message || '';
+  if (bar) { bar.style.width = mode === 'success' ? '100%' : (mode === 'loading' ? '35%' : '0%'); }
+  if (ok) ok.classList.add('on');
+}
+function finishQuestSubmitState_(success) {
+  questSubmitBusy = false;
+  var submitBtn = document.getElementById('btn-submit');
+  var draftBtn = document.getElementById('btn-draft');
+  if (submitBtn) submitBtn.disabled = false;
+  if (draftBtn) draftBtn.disabled = false;
+  if (!success) {
+    setTimeout(function(){ var ok = document.getElementById('submit-ok'); if(ok) ok.classList.remove('on'); }, 1800);
+  }
+}
 function doSubmit(){ 
+  if (questSubmitBusy) return;
   if(S.submitted) { showToast('วันนี้ส่งภารกิจไปแล้วครับ!'); return; } 
+  questSubmitBusy = true;
+  var submitBtn = document.getElementById('btn-submit');
+  var draftBtn = document.getElementById('btn-draft');
+  if (submitBtn) submitBtn.disabled = true;
+  if (draftBtn) draftBtn.disabled = true;
   SFX.submit(); 
   
   var questData={ q1: S.quests[0], q2: S.quests[1], q3: S.quests[2], w: document.getElementById('in-w')?.value || '', h: document.getElementById('in-h')?.value || '', laps: document.getElementById('in-lp')?.value || '', swimFr: document.getElementById('in-fr')?.value || '', swimBt: document.getElementById('in-bt')?.value || '', swimFg: document.getElementById('in-fg')?.value || '', swimBk: document.getElementById('in-bk')?.value || '', feeling: S.feeling, gpa: document.getElementById('in-gpa')?.value || '', score: document.getElementById('in-sc')?.value || '', illness: document.getElementById('in-ill')?.value || 'ไม่มี' }; 
   ['w', 'h', 'gpa', 'score'].forEach(function(k) { if (questData[k] === '') { delete questData[k]; } });
   
   var ok=document.getElementById('submit-ok'), bar=document.getElementById('sok-bar'); 
-  if(ok) ok.classList.add('on'); if(bar) bar.style.width='0%'; 
+  setQuestSubmitState_('loading', 'กำลังส่งข้อมูล', 'โปรดรอซักครู่... ระบบกำลังบันทึกภารกิจ', ''); 
   gasCall('submitQuest',questData,function(r){ 
     var prevLv=S.lv; applyData(r); 
     var sokC = document.getElementById('sok-coins'); if(sokC) sokC.textContent='+'+(r.totalCoinsEarned||0)+' B-Coin'; 
@@ -573,17 +712,18 @@ function doSubmit(){
 }
 
     // 🌟 ส่งข้อมูลขึ้น Sheet ประวัติแบบเรียลไทม์ทันทีที่กดส่งภารกิจ
+      var archiveSavePromise = Promise.resolve();
       if (navigator.onLine && SHEET_URL && SHEET_URL.length > 10) {
          var dateLabel = new Date().toLocaleDateString('th-TH', {year:'numeric',month:'long',day:'numeric'});
          var payload = Object.assign({}, S, { syncDate: dateLabel });
-         fetch(SHEET_URL, { method: 'POST', mode: 'no-cors', cache: 'no-cache', body: JSON.stringify(payload) });
+         archiveSavePromise = fetch(SHEET_URL, { method: 'POST', mode: 'no-cors', cache: 'no-cache', keepalive: true, body: JSON.stringify(payload) });
       }
     // บันทึกสถิติวันนี้สำหรับ Ghost Data
       S.todayStats = questData;
       updateLog();
       
-      // ของเดิม: S.draft = {};
-S.draft = {};
+      // ล้าง Draft ทั้งในเครื่องและ Cloud หลังส่งภารกิจจริง
+      clearCloudDraft_();
       ['in-w','in-h','in-lp','in-fr','in-bt','in-fg','in-bk','in-gpa','in-sc'].forEach(id => {
          let el = document.getElementById(id); if(el) el.value = '';
       });
@@ -646,12 +786,18 @@ if(r.lv>prevLv) {
     sendToLine("DAILY_REPORT", lineMsg);
     // -----------------------------------------
     
-    if(bar) { bar.style.width = '100%'; }
-    setTimeout(function() {
-      if(ok) ok.classList.remove('on'); 
-      renderAll(); goP('dashboard');
-      if(r.bossRewards && r.bossRewards.length > 0) { setTimeout(function(){ showBossRewards(r.bossRewards); }, 500); }
-    }, 1500);
+    archiveSavePromise.then(function(){
+      setQuestSubmitState_('success', 'ส่งข้อมูลสำเร็จ!', 'ระบบบันทึกข้อมูลเรียบร้อย กำลังกลับไปหน้า Dashboard...', '+'+(r.totalCoinsEarned||0)+' B-Coin');
+      setTimeout(function() {
+        if(ok) ok.classList.remove('on'); 
+        finishQuestSubmitState_(true);
+        renderAll(); goP('dashboard');
+        if(r.bossRewards && r.bossRewards.length > 0) { setTimeout(function(){ showBossRewards(r.bossRewards); }, 500); }
+      }, 1500);
+    }).catch(function(){
+      setQuestSubmitState_('error', 'ส่งข้อมูลไม่สำเร็จ', 'อินเทอร์เน็ตอาจมีปัญหา ลองกดส่งอีกครั้ง', '');
+      finishQuestSubmitState_(false);
+    });
   });
 }
 
@@ -685,7 +831,14 @@ function doGmSubmit(){
   };
 
   gasCall('submitGm', gmData, function(r){ 
+    var secretQuestLine = (gmData.secretQuest || '').trim();
     applyData(r); 
+    if (secretQuestLine) {
+      var secretQuestMsg = '📜 [BIFROST] ภารกิจลับพิเศษมาแล้ว!\n\n';
+      secretQuestMsg += 'ภารกิจ: ' + secretQuestLine + '\n';
+      secretQuestMsg += 'วันที่: ' + new Date().toLocaleDateString('th-TH', { year:'numeric', month:'short', day:'numeric' });
+      sendToLine('SECRET_QUEST', secretQuestMsg);
+    }
     showToast('🎁 รันคำสั่งระดับพระเจ้า GM เรียบร้อย!'); 
     
     // ล้างค่าในช่องกรอกทุกช่องหลังกดเสร็จ
@@ -1060,6 +1213,23 @@ function confirmFd(){
     showChefCard(menuText);
   }
 }
+function buyPh() {
+    if(S.coins < 15){ showToast('❌ B-Coin ไม่พอ!'); return; }
+    if(S.phWeekBought >= 1){ showToast('❌ หมดโควต้าสัปดาห์นี้แล้ว!'); return; }
+    if(S.phoenix >= 2){ showToast('❌ คลังเต็มแล้ว!'); return; }
+    
+    cfmShow('💧', 'ซื้อน้ำตาฟีนิกซ์?', 'ราคา 15 B-Coin', function() {
+        // 🌟 ให้ระบบหน้าจอ หักเงินและเพิ่มไอเทมเองทันที!
+        S.coins -= 15;
+        S.phoenix = (S.phoenix || 0) + 1;
+        S.phWeekBought = (S.phWeekBought || 0) + 1;
+        
+        saveLocal();
+        renderAll();
+        showToast('💧 ซื้อน้ำตาฟีนิกซ์สำเร็จ!');
+    });
+}
+
 function buyFood() {
     if(S.coins < 50){ showToast('❌ B-Coin ไม่พอ!'); return; }
     if(S.foodWeekBought >= 1){ showToast('❌ หมดโควต้าสัปดาห์นี้แล้ว!'); return; }
@@ -1184,6 +1354,126 @@ function doRepairSubmit() {
     })
     .catch(function(err){ showToast(err.message || 'ซ่อมข้อมูลไม่สำเร็จ'); });
 }
+function readBackdateValue_(id) {
+  var el = document.getElementById(id);
+  return el ? el.value : '';
+}
+function openBackdateQuest() {
+  var m = document.getElementById('backdate-modal');
+  var d = document.getElementById('bd-date');
+  if (d && !d.value) {
+    var yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    d.value = yesterday.toLocaleDateString('en-CA');
+  }
+  updateBackdatePreview();
+  if (m) m.classList.add('on');
+}
+function closeBackdateQuest() {
+  var m = document.getElementById('backdate-modal');
+  if (m) m.classList.remove('on');
+}
+function updateBackdatePreview() {
+  var q1 = !!document.getElementById('bd-q1')?.checked;
+  var q2 = !!document.getElementById('bd-q2')?.checked;
+  var q3 = !!document.getElementById('bd-q3')?.checked;
+  var bonus = Number(readBackdateValue_('bd-bonus') || 0) || 0;
+  var base = (q1 ? 2 : 0) + (q2 ? 2 : 0) + (q3 ? 2 : 0);
+  var total = base + bonus;
+  var pv = document.getElementById('bd-preview');
+  if (pv) pv.innerHTML = 'ตัวอย่างผลลัพธ์: +' + total + ' B-Coin<br>ภารกิจพื้นฐาน +' + base + ' | โบนัส +' + bonus + '<br>' + ((q1 && q2 && q3) ? 'ครบ 3 ภารกิจ สามารถเพิ่ม Streak +1 ได้' : 'ยังไม่ครบ 3 ภารกิจ จะไม่เพิ่ม Streak');
+}
+function doBackdateSubmit() {
+  var pin = readBackdateValue_('bd-pin');
+  var date = readBackdateValue_('bd-date');
+  if (!pin || pin.length < 4) { showToast('กรุณากรอก PIN ก่อนบันทึกย้อนหลัง'); return; }
+  if (!date) { showToast('กรุณาเลือกวันที่ย้อนหลัง'); return; }
+  var btn = document.getElementById('btn-backdate-submit');
+  if (btn && btn.disabled) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'กำลังบันทึก...'; }
+  var payload = {
+    action: 'BACKDATE_QUEST',
+    pin: pin,
+    date: date,
+    q1: !!document.getElementById('bd-q1')?.checked,
+    q2: !!document.getElementById('bd-q2')?.checked,
+    q3: !!document.getElementById('bd-q3')?.checked,
+    w: readBackdateValue_('bd-w'),
+    h: readBackdateValue_('bd-h'),
+    laps: readBackdateValue_('bd-laps'),
+    swimFr: readBackdateValue_('bd-fr'),
+    swimBk: readBackdateValue_('bd-bk'),
+    swimFg: readBackdateValue_('bd-fg'),
+    swimBt: readBackdateValue_('bd-bt'),
+    score: readBackdateValue_('bd-score'),
+    bonusCoins: Number(readBackdateValue_('bd-bonus') || 0) || 0,
+    note: readBackdateValue_('bd-note'),
+    applyStreak: !!document.getElementById('bd-apply-streak')?.checked
+  };
+  fetch(SHEET_URL, { method:'POST', body:JSON.stringify(payload) })
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if (!data || data.result !== 'success') throw new Error((data && (data.message || data.error)) || 'บันทึกย้อนหลังไม่สำเร็จ');
+      Object.assign(S, data.save || {});
+      localStorage.setItem('bifrost_data', JSON.stringify(S));
+      renderAll();
+      closeBackdateQuest();
+      showToast('📅 บันทึกย้อนหลังสำเร็จ +' + (data.totalCoins || 0) + ' B-Coin');
+    })
+    .catch(function(err){ showToast(err.message || 'บันทึกย้อนหลังไม่สำเร็จ'); })
+    .finally(function(){ if (btn) { btn.disabled = false; btn.textContent = 'บันทึกย้อนหลัง'; } });
+}
+
+var GM_HELP_CONTENT = {
+  overview: { title: 'FAMILY SECRET ZONE คืออะไร?', body: '<p>GM Mode เป็นพื้นที่ผู้ปกครองสำหรับแก้ไขหรือช่วยปรับข้อมูลสำคัญของระบบ ใช้สำหรับให้รางวัลพิเศษ แก้ค่าที่ผิด และส่งข้อมูลย้อนหลังเท่านั้น ควรกดรันคำสั่งเมื่อเช็คค่าทุกช่องเรียบร้อยแล้ว</p>' },
+  jackpot: { title: 'ล็อกเป้าแจ็คพอต 100%', body: '<p>เปิดไว้เพื่อให้การสุ่มกาชาครั้งถัดไปได้รางวัลระดับ Legendary แน่นอน หลังใช้สำเร็จระบบจะปิดสถานะนี้เอง เหมาะสำหรับให้รางวัลพิเศษแบบตั้งใจ</p>' },
+  prophecy: { title: 'คำพยากรณ์ฮีโร่ (Nudge)', body: '<p>ข้อความกำลังใจหรือคำใบ้ที่ผู้เล่นจะเห็นเป็น popup ในแอป ใช้สำหรับกระตุ้นพฤติกรรมดี ๆ เช่น ตั้งใจเรียน ช่วยงานบ้าน หรือเตรียมตัวสำหรับภารกิจวันถัดไป</p>' },
+  secretQuest: { title: 'ภารกิจลับพิเศษ', body: '<p>เพิ่มภารกิจพิเศษแบบข้อความสั้น ๆ ให้ไปแสดงในแอป เหมาะกับภารกิจเฉพาะวัน เช่น เก็บห้อง อ่านหนังสือ หรือช่วยงานครอบครัว</p>' },
+  coins: { title: 'ปรับปรุง B-Coin', body: '<p>ใส่เลขบวกเพื่อเพิ่มเหรียญ หรือเลขติดลบเพื่อลดเหรียญ เช่น 100 หรือ -50 ใช้เมื่อให้รางวัลพิเศษหรือแก้ยอดเหรียญที่ผิดพลาด</p>' },
+  level: { title: 'ปรับปรุงเลเวล', body: '<p>ใส่เลขบวกหรือลบเพื่อปรับเลเวลโดยตรง เช่น 1 หรือ -1 ใช้เฉพาะตอนต้องแก้ระดับตัวละคร ไม่จำเป็นต้องใช้ในการให้รางวัลทั่วไป</p>' },
+  achievement: { title: 'บันทึกความดีพิเศษ', body: '<p>บันทึกข้อความความดีหรือเหตุการณ์พิเศษของวันนี้ ข้อความนี้จะถูกนำไปแสดงใน Daily Adventure Log เพื่อให้รู้ว่าวันนี้มีรางวัลหรือเหตุการณ์พิเศษอะไร</p>' },
+  items: { title: 'เพิ่มไอเท็ม/รางวัลพิเศษ', body: '<p>แตะช่องไอเท็มให้ขึ้นสถานะเลือกไว้ แล้วกดรันคำสั่งลับเพื่อเพิ่มของเข้าคลัง เหมาะสำหรับให้รางวัลเฉพาะกิจ เช่น กุญแจ, EXP หรือน้ำยา</p>' },
+  swim: { title: 'แก้ไขสถิติว่ายน้ำ', body: '<p>เลือกท่าว่ายน้ำแล้วกรอกค่า Monthly Best หรือ All-Time Best เป็นวินาที ช่องที่เว้นว่างจะไม่แก้ไข ถ้าต้องการล้างค่านั้นให้ใส่ 0</p>' },
+  bodyBase: { title: 'รีเซ็ตฐานร่างกาย', body: '<p>ใช้แก้ฐานน้ำหนักและส่วนสูงเมื่อกรอกพลาดหรือระบบอ้างอิงค่าผิด ควรใส่ค่าจริงล่าสุด เพื่อให้การเปรียบเทียบสถิติต่อไปถูกต้อง</p>' },
+  bossHof: { title: 'รีเซ็ตบอส & ยึดตรา HOF', body: '<p>ใช้ตั้งค่าเป้าหมายบอสใหม่ และสามารถติ๊กเพื่อยึดตรา Hall of Fame กลับไปล็อกได้ เหมาะสำหรับแก้ข้อมูลผิดหรือเริ่มชาเลนจ์ใหม่</p>' },
+  run: { title: 'รันคำสั่งลับ', body: '<p>ปุ่มนี้จะส่งค่าทั้งหมดใน GM Mode ไปปรับข้อมูลจริง ก่อนกดควรตรวจว่าช่องที่ไม่ต้องการแก้เว้นว่างไว้ และเลือกเฉพาะไอเท็ม/ตัวเลือกที่ต้องการจริง ๆ</p>' },
+  repair: { title: 'ศูนย์ซ่อมข้อมูล', body: '<p>ใช้แก้ค่าหลักของระบบแบบละเอียด เช่น เหรียญ, EXP, ไอเท็ม, ค่าสถิติ และ Log เหมาะสำหรับแก้ข้อมูลที่ผิดจริง ๆ โดยต้องใส่รหัสผู้ปกครอง</p>' },
+  backdate: { title: 'ส่งภารกิจย้อนหลัง', body: '<p>ใช้บันทึกภารกิจของวันที่ผ่านมา ระบบจะบันทึกตามวันที่เลือกและเรียงข้อมูลสถิติให้ถูกวัน เหมาะกับกรณีลืมส่งภารกิจเมื่อวานหรือส่งไม่ทันก่อนข้ามวัน</p>' }
+};
+
+function openGmHelp(key) {
+  var data = GM_HELP_CONTENT[key] || GM_HELP_CONTENT.overview;
+  var title = document.getElementById('gm-help-title');
+  var body = document.getElementById('gm-help-body');
+  var modal = document.getElementById('gm-help-modal');
+  if (title) title.textContent = data.title;
+  if (body) body.innerHTML = data.body;
+  if (modal) modal.classList.add('on');
+}
+
+function closeGmHelp() {
+  var modal = document.getElementById('gm-help-modal');
+  if (modal) modal.classList.remove('on');
+}
+
+function bindGmHelpButtons() {
+  document.querySelectorAll('[data-gm-help]').forEach(function(btn) {
+    if (btn.dataset.gmHelpBound === '1') return;
+    btn.dataset.gmHelpBound = '1';
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      openGmHelp(btn.dataset.gmHelp);
+    });
+  });
+  var modal = document.getElementById('gm-help-modal');
+  if (modal && modal.dataset.gmBackdropBound !== '1') {
+    modal.dataset.gmBackdropBound = '1';
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) closeGmHelp();
+    });
+  }
+}
 function bindAll(){
   var a = (id, e, f) => { var el = document.getElementById(id); if(el) el.addEventListener(e, f); };
   a('ni-d', 'click', () => goP('dashboard')); a('ni-q', 'click', () => goP('quest')); a('ni-s', 'click', () => goP('shop'));
@@ -1196,7 +1486,9 @@ function bindAll(){
   [1,2,3].forEach(function(n){ a('qi'+n, 'click', () => tQ(n)); });
   a('feel-sl', 'input', function(){ updateFeel(this.value); });
    
-  a('btn-submit', 'click', doSubmit); a('btn-reset', 'click', doReset); a('btn-gm-submit', 'click', doGmSubmit); a('btn-open-repair', 'click', openRepairCenter); a('btn-repair-submit', 'click', doRepairSubmit); a('btn-repair-close', 'click', closeRepairCenter);
+  bindGmHelpButtons(); a('gm-help-close', 'click', closeGmHelp);
+  a('btn-submit', 'click', doSubmit); a('btn-reset', 'click', doReset); a('btn-gm-submit', 'click', doGmSubmit); a('btn-open-repair', 'click', openRepairCenter); a('btn-repair-submit', 'click', doRepairSubmit); a('btn-repair-close', 'click', closeRepairCenter); a('btn-open-backdate', 'click', openBackdateQuest); a('btn-backdate-submit', 'click', doBackdateSubmit); a('btn-backdate-close', 'click', closeBackdateQuest);
+  ['bd-q1','bd-q2','bd-q3','bd-bonus','bd-apply-streak'].forEach(function(id){ a(id, 'input', updateBackdatePreview); a(id, 'change', updateBackdatePreview); });
   a('inv-ph-row', 'click', usePhoenix); a('inv-tk-row', 'click', useTicket);
   a('sh-food-btn', 'click', buyFood);
   var fdm = document.getElementById('fd-mov'); if(fdm) fdm.addEventListener('click', function(e){ if(e.target===this) this.classList.remove('on'); });
@@ -1207,7 +1499,8 @@ function bindAll(){
   a('btn-boss-claim', 'click', () => { SFX.coin(); var bo = document.getElementById('boss-overlay'); if(bo) bo.classList.remove('on'); goP('dashboard'); setChar(chForLevel(S.lv)); });
   document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'visible') { fetchDraftFromCloud(); refreshWalletActivityLog(); } });
   window.addEventListener('focus', refreshWalletActivityLog);
-  document.querySelectorAll('input').forEach(function(input) { input.addEventListener('blur', autoSyncDraft); });
+  ['in-ill','in-w','in-h','in-lp','in-fr','in-bt','in-fg','in-bk','in-gpa','in-sc'].forEach(function(id){ var input = document.getElementById(id); if(input) input.addEventListener('blur', autoSyncDraft); });
+  var feelDraft = document.getElementById('feel-sl'); if(feelDraft) feelDraft.addEventListener('change', autoSyncDraft);
 
  // 👑 ตรวจสอบ URL ว่ามีตัว @ อยู่ด้านหลังสุดหรือไม่ (รองรับทั้ง ?@ และ #@)
   var isAdmin = window.location.search.includes('@') || window.location.hash.includes('@');
@@ -1230,19 +1523,19 @@ function bindAll(){
     }
   }
 
-  // 🛠️ ทางเข้า TEST MODE สำหรับเทสแอป (กด 5 ครั้งที่ชื่อฮีโร่)
+  // 🛠️ ทางเข้า DEV MODE สำหรับเทสแอป (กด 5 ครั้งที่ชื่อฮีโร่)
   var testClicks = 0; var testTm;
   var heroNameEl = document.querySelector('.hero-nm');
   if(heroNameEl) {
     heroNameEl.addEventListener('click', function() {
       // บล็อคไว้ให้เปิดได้เฉพาะคุณพ่อ (Admin) เท่านั้น
-      if(!isAdmin) return; 
+      if(!BIFROST_DEV_MODE || !isAdmin) return; 
       
       testClicks++; clearTimeout(testTm);
       if(testClicks >= 5) { 
         var devBar = document.getElementById('dev-tools-bar');
         if(devBar) devBar.style.display = 'flex';
-        showToast('🛠️ เปิดโหมดทดสอบ (TEST MODE) แล้ว!');
+        showToast('🛠️ เปิดโหมดทดสอบ (DEV MODE) แล้ว!');
         testClicks = 0;
       }
       testTm = setTimeout(function(){ testClicks = 0; }, 1000);
@@ -1251,7 +1544,7 @@ function bindAll(){
 }
 
 // ==========================================
-// 🛠️ TEST MODE FUNCTIONS
+// 🛠️ DEV MODE FUNCTIONS
 // ==========================================
 window.devQuickComplete = function() {
     if (S.submitted) { showToast('วันนี้ส่งภารกิจไปแล้ว กดข้ามวันก่อนครับ!'); return; }
@@ -1379,36 +1672,42 @@ document.addEventListener('DOMContentLoaded',function(){ checkRemoteVersion();
       .then(data => {
         setSkeleton(false);
         if(Object.keys(data).length > 0) {
-          Object.assign(S, data); 
-          localStorage.setItem('bifrost_data', JSON.stringify(S)); 
-          showToast('🟢 ซิงค์ข้อมูลข้ามอุปกรณ์สำเร็จ!');
+          var localSnapshot = JSON.parse(localStorage.getItem('bifrost_data') || '{}');
+          if (isCloudSaveNewer_(data, localSnapshot)) {
+            Object.assign(S, data); 
+            localStorage.setItem('bifrost_data', JSON.stringify(S)); 
+            showToast('🟢 ซิงค์ข้อมูลข้ามอุปกรณ์สำเร็จ!');
+          } else {
+            saveLocal();
+            showToast('🛡️ ใช้ข้อมูลในเครื่องที่ใหม่กว่า และกำลังซิงค์กลับขึ้น Cloud');
+          }
         }
         if (S.bossTargets && S.bossTargets.speed === 21) { S.bossTargets.speed = 25; saveLocal(); }
-        setChar(chForLevel(S.lv)); processAutoNextDay(); renderAll();
+        setChar(chForLevel(S.lv)); processAutoNextDay(); renderAll(); fetchDraftFromCloud();
       }).catch(err => {
         setSkeleton(false); showToast('⚠️ ใช้เซฟในเครื่อง (ออฟไลน์)');
-        gasCall('getHeroData', null, function(data) { applyData(data); setChar(chForLevel(S.lv)); processAutoNextDay(); renderAll(); });
+        gasCall('getHeroData', null, function(data) { applyData(data); setChar(chForLevel(S.lv)); processAutoNextDay(); renderAll(); fetchDraftFromCloud(); });
       });
   } else {
-     gasCall('getHeroData', null, function(data) { applyData(data); setChar(chForLevel(S.lv)); processAutoNextDay(); renderAll(); });
+     gasCall('getHeroData', null, function(data) { applyData(data); setChar(chForLevel(S.lv)); processAutoNextDay(); renderAll(); fetchDraftFromCloud(); });
   }
 });
 
 function fetchDraftFromCloud() {
-  if(!SHEET_URL || SHEET_URL.length < 10) return;
+  if(!SHEET_URL || SHEET_URL.length < 10 || S.submitted) { loadDraft(); return; }
   var todayStr = new Date().toLocaleDateString('en-CA');
-  fetch(SHEET_URL + "?action=fetchDraft&date=" + todayStr)
-    .then(res => res.json())
-    .then(data => {
-      if (data.w) document.getElementById('in-w').value = data.w;
-      if (data.h) document.getElementById('in-h').value = data.h;
-      if (data.fr) document.getElementById('in-fr').value = data.fr;
-      if (data.bt) document.getElementById('in-bt').value = data.bt;
-      if (data.fg) document.getElementById('in-fg').value = data.fg;
-      if (data.bk) document.getElementById('in-bk').value = data.bk;
-      if (data.sc) document.getElementById('in-sc').value = data.sc;
-      if (data.lp) document.getElementById('in-lp').value = data.lp;
-    }).catch(e => console.log("ยังไม่มี Draft ของวันนี้"));
+  fetch(SHEET_URL + "?action=fetchDraft&date=" + todayStr + "&ts=" + Date.now(), { cache: 'no-store' })
+    .then(function(res){ return res.json(); })
+    .then(function(data) {
+      if (!data || Object.keys(data).length === 0 || data._draftCleared) {
+        if (!S.draft || isDraftEmpty_(S.draft)) setDraftSyncStatus_('ยังไม่มีข้อมูลร่างที่รอส่ง', '');
+        return;
+      }
+      var localTime = Date.parse((S.draft && S.draft._draftUpdatedAt) || '') || 0;
+      var cloudTime = Date.parse(data._draftUpdatedAt || '') || 0;
+      if (cloudTime >= localTime) applyDraftToForm_(data, 'cloud');
+      else loadDraft();
+    }).catch(function() { loadDraft(); });
 }
 
 // ==========================================
@@ -1550,40 +1849,75 @@ window.acknowledgeProphecy = function() {
 // 💾 ระบบอัปเดตภารกิจ (Save Draft)
 // ==========================================
 function doDraft() {
-    if(S.submitted) return;
-    S.draft = {
-        ill: document.getElementById('in-ill').value,
-        w: document.getElementById('in-w').value,
-        h: document.getElementById('in-h').value,
-        lp: document.getElementById('in-lp').value,
-        fr: document.getElementById('in-fr').value,
-        bt: document.getElementById('in-bt').value,
-        fg: document.getElementById('in-fg').value,
-        bk: document.getElementById('in-bk').value,
-        gpa: document.getElementById('in-gpa').value,
-        sc: document.getElementById('in-sc').value,
-        feel: document.getElementById('feel-sl').value
-    };
+    if(S.submitted || questSubmitBusy) return;
+    questSubmitBusy = true;
+    var draftBtn = document.getElementById('btn-draft');
+    if (draftBtn) draftBtn.disabled = true;
+    setQuestSubmitState_('loading', 'กำลังส่งข้อมูล', 'โปรดรอซักครู่... ระบบกำลังบันทึกอัปเดตภารกิจ', '');
+    autoSyncDraft();
     saveLocal();
-    showToast('💾 บันทึกข้อมูลชั่วคราวแล้ว!');
+    setTimeout(function(){
+      setQuestSubmitState_('success', 'อัปเดตข้อมูลสำเร็จ!', 'บันทึกข้อมูลร่างขึ้น Cloud แล้ว แต่ยังไม่ได้ส่งภารกิจจริง', '');
+      setTimeout(function(){ var ok = document.getElementById('submit-ok'); if(ok) ok.classList.remove('on'); finishQuestSubmitState_(true); }, 900);
+    }, 650);
 }
 
 function loadDraft() {
-    if(S.draft && !S.submitted) {
-        if(S.draft.ill) document.getElementById('in-ill').value = S.draft.ill;
-        if(S.draft.w) document.getElementById('in-w').value = S.draft.w;
-        if(S.draft.h) document.getElementById('in-h').value = S.draft.h;
-        if(S.draft.lp) document.getElementById('in-lp').value = S.draft.lp;
-        if(S.draft.fr) document.getElementById('in-fr').value = S.draft.fr;
-        if(S.draft.bt) document.getElementById('in-bt').value = S.draft.bt;
-        if(S.draft.fg) document.getElementById('in-fg').value = S.draft.fg;
-        if(S.draft.bk) document.getElementById('in-bk').value = S.draft.bk;
-        if(S.draft.gpa) document.getElementById('in-gpa').value = S.draft.gpa;
-        if(S.draft.sc) document.getElementById('in-sc').value = S.draft.sc;
-        if(S.draft.feel) {
-            var fsl = document.getElementById('feel-sl');
-            if(fsl) { fsl.value = S.draft.feel; fsl.dispatchEvent(new Event('input')); }
-        }
-    }
+    if(S.draft && !S.submitted) applyDraftToForm_(S.draft, 'local');
 }
+  // ==========================================
+  // 🛒 ชุดแพตช์อัปเกรดร้านค้า V.3 (แยกระบบน้ำยาแสนอร่อย)
+// ==========================================
+setTimeout(function() {
+    // 1. ปุ่มซื้อ "น้ำตาฟีนิกซ์"
+    var btnPh = document.getElementById('sh-ph-btn');
+    if (btnPh) {
+        var newBtnPh = btnPh.cloneNode(true);
+        btnPh.parentNode.replaceChild(newBtnPh, btnPh);
+        
+        newBtnPh.onclick = function() {
+            if((S.coins||0) < 15){ showToast('❌ B-Coin ไม่พอ!'); return; }
+            if((S.phWeekBought||0) >= 1){ showToast('❌ หมดโควต้าสัปดาห์นี้แล้ว!'); return; }
+            if((S.phoenix||0) >= 2){ showToast('❌ คลังเต็มแล้ว!'); return; }
+            
+            cfmShow('💧', 'ซื้อน้ำตาฟีนิกซ์?', 'ราคา 15 B-Coin', function() {
+                S.coins -= 15; 
+                S.todayCoinsSpent = (S.todayCoinsSpent || 0) + 15; // 🌟 แทรกบรรทัดนี้ลงไป
+                S.phoenix = (S.phoenix || 0) + 1;
+                
+                if (!S.todayItemsUsed) S.todayItemsUsed = [];
+                S.todayItemsUsed.push('🛒 ซื้อน้ำตาฟีนิกซ์ (-15 Coins)');
+                
+                saveLocal(); renderAll();
+                if (typeof updateLog === 'function') updateLog();
+                showToast('💧 ซื้อน้ำตาฟีนิกซ์สำเร็จ!');
+            });
+        };
+    }
 
+    // 2. ปุ่มซื้อ "น้ำยาแสนอร่อย" (ตั้งโควต้าสัปดาห์ละ 1 ครั้ง)
+    var btnFood = document.getElementById('sh-food-btn');
+    if (btnFood) {
+        var newBtnFood = btnFood.cloneNode(true);
+        btnFood.parentNode.replaceChild(newBtnFood, btnFood);
+        
+        newBtnFood.onclick = function() {
+            if((S.coins||0) < 50){ showToast('❌ B-Coin ไม่พอ!'); return; }
+            if((S.foodWeekBought||0) >= 1){ showToast('❌ หมดโควต้าสัปดาห์นี้แล้ว!'); return; } // โควต้า 1 ครั้ง/สัปดาห์
+            
+            cfmShow('🍜', 'ซื้อน้ำยาแสนอร่อย?', 'ราคา 50 B-Coin', function() {
+                S.coins -= 50; 
+                S.todayCoinsSpent = (S.todayCoinsSpent || 0) + 50; // 🌟 แทรกบรรทัดนี้ลงไป
+                S.ticket = (S.ticket || 0) + 1;
+                S.foodWeekBought = (S.foodWeekBought || 0) + 1;
+                
+                if (!S.todayItemsUsed) S.todayItemsUsed = [];
+                S.todayItemsUsed.push('🛒 ซื้อน้ำยาแสนอร่อย (-50 Coins)');
+                
+                saveLocal(); renderAll();
+                if (typeof updateLog === 'function') updateLog();
+                showToast('🍜 ซื้อน้ำยาแสนอร่อยสำเร็จ!');
+            });
+        };
+    }
+}, 600);

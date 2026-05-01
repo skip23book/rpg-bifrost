@@ -27,8 +27,13 @@
     .hero p{font-size:13px;line-height:1.7;color:var(--muted);max-width:640px}
     .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
     .stat{background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.18);border-radius:12px;padding:12px;min-height:76px}
+    .stat.wide{grid-column:span 2}
     .stat span{display:block;font-size:10px;color:var(--muted);letter-spacing:1.4px;text-transform:uppercase}
     .stat b{display:block;margin-top:5px;font-size:21px;color:var(--gold)}
+    .stat-list{display:grid;gap:5px;margin-top:7px;font-size:11px;color:var(--ink)}
+    .stat-list div{display:flex;justify-content:space-between;gap:10px;border-top:1px solid rgba(255,255,255,.07);padding-top:5px}
+    .stat-list em{font-style:normal;color:var(--muted)}
+    .stat-list strong{color:var(--gold);font-weight:800;white-space:nowrap}
     .grid{display:grid;grid-template-columns:1fr;gap:14px}
     .card{background:linear-gradient(180deg,rgba(43,45,80,.96),rgba(27,28,52,.96));border:1px solid var(--line);border-radius:16px;padding:15px;box-shadow:var(--shadow)}
     .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
@@ -39,6 +44,18 @@
     .status{margin-top:12px;color:var(--muted);font-size:12px;line-height:1.7;text-align:center;background:rgba(0,0,0,.16);border:1px dashed rgba(255,215,0,.18);border-radius:12px;padding:10px}
     .status.bad{color:#ffd1d1;border-color:rgba(255,115,115,.35)}
     .status.good{color:#dcffdf;border-color:rgba(142,228,142,.35)}
+    .hidden-history{margin-top:14px}
+    .hidden-list{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}
+    .hidden-item{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,.055);border:1px solid rgba(255,215,0,.16);border-radius:10px;padding:9px 10px;text-align:left}
+    .hidden-date{font-size:12px;color:var(--ink);font-weight:800}
+    .hidden-detail{font-size:10px;color:var(--muted);margin-top:2px}
+    .restore-one,.delete-one{border:1px solid rgba(103,217,255,.42);background:rgba(103,217,255,.12);color:#9ee7ff;border-radius:8px;padding:6px 9px;font-weight:800;font-size:11px;cursor:pointer;white-space:nowrap;font-family:inherit}
+    .delete-one{border-color:rgba(255,115,115,.45);background:rgba(255,115,115,.13);color:#ffd1d1}
+    .hidden-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+    .hidden-gate{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+    .hidden-pin{flex:1;min-width:150px;border:1px solid rgba(255,215,0,.24);background:rgba(0,0,0,.22);color:var(--ink);border-radius:10px;padding:9px 10px;font-family:inherit}
+    .hidden-open{border:1px solid rgba(255,215,0,.45);background:rgba(255,215,0,.12);color:#ffd700;border-radius:10px;padding:9px 12px;font-weight:800;font-size:12px;cursor:pointer;font-family:inherit}
+    .hidden-secure-note{font-size:11px;color:var(--muted);line-height:1.5;margin-top:8px}
     .loading{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(8,10,24,.72);backdrop-filter:blur(6px)}
     .loading.on{display:flex}
     .loading-card{width:min(360px,100%);text-align:center;border:1px solid var(--line);border-radius:18px;padding:26px 22px;background:linear-gradient(180deg,rgba(43,45,80,.98),rgba(18,20,38,.98));box-shadow:0 24px 70px rgba(0,0,0,.48),inset 0 0 0 1px rgba(255,255,255,.07)}
@@ -47,8 +64,8 @@
     .loading-text{font-size:13px;color:var(--muted);line-height:1.7}
     @keyframes spin{to{transform:rotate(360deg)}}
     @media (min-width:860px){.grid{grid-template-columns:1fr 1fr}.hero h1{font-size:34px}}
-    @media (max-width:620px){.scene{padding:14px 10px 24px}.top{align-items:flex-start}.brand{font-size:18px;letter-spacing:3px}.hero{padding:16px}.hero h1{font-size:24px}.summary{grid-template-columns:1fr 1fr}.chart-wrap{height:315px}.card{padding:12px}.card-head{display:block}.hint{text-align:left;margin-top:5px}}
-    @media (max-width:360px){.summary{grid-template-columns:1fr}.back{padding:8px 10px;font-size:11px}}
+    @media (max-width:620px){.scene{padding:14px 10px 24px}.top{align-items:flex-start}.brand{font-size:18px;letter-spacing:3px}.hero{padding:16px}.hero h1{font-size:24px}.summary{grid-template-columns:1fr 1fr}.chart-wrap{height:315px}.card{padding:12px}.card-head{display:block}.hint{text-align:left;margin-top:5px}.hidden-list{grid-template-columns:1fr}}
+    @media (max-width:360px){.summary{grid-template-columns:1fr}.stat.wide{grid-column:span 1}.back{padding:8px 10px;font-size:11px}}
   </style>
 </head>
 <body>
@@ -68,25 +85,42 @@
         <p>ศูนย์วิเคราะห์ข้อมูลจาก Archive_Data และ Main แบบอ่านอย่างเดียว แสดงแนวโน้มร่างกายและเวลาว่ายน้ำจากประวัติที่บันทึกไว้</p>
       </section>
 
-      <section class="summary" aria-label="สรุปข้อมูลล่าสุด">
+      <section class="summary" aria-label="BB Stats summary">
         <div class="stat"><span>Records</span><b id="sumRecords">—</b></div>
         <div class="stat"><span>Latest Weight</span><b id="sumWeight">—</b></div>
         <div class="stat"><span>Latest Height</span><b id="sumHeight">—</b></div>
         <div class="stat"><span>Best Freestyle</span><b id="sumFreestyle">—</b></div>
+        <div class="stat"><span>Last Month Weight</span><b id="sumLastMonthWeight">—</b></div>
+        <div class="stat"><span>Last Month Height</span><b id="sumLastMonthHeight">—</b></div>
+        <div class="stat"><span>Best Breaststroke</span><b id="sumBestBreast">—</b></div>
+        <div class="stat"><span>Best Backstroke</span><b id="sumBestBack">—</b></div>
+        <div class="stat"><span>Best Butterfly</span><b id="sumBestButterfly">—</b></div>
+        <div class="stat wide"><span>Latest 7 Weight</span><div class="stat-list" id="sumWeightList">—</div></div>
+        <div class="stat wide"><span>Latest 7 Height</span><div class="stat-list" id="sumHeightList">—</div></div>
+        <div class="stat wide"><span>Latest 7 Freestyle</span><div class="stat-list" id="sumFreestyleList">—</div></div>
+        <div class="stat wide"><span>Latest 7 Breaststroke</span><div class="stat-list" id="sumBreastList">—</div></div>
+        <div class="stat wide"><span>Latest 7 Backstroke</span><div class="stat-list" id="sumBackList">—</div></div>
+        <div class="stat wide"><span>Latest 7 Butterfly</span><div class="stat-list" id="sumButterflyList">—</div></div>
       </section>
 
       <section class="grid">
         <article class="card">
-          <div class="card-head"><div class="title">Body Growth</div><div class="hint">น้ำหนัก kg / ส่วนสูง cm</div></div>
+          <div class="card-head"><div class="title">Body Growth</div><div class="hint">Weight kg / Height cm</div></div>
           <div class="chart-wrap"><canvas id="bodyChart"></canvas></div>
         </article>
         <article class="card">
-          <div class="card-head"><div class="title">Swim Records</div><div class="hint">เวลาว่ายน้ำเป็นวินาที</div></div>
+          <div class="card-head"><div class="title">Swim Records</div><div class="hint">Swim time in seconds</div></div>
           <div class="chart-wrap"><canvas id="swimChart"></canvas></div>
         </article>
       </section>
 
+      <section class="card hidden-history" id="hiddenHistoryCard">
+        <div class="card-head"><div class="title">Hidden History</div><div class="hint">Restore hidden data points</div></div>
+        <div class="hidden-list" id="hiddenHistoryList"></div>
+      </section>
+
       <div class="status" id="statusText">กำลังโหลดข้อมูล Archive_Data และ Main...</div>
+      <div class="status" id="hiddenStatsControls" style="display:none; margin-top:8px;"></div>
     </div>
   </main>
 
@@ -99,17 +133,35 @@
   </div>
 
   <script>
-    const APP_VERSION = "1.0.3";
+    const APP_VERSION = "1.0.4";
     const SHEET_URL = "https://script.google.com/macros/s/AKfycbzhZ4vnKvSMhxay6Wz2Ur86cI3bBXhel3ms_v9yH27eEKT9m8M4QmcMFypts59iwXst/exec";
     const els = {
       status: document.getElementById("statusText"),
       records: document.getElementById("sumRecords"),
       weight: document.getElementById("sumWeight"),
       height: document.getElementById("sumHeight"),
-      freestyle: document.getElementById("sumFreestyle")
+      freestyle: document.getElementById("sumFreestyle"),
+      lastMonthWeight: document.getElementById("sumLastMonthWeight"),
+      lastMonthHeight: document.getElementById("sumLastMonthHeight"),
+      bestBreast: document.getElementById("sumBestBreast"),
+      bestBack: document.getElementById("sumBestBack"),
+      bestButterfly: document.getElementById("sumBestButterfly"),
+      weightList: document.getElementById("sumWeightList"),
+      heightList: document.getElementById("sumHeightList"),
+      freestyleList: document.getElementById("sumFreestyleList"),
+      breastList: document.getElementById("sumBreastList"),
+      backList: document.getElementById("sumBackList"),
+      butterflyList: document.getElementById("sumButterflyList"),
+      hiddenControls: document.getElementById("hiddenStatsControls"),
+      hiddenHistoryCard: document.getElementById("hiddenHistoryCard"),
+      hiddenHistoryList: document.getElementById("hiddenHistoryList")
     };
     let bodyChart;
     let swimChart;
+    let allStatRows = [];
+    let hiddenHistoryUnlocked = false;
+    const HIDDEN_STATS_KEY = "bifrost_hidden_stats_dates";
+    const DELETED_STATS_KEY = "bifrost_deleted_stats_dates";
     const palette = { gold:"#ffd700", aqua:"#67d9ff", blue:"#7aa2ff", pink:"#ff8ec7", green:"#8ee48e", muted:"#b8b3ca", grid:"rgba(255,255,255,.10)" };
 
     function setStatus(message, type) {
@@ -119,6 +171,128 @@
 
     function setLoading(isLoading) {
       document.getElementById("loadingOverlay")?.classList.toggle("on", isLoading);
+    }
+
+    function hiddenStatKeys() {
+      try { return JSON.parse(localStorage.getItem(HIDDEN_STATS_KEY) || "[]"); }
+      catch (err) { return []; }
+    }
+
+    function saveHiddenStatKeys(keys) {
+      localStorage.setItem(HIDDEN_STATS_KEY, JSON.stringify(Array.from(new Set(keys))));
+    }
+
+    function deletedStatKeys() {
+      try { return JSON.parse(localStorage.getItem(DELETED_STATS_KEY) || "[]"); }
+      catch (err) { return []; }
+    }
+
+    function saveDeletedStatKeys(keys) {
+      localStorage.setItem(DELETED_STATS_KEY, JSON.stringify(Array.from(new Set(keys))));
+    }
+
+    function statRowKey(row) {
+      return String(row.sortValue || row.rawDate || row.label || row.index);
+    }
+
+    function visibleRows(rows) {
+      const hidden = new Set(hiddenStatKeys());
+      const deleted = new Set(deletedStatKeys());
+      return rows.filter(row => !hidden.has(statRowKey(row)) && !deleted.has(statRowKey(row)));
+    }
+
+
+    function renderHiddenHistoryGate(hidden, deleted) {
+      els.hiddenControls.style.display = hidden.length || deleted.length ? "block" : "none";
+      els.hiddenControls.innerHTML = hidden.length || deleted.length ? `Hidden ${hidden.length.toLocaleString("th-TH")} day(s)${deleted.length ? ` · Deleted ${deleted.length.toLocaleString("th-TH")}` : ""}` : "";
+      els.hiddenHistoryList.innerHTML = `<div class="hidden-item"><div><div class="hidden-date">Parent Protected</div><div class="hidden-detail">Enter PIN to manage hidden or deleted stats.</div><div class="hidden-gate"><input class="hidden-pin" id="hiddenHistoryPin" type="password" inputmode="numeric" maxlength="4" placeholder="Parent PIN"><button class="hidden-open" id="unlockHiddenHistory">Open Hidden History</button></div><div class="hidden-secure-note">Chart hiding still works. Restore/Delete tools stay locked here.</div></div></div>`;
+      document.getElementById("unlockHiddenHistory")?.addEventListener("click", unlockHiddenHistory);
+      document.getElementById("hiddenHistoryPin")?.addEventListener("keydown", event => { if (event.key === "Enter") unlockHiddenHistory(); });
+    }
+
+    function unlockHiddenHistory() {
+      const pin = document.getElementById("hiddenHistoryPin")?.value || "";
+      if (pin !== "2308") {
+        setStatus("Parent PIN is incorrect", "bad");
+        return;
+      }
+      hiddenHistoryUnlocked = true;
+      setStatus("Hidden History unlocked", "good");
+      updateHiddenControls();
+    }
+
+    function updateHiddenControls() {
+      const hidden = hiddenStatKeys();
+      const deleted = deletedStatKeys();
+      const hiddenSet = new Set(hidden);
+      const hiddenRows = allStatRows.filter(row => hiddenSet.has(statRowKey(row)));
+      if (!els.hiddenControls || !els.hiddenHistoryCard || !els.hiddenHistoryList) return;
+      els.hiddenHistoryCard.style.display = "block";
+      if (!hiddenHistoryUnlocked) {
+        renderHiddenHistoryGate(hidden, deleted);
+        return;
+      }
+      if (!hidden.length) {
+        els.hiddenControls.style.display = deleted.length ? "block" : "none";
+        els.hiddenControls.innerHTML = deleted.length ? `Deleted ${deleted.length.toLocaleString("th-TH")} day(s) <button id="clearDeletedStats" style="margin-left:8px; border:1px solid rgba(103,217,255,.42); background:rgba(103,217,255,.12); color:#9ee7ff; border-radius:8px; padding:6px 10px; cursor:pointer;">Clear Deleted Data</button>` : "";
+        els.hiddenHistoryList.innerHTML = `<div class="hidden-item"><div><div class="hidden-date">No hidden data points</div><div class="hidden-detail">Click a chart point to hide that day. Deleted data is excluded from this device.</div></div></div>`;
+        document.getElementById("clearDeletedStats")?.addEventListener("click", () => {
+          if (!confirm("Clear deleted stats and show them again on this device?")) return;
+          saveDeletedStatKeys([]);
+          renderStatsView();
+        });
+        return;
+      }
+      els.hiddenControls.style.display = "block";
+      els.hiddenControls.innerHTML = `Hidden ${hidden.length.toLocaleString("th-TH")} day(s)${deleted.length ? ` · Deleted ${deleted.length.toLocaleString("th-TH")}` : ""} <button id="restoreHiddenStats" style="margin-left:8px; border:1px solid rgba(255,215,0,.45); background:rgba(255,215,0,.12); color:#ffd700; border-radius:8px; padding:6px 10px; cursor:pointer;">Restore All</button>${deleted.length ? ` <button id="clearDeletedStats" style="margin-left:6px; border:1px solid rgba(103,217,255,.42); background:rgba(103,217,255,.12); color:#9ee7ff; border-radius:8px; padding:6px 10px; cursor:pointer;">Clear Deleted Data</button>` : ""}`;
+      document.getElementById("restoreHiddenStats")?.addEventListener("click", () => {
+        saveHiddenStatKeys([]);
+        renderStatsView();
+      });
+      document.getElementById("clearDeletedStats")?.addEventListener("click", () => {
+        if (!confirm("Clear deleted stats and show them again on this device?")) return;
+        saveDeletedStatKeys([]);
+        renderStatsView();
+      });
+      els.hiddenHistoryList.innerHTML = hiddenRows.map(row => {
+        const detail = [`W ${valueWithUnit(row.w, " kg")}`, `H ${valueWithUnit(row.h, " cm")}`, `FR ${valueWithUnit(row.fr, " sec")}`].join(" · ");
+        const key = statRowKey(row);
+        return `<div class="hidden-item"><div><div class="hidden-date">${row.fullLabel || row.label}</div><div class="hidden-detail">${detail}</div></div><div class="hidden-actions"><button class="restore-one" data-key="${key}">Restore</button><button class="delete-one" data-key="${key}">Delete</button></div></div>`;
+      }).join("") || `<div class="hidden-item"><div><div class="hidden-date">Hidden record not found</div><div class="hidden-detail">Use Restore All to clear old hidden history.</div></div></div>`;
+      els.hiddenHistoryList.querySelectorAll(".restore-one").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const key = btn.getAttribute("data-key");
+          saveHiddenStatKeys(hiddenStatKeys().filter(item => item !== key));
+          renderStatsView();
+        });
+      });
+      els.hiddenHistoryList.querySelectorAll(".delete-one").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const key = btn.getAttribute("data-key");
+          if (!confirm("Delete this data point from BB STATS on this device?")) return;
+          saveHiddenStatKeys(hiddenStatKeys().filter(item => item !== key));
+          saveDeletedStatKeys([...deletedStatKeys(), key]);
+          renderStatsView();
+        });
+      });
+    }
+
+
+    function hideStatRow(row) {
+      if (!row) return;
+      const hidden = hiddenStatKeys();
+      const key = statRowKey(row);
+      if (!hidden.includes(key)) hidden.push(key);
+      saveHiddenStatKeys(hidden);
+      setStatus(`ซ่อนข้อมูลวันที่ ${row.fullLabel || row.label} แล้ว`, "good");
+      renderStatsView();
+    }
+
+    function renderStatsView() {
+      const rows = visibleRows(allStatRows);
+      renderSummary(rows);
+      renderCharts(rows);
+      updateHiddenControls();
     }
 
     function toNumber(value) {
@@ -141,10 +315,33 @@
       return "";
     }
 
-    function formatDate(value, index) {
+    const thaiMonths = {
+      "มกราคม":0, "กุมภาพันธ์":1, "มีนาคม":2, "เมษายน":3, "พฤษภาคม":4, "มิถุนายน":5,
+      "กรกฎาคม":6, "สิงหาคม":7, "กันยายน":8, "ตุลาคม":9, "พฤศจิกายน":10, "ธันวาคม":11,
+      "ม.ค.":0, "ก.พ.":1, "มี.ค.":2, "เม.ย.":3, "พ.ค.":4, "มิ.ย.":5,
+      "ก.ค.":6, "ส.ค.":7, "ก.ย.":8, "ต.ค.":9, "พ.ย.":10, "ธ.ค.":11
+    };
+
+    function parseDateValue(value) {
+      if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+      const text = String(value || "").trim();
+      if (!text) return null;
+      const iso = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (iso) return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+      const th = text.match(/^(\d{1,2})\s+([^\s]+)\s+(\d{4})$/);
+      if (th && thaiMonths[th[2]] !== undefined) {
+        let year = Number(th[3]);
+        if (year > 2400) year -= 543;
+        return new Date(year, thaiMonths[th[2]], Number(th[1]));
+      }
+      const date = new Date(text);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    function formatDate(value, index, longLabel = false) {
+      const date = parseDateValue(value);
+      if (date) return date.toLocaleDateString("th-TH", longLabel ? { day:"2-digit", month:"short", year:"numeric" } : { day:"2-digit", month:"short" });
       if (!value) return "#" + (index + 1);
-      const date = new Date(value);
-      if (!Number.isNaN(date.getTime())) return date.toLocaleDateString("th-TH", { day:"2-digit", month:"short" });
       return String(value).slice(0, 16);
     }
 
@@ -161,17 +358,22 @@
 
     function normalizeRows(rows, sourceLabel = "Archive") {
       return rows.map((row, index) => {
-        const dateValue = pick(row, ["date", "Date", "วันที่", "timestamp", "Timestamp", "createdAt", "day", "syncDate"]);
+        const vals = Object.values(row || {});
+        const dateValue = pick(row, ["date", "Date", "วันที่", "timestamp", "Timestamp", "createdAt", "day", "syncDate", "col0"]) || vals[0];
+        const parsedDate = parseDateValue(dateValue);
+        const sortValue = parsedDate ? parsedDate.getTime() : index;
         return {
           source: sourceLabel,
+          rawDate: dateValue,
           label: formatDate(dateValue, index),
-          sortValue: dateValue ? new Date(dateValue).getTime() || index : index,
-          w: toNumber(pick(row, ["w", "weight", "Weight", "น้ำหนัก"])),
-          h: toNumber(pick(row, ["h", "height", "Height", "ส่วนสูง"])),
-          fr: toNumber(pick(row, ["swimFr", "fr", "freestyle", "FreeStyle", "ฟรีสไตล์"])),
-          bk: toNumber(pick(row, ["swimBk", "bk", "backstroke", "Backstroke", "กรรเชียง"])),
-          fg: toNumber(pick(row, ["swimFg", "fg", "breaststroke", "Breaststroke", "กบ"])),
-          bt: toNumber(pick(row, ["swimBt", "bt", "butterfly", "Butterfly", "ผีเสื้อ"]))
+          fullLabel: formatDate(dateValue, index, true),
+          sortValue,
+          w: toNumber(pick(row, ["w", "weight", "Weight", "น้ำหนัก", "col2"]) || vals[2]),
+          h: toNumber(pick(row, ["h", "height", "Height", "ส่วนสูง", "col3"]) || vals[3]),
+          fr: toNumber(pick(row, ["swimFr", "fr", "freestyle", "FreeStyle", "ฟรีสไตล์", "col4"]) || vals[4]),
+          fg: toNumber(pick(row, ["swimFg", "fg", "breaststroke", "Breaststroke", "กบ", "col5"]) || vals[5]),
+          bk: toNumber(pick(row, ["swimBk", "bk", "backstroke", "Backstroke", "กรรเชียง", "col6"]) || vals[6]),
+          bt: toNumber(pick(row, ["swimBt", "bt", "butterfly", "Butterfly", "ผีเสื้อ", "col7"]) || vals[7])
         };
       }).filter(hasAnyStat).sort((a, b) => a.sortValue - b.sortValue);
     }
@@ -221,7 +423,16 @@
     }
 
     function mergeRows(archiveRows, mainRows) {
-      return [...archiveRows, ...mainRows].sort((a, b) => a.sortValue - b.sortValue).map((row, index) => ({ ...row, index }));
+      const byDate = new Map();
+      [...archiveRows, ...mainRows]
+        .sort((a, b) => a.sortValue - b.sortValue)
+        .forEach(row => {
+          const key = row.sortValue || row.label;
+          const current = byDate.get(key);
+          if (!current) byDate.set(key, row);
+          else byDate.set(key, { ...current, ...row, w: row.w ?? current.w, h: row.h ?? current.h, fr: row.fr ?? current.fr, bk: row.bk ?? current.bk, fg: row.fg ?? current.fg, bt: row.bt ?? current.bt });
+        });
+      return Array.from(byDate.values()).sort((a, b) => a.sortValue - b.sortValue).map((row, index) => ({ ...row, index }));
     }
 
     function latestValue(rows, key, unit) {
@@ -238,7 +449,7 @@
       return { label, data, yAxisID, borderColor:color, backgroundColor:color + "26", borderWidth:3, pointRadius:3, pointHoverRadius:6, pointBackgroundColor:"#15172d", pointBorderColor:color, pointBorderWidth:2, tension:.35, spanGaps:true };
     }
 
-    function chartOptions(unit, dualAxis) {
+    function chartOptions(unit, dualAxis, rows) {
       const scales = {
         x:{ grid:{ color:"rgba(255,255,255,.05)" }, ticks:{ maxRotation:0, autoSkip:true, maxTicksLimit:7 } },
         y:{ beginAtZero:false, grid:{ color:palette.grid }, ticks:{ callback:value => value + unit } }
@@ -253,18 +464,63 @@
         interaction:{ mode:"index", intersect:false },
         plugins:{
           legend:{ position:"bottom", labels:{ usePointStyle:true, boxWidth:8, padding:16 } },
-          tooltip:{ backgroundColor:"rgba(12,14,28,.94)", borderColor:"rgba(255,215,0,.32)", borderWidth:1, padding:12 }
+          tooltip:{ backgroundColor:"rgba(12,14,28,.94)", borderColor:"rgba(255,215,0,.32)", borderWidth:1, padding:12, callbacks:{ title:items => rows[items[0].dataIndex]?.fullLabel || items[0].label } }
         },
-        scales
+        scales,
+        onClick:function(event, elements, chart) {
+          const points = chart.getElementsAtEventForMode(event, "nearest", { intersect:true }, true);
+          if (!points.length) return;
+          hideStatRow(rows[points[0].index]);
+        }
       };
+    }
+
+    function rowsWithValue(rows, key) {
+      return rows.filter(row => row[key] !== null && row[key] !== undefined);
+    }
+
+    function valueWithUnit(value, unit) {
+      return value !== null && value !== undefined ? value.toLocaleString("th-TH") + unit : "—";
+    }
+
+    function latestEntries(rows, key, unit, limit = 7) {
+      return rowsWithValue(rows, key).slice(-limit).reverse();
+    }
+
+    function renderEntryList(el, rows, key, unit) {
+      if (!el) return;
+      const entries = latestEntries(rows, key, unit);
+      if (!entries.length) { el.textContent = "—"; return; }
+      el.innerHTML = entries.map(row => `<div><em>${row.label}</em><strong>${valueWithUnit(row[key], unit)}</strong></div>`).join("");
+    }
+
+    function firstRecordOfPreviousMonth(rows, key) {
+      const now = new Date();
+      const startThisMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+      const startLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+      return rowsWithValue(rows, key).filter(row => row.sortValue >= startLastMonth && row.sortValue < startThisMonth).sort((a, b) => a.sortValue - b.sortValue)[0] || null;
     }
 
     function renderSummary(rows) {
       els.records.textContent = rows.length.toLocaleString("th-TH");
       els.weight.textContent = latestValue(rows, "w", " kg");
       els.height.textContent = latestValue(rows, "h", " cm");
-      els.freestyle.textContent = minValue(rows, "fr", " วิ");
+      els.freestyle.textContent = minValue(rows, "fr", " sec");
+      const lastMonthWeight = firstRecordOfPreviousMonth(rows, "w");
+      const lastMonthHeight = firstRecordOfPreviousMonth(rows, "h");
+      els.lastMonthWeight.textContent = lastMonthWeight ? valueWithUnit(lastMonthWeight.w, " kg") : "—";
+      els.lastMonthHeight.textContent = lastMonthHeight ? valueWithUnit(lastMonthHeight.h, " cm") : "—";
+      els.bestBreast.textContent = minValue(rows, "fg", " sec");
+      els.bestBack.textContent = minValue(rows, "bk", " sec");
+      els.bestButterfly.textContent = minValue(rows, "bt", " sec");
+      renderEntryList(els.weightList, rows, "w", " kg");
+      renderEntryList(els.heightList, rows, "h", " cm");
+      renderEntryList(els.freestyleList, rows, "fr", " sec");
+      renderEntryList(els.breastList, rows, "fg", " sec");
+      renderEntryList(els.backList, rows, "bk", " sec");
+      renderEntryList(els.butterflyList, rows, "bt", " sec");
     }
+
 
     function renderCharts(rows) {
       if (!window.Chart) {
@@ -278,13 +534,13 @@
       swimChart?.destroy();
       bodyChart = new Chart(document.getElementById("bodyChart"), {
         type:"line",
-        data:{ labels, datasets:[lineDataset("น้ำหนัก", rows.map(row => row.w), palette.gold, "y"), lineDataset("ส่วนสูง", rows.map(row => row.h), palette.aqua, "y1")] },
-        options:chartOptions("kg", true)
+        data:{ labels, datasets:[lineDataset("Weight", rows.map(row => row.w), palette.gold, "y"), lineDataset("Height", rows.map(row => row.h), palette.aqua, "y1")] },
+        options:chartOptions("kg", true, rows)
       });
       swimChart = new Chart(document.getElementById("swimChart"), {
         type:"line",
-        data:{ labels, datasets:[lineDataset("ฟรีสไตล์", rows.map(row => row.fr), palette.aqua, "y"), lineDataset("กรรเชียง", rows.map(row => row.bk), palette.blue, "y"), lineDataset("กบ", rows.map(row => row.fg), palette.green, "y"), lineDataset("ผีเสื้อ", rows.map(row => row.bt), palette.pink, "y")] },
-        options:chartOptions("วิ", false)
+        data:{ labels, datasets:[lineDataset("Freestyle", rows.map(row => row.fr), palette.aqua, "y"), lineDataset("Backstroke", rows.map(row => row.bk), palette.blue, "y"), lineDataset("Breaststroke", rows.map(row => row.fg), palette.green, "y"), lineDataset("Butterfly", rows.map(row => row.bt), palette.pink, "y")] },
+        options:chartOptions("วิ", false, rows)
       });
     }
 
@@ -300,12 +556,12 @@
       try {
         const [archiveResult, mainResult] = await Promise.allSettled([fetchJson("fetchArchive"), fetchJson("loadSave")]);
         const archiveRows = archiveResult.status === "fulfilled" ? normalizeRows(extractRows(archiveResult.value), "Archive") : [];
-        let mainRows = mainResult.status === "fulfilled" ? mainRowsFromSave(mainResult.value) : [];
-        const localRows = mainRows.length ? [] : mainRowsFromSave(loadLocalSave());
+        let mainRows = archiveRows.length ? [] : (mainResult.status === "fulfilled" ? mainRowsFromSave(mainResult.value) : []);
+        const localRows = (archiveRows.length || mainRows.length) ? [] : mainRowsFromSave(loadLocalSave());
         if (!mainRows.length && localRows.length) mainRows = localRows;
         const rows = mergeRows(archiveRows, mainRows);
-        renderSummary(rows);
-        renderCharts(rows);
+        allStatRows = rows;
+        renderStatsView();
         if (!rows.length) {
           const failures = [];
           if (archiveResult.status === "rejected") failures.push("fetchArchive: " + archiveResult.reason.message);

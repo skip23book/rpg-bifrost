@@ -292,7 +292,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
   display: flex;
   pointer-events: none; /* เพื่อให้ยังกดลูกศรได้ปกติ */
 }
-/* 🛠️ TEST TOOLS */
+/* 🛠️ DEV TOOLS */
 .dev-tools {
   position: fixed;
   bottom: 20px;
@@ -527,3 +527,94 @@ body { font-size: 16px !important; }
 #pg-dashboard, #pg-quest, #pg-shop {
     padding-bottom: 90px !important;
 }
+/* GM help buttons and modal */
+.gm-help-line {
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 700;
+  margin: 4px 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.gm-help-btn {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 215, 0, .75);
+  background: rgba(255, 215, 0, .12);
+  color: #ffea00;
+  font-size: 13px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  vertical-align: middle;
+  padding: 0;
+  margin-left: 4px;
+  box-shadow: 0 0 10px rgba(255, 215, 0, .12);
+}
+.gm-help-btn:hover { background: rgba(255, 215, 0, .22); transform: translateY(-1px); }
+#gm-help-modal { align-items: center; justify-content: center; z-index: 1000001 !important; }
+#gm-help-modal .gm-help-panel {
+  position: relative;
+  width: min(92vw, 390px);
+  max-height: 78vh;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 215, 0, .55);
+  background: linear-gradient(180deg, #111827 0%, #080b12 100%);
+  color: #fff;
+  box-shadow: 0 20px 60px rgba(0,0,0,.55), 0 0 22px rgba(255,215,0,.12);
+  transform: translateY(20px);
+}
+#gm-help-modal.on .gm-help-panel { transform: translateY(0); }
+.gm-help-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+}
+.gm-help-title {
+  color: var(--gold);
+  font-size: 17px;
+  font-weight: 900;
+  padding-right: 38px;
+  letter-spacing: .5px;
+}
+.gm-help-body {
+  color: rgba(255,255,255,.86);
+  font-size: 14px;
+  line-height: 1.65;
+}
+.gm-help-body ul { margin: 8px 0 0; padding-left: 20px; }
+.gm-help-body li { margin-bottom: 5px; }
+/* Quest draft sync status */
+.draft-sync-status {
+  width: 100%;
+  box-sizing: border-box;
+  display: none;
+  margin-top: 2px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid rgba(184,144,32,.28);
+  background: rgba(255,255,255,.72);
+  color: #4a5568;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.45;
+  text-align: center;
+}
+.draft-sync-status.on { display: block; }
+.draft-sync-status.ok { border-color: rgba(72,187,120,.55); color: #166534; background: rgba(220,252,231,.9); }
+.draft-sync-status.remote { border-color: rgba(79,195,247,.55); color: #075985; background: rgba(224,242,254,.92); }
+.draft-sync-status.warn { border-color: rgba(245,158,11,.55); color: #92400e; background: rgba(254,243,199,.92); }

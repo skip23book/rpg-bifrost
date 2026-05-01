@@ -326,6 +326,7 @@
       <div class="brow">
         <button class="btn" id="btn-draft" style="background:#4a5568; color:#fff; display:none;" onclick="doDraft()">💾 อัปเดตภารกิจ</button>
         <button class="btn bg" id="btn-submit" style="display:none;">⚔️ ส่งภารกิจ</button>
+          <div id="draft-sync-status" class="draft-sync-status">ยังไม่มีข้อมูลร่างที่รอส่ง</div>
       </div>
     </div>
 
@@ -418,37 +419,38 @@
 <div class="mov" id="gm-modal" style="z-index: 999999;">
   <div class="mpan" style="background: #0a0a0a; border: 2px solid var(--gold); max-height: 85vh; overflow-y: auto;">
     <div style="text-align:center; font-size:28px; margin-bottom:5px;">👑</div>
-    <div class="gm-title" style="color:var(--gold); text-align:center; font-weight:bold; letter-spacing:2px; margin-bottom:15px; text-shadow:0 0 10px rgba(184,144,32,0.8);">FAMILY SECRET ZONE</div>
+    <div class="gm-title" style="color:var(--gold); text-align:center; font-weight:bold; letter-spacing:2px; margin-bottom:15px; text-shadow:0 0 10px rgba(184,144,32,0.8);">FAMILY SECRET ZONE <button type="button" class="gm-help-btn" data-gm-help="overview" title="อธิบาย GM Mode">❓</button></div>
     <div class="fr" style="background:rgba(255,234,0,0.1); padding:10px; border-radius:8px; border:1px solid rgba(255,234,0,0.3); margin-bottom:10px;">
-      <label class="fl2" style="color:#ffea00;">💎 ล็อกเป้าแจ็คพอต 100% <span id="st-jackpot" style="font-size:10px; margin-left:5px;">[ ⚪ OFF ]</span></label>
+      <label class="fl2" style="color:#ffea00;">💎 ล็อกเป้าแจ็คพอต 100% <button type="button" class="gm-help-btn" data-gm-help="jackpot" title="อธิบายแจ็คพอต">❓</button> <span id="st-jackpot" style="font-size:10px; margin-left:5px;">[ ⚪ OFF ]</span></label>
       <div style="display:flex; justify-content:space-between; align-items:center;">
          <span style="font-size:10px; color:#aaa;">สุ่มครั้งหน้าได้ Legendary ทันที</span>
          <input type="checkbox" id="gm-secret-jackpot" style="transform: scale(1.5);">
       </div>
     </div>
     <div class="fr" style="background:rgba(79,195,247,0.1); padding:10px; border-radius:8px; border:1px solid rgba(79,195,247,0.3); margin-bottom:10px;">
-      <label class="fl2" style="color:#4fc3f7;">🔮 คำพยากรณ์ฮีโร่ (Nudge) <span id="st-prophecy" style="font-size:10px; margin-left:5px;">[ ⚪ OFF ]</span></label>
+      <label class="fl2" style="color:#4fc3f7;">🔮 คำพยากรณ์ฮีโร่ (Nudge) <button type="button" class="gm-help-btn" data-gm-help="prophecy" title="อธิบายคำพยากรณ์">❓</button> <span id="st-prophecy" style="font-size:10px; margin-left:5px;">[ ⚪ OFF ]</span></label>
       <input class="fi gm-input" type="text" placeholder="เช่น วันนี้ตั้งใจเรียน พรุ่งนี้จะมีโชคใหญ่..." id="gm-prophecy" style="background:rgba(255,255,255,0.05); color:#fff; border-color:rgba(184,144,32,0.5);">
     </div>
     <div class="fr" style="background:rgba(0,0,0,0.6); padding:10px; border-radius:8px; border:1px solid #ffea00; margin-bottom:15px; box-shadow: inset 0 0 10px rgba(255,234,0,0.1);">
-      <label class="fl2" style="color:#ffea00; text-shadow: 0 0 5px rgba(255,234,0,0.5);">📜 ภารกิจลับพิเศษ (Secret Quest) <span id="st-secret" style="font-size:10px; margin-left:5px;">[ ⚪ OFF ]</span></label>
+      <label class="fl2" style="color:#ffea00; text-shadow: 0 0 5px rgba(255,234,0,0.5);">📜 ภารกิจลับพิเศษ (Secret Quest) <button type="button" class="gm-help-btn" data-gm-help="secretQuest" title="อธิบายภารกิจลับ">❓</button> <span id="st-secret" style="font-size:10px; margin-left:5px;">[ ⚪ OFF ]</span></label>
       <input class="fi gm-input" type="text" placeholder="เช่น วันนี้เก็บห้องนอน รับกุญแจทอง..." id="gm-secret-quest" style="background:rgba(255,255,255,0.05); color:#fff; border-color:#ffea00;">
     </div>
     
     <div class="fr" style="background:rgba(255,234,0,0.1); padding:10px; border-radius:8px; border:1px solid rgba(184,144,32,0.3); margin-bottom:10px;">
-      <label class="fl2" style="color:var(--gold);">🪙 ปรับปรุง B-Coin (ใส่เลข เช่น 100 หรือ -50)</label>
+      <label class="fl2" style="color:var(--gold);">🪙 ปรับปรุง B-Coin (ใส่เลข เช่น 100 หรือ -50) <button type="button" class="gm-help-btn" data-gm-help="coins" title="อธิบายการปรับเหรียญ">❓</button></label>
       <input class="fi gm-input" type="number" placeholder="ระบุจำนวนเหรียญ..." id="in-gm-coins" style="background:rgba(255,255,255,0.05); color:#fff; border-color:rgba(184,144,32,0.5);">
     </div>
     
     <div class="fr" style="background:rgba(79,195,247,0.1); padding:10px; border-radius:8px; border:1px solid rgba(79,195,247,0.3); margin-bottom:10px;">
-      <label class="fl2" style="color:#4fc3f7;">🆙 ปรับปรุงเลเวล (ใส่เลข เช่น 1 หรือ -1)</label>
+      <label class="fl2" style="color:#4fc3f7;">🆙 ปรับปรุงเลเวล (ใส่เลข เช่น 1 หรือ -1) <button type="button" class="gm-help-btn" data-gm-help="level" title="อธิบายการปรับเลเวล">❓</button></label>
       <input class="fi gm-input" type="number" placeholder="ระบุจำนวนเลเวล..." id="in-gm-lv" style="background:rgba(255,255,255,0.05); color:#fff; border-color:rgba(79,195,247,0.5);">
     </div>
 
     <div class="fr" style="margin-bottom:10px;">
-      <label class="fl2" style="color:var(--gold);">🌟 บันทึกความดีพิเศษ</label>
+      <label class="fl2" style="color:var(--gold);">🌟 บันทึกความดีพิเศษ <button type="button" class="gm-help-btn" data-gm-help="achievement" title="อธิบายบันทึกความดี">❓</button></label>
       <input class="fi gm-input" type="text" placeholder="เช่น ช่วยงานบ้าน..." id="in-ac" style="background:rgba(255,255,255,0.05); color:#fff; border-color:rgba(184,144,32,0.5);">
     </div>
+    <div class="gm-help-line">🎁 เพิ่มไอเท็ม/รางวัลพิเศษ <button type="button" class="gm-help-btn" data-gm-help="items" title="อธิบายไอเท็ม GM">❓</button></div>
     <div class="gm-item-row" style="display:flex; gap:10px; margin:15px 0; justify-content:center;">
       <div class="gm-item-sel" onclick="this.classList.toggle('active')" style="flex:1; background:rgba(255,255,255,0.05); border:1px solid rgba(184,144,32,0.3); border-radius:10px; padding:10px 5px; text-align:center; cursor:pointer;">
         <div class="gm-item-ico" style="font-size:20px; margin-bottom:5px;">💧</div><div class="gm-item-txt" style="font-size:9px; color:var(--gold); font-weight:bold;">+1 น้ำตา</div><input type="checkbox" id="gm-add-ph" style="display:none">
@@ -467,7 +469,7 @@
     </div>
     
     <div style="background:var(--bg2); padding:15px; border-radius:10px; margin-top:15px; margin-bottom:15px; border:1px solid var(--gbdr);">
-    <div style="color:var(--gold); font-weight:bold; margin-bottom:10px; font-size:14px;">🏆 แก้ไขสถิติว่ายน้ำ</div>
+    <div style="color:var(--gold); font-weight:bold; margin-bottom:10px; font-size:14px;">🏆 แก้ไขสถิติว่ายน้ำ <button type="button" class="gm-help-btn" data-gm-help="swim" title="อธิบายการแก้สถิติว่ายน้ำ">❓</button></div>
     <select id="gm-swim-type" style="width:100%; padding:8px; margin-bottom:10px; background:var(--bg1); color:#fff; border:1px solid var(--gbdr); border-radius:5px; font-family:inherit;">
         <option value="">-- เลือกท่าว่ายน้ำ --</option>
         <option value="fr">🏊 ฟรีสไตล์ (Freestyle)</option>
@@ -487,7 +489,7 @@
     </div>
     <div style="font-size:11px; color:#ff5252; margin-bottom:15px;">*เว้นว่างไว้คือไม่แก้ / หากต้องการล้างค่าให้เป็น 0 พิมพ์เลข 0</div>
 
-    <div style="color:var(--gold); font-weight:bold; margin-bottom:10px; padding-top:15px; border-top:1px dashed var(--gbdr); font-size:14px;">🦈 รีเซ็ตบอส & HOF</div>
+    <div style="color:var(--gold); font-weight:bold; margin-bottom:10px; padding-top:15px; border-top:1px dashed var(--gbdr); font-size:14px;">🦈 รีเซ็ตบอส & HOF <button type="button" class="gm-help-btn" data-gm-help="bossHof" title="อธิบายรีเซ็ตบอสและ HOF">❓</button></div>
     
     <div style="margin-bottom:12px;">
         <div style="font-size:12px; color:var(--txt2); margin-bottom:3px;">เป้าหมายบอสฉลามขาว (วินาที)</div>
@@ -511,7 +513,7 @@
     <div class="brow" style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
       <div style="background:var(--bg2); padding:15px; border-radius:10px; margin-top:20px; margin-bottom:20px; border:1px solid var(--gbdr);">
     
-    <div style="color:var(--gold); font-weight:bold; margin-bottom:10px; font-size:14px;">🏆 แก้ไขสถิติว่ายน้ำ (พิมพ์ 0 เพื่อล้างค่า)</div>
+    <div style="color:var(--gold); font-weight:bold; margin-bottom:10px; font-size:14px;">🏆 แก้ไขสถิติว่ายน้ำ (พิมพ์ 0 เพื่อล้างค่า) <button type="button" class="gm-help-btn" data-gm-help="swim" title="อธิบายการแก้สถิติว่ายน้ำ">❓</button></div>
     <select id="gm-swim-type" style="width:100%; padding:8px; margin-bottom:10px; background:var(--bg1); color:#fff; border:1px solid var(--gbdr); border-radius:5px; font-family:inherit;">
         <option value="">-- เลือกท่าว่ายน้ำ --</option>
         <option value="fr">🏊 ฟรีสไตล์</option>
@@ -530,7 +532,7 @@
         </div>
     </div>
 
-    <div style="color:var(--gold); font-weight:bold; margin-bottom:10px; padding-top:15px; border-top:1px dashed var(--gbdr); font-size:14px;">🦍 รีเซ็ตฐานร่างกาย (แก้มือลั่น)</div>
+    <div style="color:var(--gold); font-weight:bold; margin-bottom:10px; padding-top:15px; border-top:1px dashed var(--gbdr); font-size:14px;">🦍 รีเซ็ตฐานร่างกาย (แก้มือลั่น) <button type="button" class="gm-help-btn" data-gm-help="bodyBase" title="อธิบายฐานร่างกาย">❓</button></div>
     <div style="display:flex; gap:10px; margin-bottom:15px;">
         <div style="flex:1;">
             <div style="font-size:12px; color:var(--txt2); margin-bottom:3px;">ฐานน้ำหนัก (kg)</div>
@@ -542,7 +544,7 @@
         </div>
     </div>
 
-    <div style="color:var(--gold); font-weight:bold; margin-bottom:10px; padding-top:15px; border-top:1px dashed var(--gbdr); font-size:14px;">🦈 รีเซ็ตบอส & ยึดตรา HOF</div>
+    <div style="color:var(--gold); font-weight:bold; margin-bottom:10px; padding-top:15px; border-top:1px dashed var(--gbdr); font-size:14px;">🦈 รีเซ็ตบอส & ยึดตรา HOF <button type="button" class="gm-help-btn" data-gm-help="bossHof" title="อธิบายรีเซ็ตบอสและ HOF">❓</button></div>
     <div style="margin-bottom:12px;">
         <div style="font-size:12px; color:var(--txt2); margin-bottom:3px;">เป้าหมายบอสฉลามขาว (วินาที)</div>
         <input type="number" id="gm-boss-shark" placeholder="เป้าหมายใหม่ (ปกติเริ่ม 25)" style="width:100%; padding:8px; box-sizing:border-box; background:var(--bg1); color:#fff; border:1px solid var(--gbdr); border-radius:5px;">
@@ -560,15 +562,26 @@
         </label>
     </div>
 </div>
+      <div class="gm-help-line">⚙️ รันคำสั่งลับ <button type="button" class="gm-help-btn" data-gm-help="run" title="อธิบายปุ่มรันคำสั่ง">❓</button></div>
       <button class="btn" id="btn-gm-submit" style="width:100%; background:var(--gold); color:#000; font-weight:bold; padding:15px;">⚙️ รันคำสั่งลับ</button>
       
+      <div class="gm-help-line">🛠️ ศูนย์ซ่อมข้อมูล <button type="button" class="gm-help-btn" data-gm-help="repair" title="อธิบายศูนย์ซ่อมข้อมูล">❓</button></div>
       <button class="btn" id="btn-open-repair" style="width:100%; background:#243b55; color:#fff; border:1px solid #4fc3f7; padding:15px; margin-bottom:8px;">🛠️ เปิดศูนย์ซ่อมข้อมูล</button>
+      <div class="gm-help-line">📅 ส่งภารกิจย้อนหลัง <button type="button" class="gm-help-btn" data-gm-help="backdate" title="อธิบายส่งภารกิจย้อนหลัง">❓</button></div>
+      <button class="btn" id="btn-open-backdate" style="width:100%; background:#3b2f55; color:#fff; border:1px solid #c084fc; padding:15px; margin-bottom:8px;">📅 ส่งภารกิจย้อนหลัง</button>
       <button class="btn" style="width:100%; background:#333; color:#fff; border:1px solid #555; padding:15px;" onclick="document.getElementById('gm-modal').classList.remove('on'); ">ปิดหน้าต่าง</button>
     </div>
   </div>
 </div>
 
-<script src="script.js?v=1.0.3"></script>
+<div class="mov" id="gm-help-modal" style="z-index:1000001;">
+  <div class="mpan gm-help-panel">
+    <button type="button" id="gm-help-close" class="gm-help-close">×</button>
+    <div id="gm-help-title" class="gm-help-title">GM Help</div>
+    <div id="gm-help-body" class="gm-help-body"></div>
+  </div>
+</div>
+<script src="script.js?v=1.0.4"></script>
 <script>
   document.querySelectorAll('.bnav .ni').forEach(el => {
     el.addEventListener('click', function() {
@@ -631,6 +644,38 @@
     <div class="brow" style="display:flex; gap:8px; margin-top:14px;">
       <button class="btn" id="btn-repair-submit" style="flex:1; background:#4fc3f7; color:#05131d; padding:13px;">บันทึกซ่อมข้อมูล</button>
       <button class="btn" id="btn-repair-close" style="flex:1; background:#333; color:#fff; border:1px solid #555; padding:13px;">ปิด</button>
+    </div>
+  </div>
+</div>
+<div class="mov" id="backdate-modal" style="z-index:1000000;">
+  <div class="mpan" style="background:#0a0a0a; border:2px solid #c084fc; max-height:85vh; overflow-y:auto;">
+    <div style="text-align:center; font-size:26px; margin-bottom:6px;">📅</div>
+    <div class="gm-title" style="color:#c084fc; text-align:center; font-weight:bold; letter-spacing:2px; margin-bottom:12px;">BACKDATE QUEST</div>
+    <div style="font-size:11px; color:var(--txt2); line-height:1.7; margin-bottom:12px;">บันทึกภารกิจย้อนหลังลง Archive_Data ระบบจะอัปเดตแถวของวันนั้นหรือเพิ่มแถวใหม่ แล้วจัดเรียงวันที่ให้อัตโนมัติ</div>
+    <input class="fi gm-input" id="bd-pin" type="password" inputmode="numeric" maxlength="4" placeholder="PIN ผู้ปกครอง" style="margin-bottom:8px; background:rgba(255,255,255,0.05); color:#fff; border-color:#c084fc;">
+    <input class="fi gm-input" id="bd-date" type="date" style="margin-bottom:8px; background:rgba(255,255,255,0.05); color:#fff; border-color:#c084fc;">
+    <div style="display:grid; grid-template-columns:1fr; gap:8px; margin-bottom:10px;">
+      <label style="display:flex; align-items:center; gap:8px; color:#fff; font-size:13px;"><input type="checkbox" id="bd-q1" checked> 🥗 มื้อหลัก 3 มื้อ + นม 3 กล่อง</label>
+      <label style="display:flex; align-items:center; gap:8px; color:#fff; font-size:13px;"><input type="checkbox" id="bd-q2" checked> 🏊 ว่ายน้ำ หรือ กระโดดตบ 50 ครั้ง</label>
+      <label style="display:flex; align-items:center; gap:8px; color:#fff; font-size:13px;"><input type="checkbox" id="bd-q3" checked> 🌙 การบ้านจัดกระเป๋า + ล้างจานน้อง + พ่นยา</label>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <input class="fi gm-input" id="bd-w" type="number" step="0.01" placeholder="น้ำหนัก">
+      <input class="fi gm-input" id="bd-h" type="number" step="0.01" placeholder="ส่วนสูง">
+      <input class="fi gm-input" id="bd-laps" type="number" placeholder="จำนวนรอบ">
+      <input class="fi gm-input" id="bd-fr" type="number" step="0.01" placeholder="ฟรีสไตล์">
+      <input class="fi gm-input" id="bd-bk" type="number" step="0.01" placeholder="กรรเชียง">
+      <input class="fi gm-input" id="bd-fg" type="number" step="0.01" placeholder="กบ">
+      <input class="fi gm-input" id="bd-bt" type="number" step="0.01" placeholder="ผีเสื้อ">
+      <input class="fi gm-input" id="bd-score" type="number" step="0.01" placeholder="คะแนนสอบ/GPA">
+      <input class="fi gm-input" id="bd-bonus" type="number" step="1" placeholder="โบนัสเพิ่ม (ถ้ามี)">
+    </div>
+    <textarea class="fi gm-input" id="bd-note" rows="3" placeholder="หมายเหตุ เช่น กรอกย้อนหลังจากกิจกรรมเมื่อวาน" style="margin-top:10px; resize:vertical; background:rgba(255,255,255,0.05); color:#fff; border-color:#c084fc;"></textarea>
+    <label style="display:flex; align-items:center; gap:8px; color:#fff; font-size:12px; margin-top:10px;"><input type="checkbox" id="bd-apply-streak" checked> ถ้าครบ 3 ภารกิจ ให้เพิ่ม Streak +1</label>
+    <div id="bd-preview" style="font-size:12px; color:#f5d77b; margin-top:10px; line-height:1.6; background:rgba(192,132,252,0.08); border:1px solid rgba(192,132,252,0.25); border-radius:8px; padding:10px;">รางวัลพื้นฐาน: +6 B-Coin เมื่อครบ 3 ภารกิจ</div>
+    <div class="brow" style="display:flex; gap:8px; margin-top:14px;">
+      <button class="btn" id="btn-backdate-submit" style="flex:1; background:#c084fc; color:#16091f; padding:13px; font-weight:bold;">บันทึกย้อนหลัง</button>
+      <button class="btn" id="btn-backdate-close" style="flex:1; background:#333; color:#fff; border:1px solid #555; padding:13px;">ปิด</button>
     </div>
   </div>
 </div>
