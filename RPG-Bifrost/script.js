@@ -1,20 +1,13 @@
-// ══════════════════════════════════════════════════
+﻿// ══════════════════════════════════════════════════
 //  STATE (ตัวแปรระบบหลัก)
 // ══════════════════════════════════════════════════
-var APP_VERSION = "1.0.5";
-var BIFROST_DEV_MODE = false;
-// Web App URL ของ Apps Script สำหรับใช้งานจริง
-var BIFROST_API_URL = "https://script.google.com/macros/s/AKfycbzhZ4vnKvSMhxay6Wz2Ur86cI3bBXhel3ms_v9yH27eEKT9m8M4QmcMFypts59iwXst/exec";
-
-// กรอกเลขเวอร์ชันและรายละเอียดอัปเดตตรงนี้ได้เลย
-// เพิ่ม/ลบบรรทัดใน APP_UPDATE_NOTES ได้ตามต้องการ เมื่อ APP_VERSION เปลี่ยน popup จะแสดงครั้งแรกอัตโนมัติ
-var APP_UPDATE_NOTES = [
-  "แก้ระบบเปิดกล่องสมบัติ: มีกุญแจทองแล้วสามารถเปิดได้ทันที",
-  "แก้บั๊กกดเปิดกล่องแล้วกุญแจหายแต่หน้าต่างรางวัลไม่ขึ้น",
-  "กู้หน้าต่าง/อนิเมชันกล่องสมบัติกลับมา และเพิ่มระบบกันกุญแจหายถ้า modal โหลดไม่ครบ",
-  "เพิ่มปุ่ม GM เปิดหีบสมบัติชั่วคราว 1 ชั่วโมง พร้อมคำอธิบาย ❓",
-  "ปรับข้อความล็อกหีบให้ชัดเจนขึ้นว่าต้องมีกุญแจทองหรืออยู่ช่วงเปิดหีบ"
-];
+var BIFROST_CONFIG = window.BIFROST_CONFIG || {};
+var APP_VERSION = BIFROST_CONFIG.APP_VERSION || "1.1.0";
+var BIFROST_DEV_MODE = !!BIFROST_CONFIG.DEV_MODE;
+var BIFROST_API_URL = BIFROST_CONFIG.API_URL || "";
+var SHEET_URL = BIFROST_API_URL;
+var APP_UPDATE_NOTES = BIFROST_CONFIG.UPDATE_NOTES || [];
+var DEPLOY_CHECKLIST = BIFROST_CONFIG.DEPLOY_CHECKLIST || [];
 var AV = ['🧙','⚔️','🏹','🧜','🔥','⚡','🌊','🍃','❄️','💫','🦅','🐉','🌸','🗡️','🛡️','👑','🌙','☀️','🎭','✨','🦇','🐺','🧚','🧞','🧟','🤖','👽','👻','☠️','🤡','🦁','🐍','🐢','🐦','🦄','🐝','🦊','🐙','🕷️','🦂','💎','🔮','🪓','🔱','👁️','🪐','☄️','🌪️','🌌','♾️'];
 var AN = ['นักเวทย์','นักรบ','นักธนู','ไฮโดร','ไพโร','อิเล็กโตร','อควา','อะเนโม','ครายโอ','แอสโตร','ฮอว์ค','มังกร','ซากุระ','คาตา','พาลาดิน','ราชัน','ลูน่า','โซลาร์','มายา','ดาวเด่น','แวมไพร์','ไลแคน','แฟรี่','จินนี่','ซอมบี้','ไซบอร์ก','เอเลี่ยน','สเปกเตอร์','เนโครมันเซอร์','โจ๊กเกอร์','ราชสีห์','ไวเปอร์','เก็นบุ','ฟีนิกซ์','ยูนิคอร์น','คิลเลอร์บี','คิทซึเนะ','คราเคน','อารัคเน่','สคอร์เปียน','โกเลม','ออราเคิล','เบอร์เซิร์กเกอร์','โพไซดอน','ผู้หยั่งรู้','คอสมิก','เมเทโอ','พายุหมุน','เนบิวลา','อัลฟ่า'];
 var CHAR_NAMES=['นักดาบฝึกหัด','นักรบฝึกหัด','สำนักดาบ','ทหารยาม','อัศวินสามัญ','ผู้พิทักษ์','นักรบแนวหน้า','อัศวินศักดิ์สิทธิ์','พาลาดินศักดิ์สิทธิ์','เทมพลาร์หลวง','อัศวินองครักษ์','อัศวินเพลิง','จทัพศักดิ์สิทธิ์','นักดาบเงา','อัศวินรัตติกาล','จ้าวแห่งเพลิง','ผู้พิทักษ์เหมันต์','จ้าวแห่งพายุ','ผู้พิทักษ์สวรรค์','ตำนานนิรันดร์'];
@@ -22,7 +15,7 @@ var FEEL=[null,{i:'😫',l:'เหนื่อยมาก'},{i:'😔',l:'ค่
 var HOF_INFO = { shark: { i: '🦈', t: 'บอสฉลามขาว', c: 'ว่ายฟรีสไตล์ต่ำกว่าเป้าหมาย' }, book:  { i: '📚', t: 'บอสหมอโหด', c: 'สอบได้คะแนน >= 90% (โดนยึดคืนถ้าคะแนนตก)' }, heart: { i: '❤️', t: 'บอสมุ่งมั่น', c: 'ได้ดาบทอง 7 วันรวด (โดนยึดคืนถ้าพลาด)' }, pole: { i: '🦒', t: 'บอสเสาไฟ', c: 'ส่วนสูงเพิ่มขึ้นทุกๆ 2 ซม.' }, shrimp: { i: '💪', t: 'บอสกุ้งแห้งเล่นเวท', c: 'น้ำหนักเพิ่มขึ้นทุกๆ 2 กก.' } };
 var BOSS_DETAILS = { shark: { i: '🦈', t: 'บอสฉลามขาว', c: 'ว่าย Sprint ฟรีสไตล์ 25 เมตร เพื่อล้มบอสไปทีละด่าน!\n(ทีละ 1 วิ)', r: '🏆 ล้มบอสระดับ 25-21 วิ รับ 50 B-Coin |\nระดับ 20 วิลงไป รับ 200 B-Coin!', n: 'บอสจะโผล่มาให้สู้ทีละด่านเท่านั้น เริ่มต้นที่ด่าน 25 วิ!' }, book: { i: '📚', t: 'บอสหมอโหด', c: 'ทำคะแนนสอบวิชาใดก็ได้ให้ได้ตั้งแต่ 90% ขึ้นไป', r: '💎 +300 B-Coin และปลดล็อกตราคัมภีร์', n: 'ระวัง!\nถ้าสอบครั้งถัดไปได้น้อยกว่า 90% ตราจะหายไปนะ' }, heart: { i: '❤️', t: 'บอสมุ่งมั่น', c: 'ทำภารกิจรายวัน (โซน 1) ให้ครบทั้ง 3 ข้อ ติดต่อกัน 7 วัน (จันทร์-อาทิตย์)', r: '🌟 +18 B-Coin และปลดล็อกตราหัวใจเหล็กไหล (พร้อมกุญแจทอง 2 ดอก)', n: 'ถ้าพลาดแม้แต่วันเดียวในสัปดาห์ ตราจะโดนยึดคืนทันที' }, pole: { i: '🦒', t: 'บอสเสาไฟ', c: 'ส่วนสูงเพิ่มขึ้นทุกๆ 2 เซนติเมตร จากฐานความสูงเดิมของคุณ', r: '💰 +30 B-Coin (รับได้เรื่อยๆ ทุกครั้งที่สูงขึ้น)', n: 'ปัดเศษทศนิยมทิ้ง นับเฉพาะจำนวนเต็มที่เพิ่มขึ้น' }, shrimp: { i: '💪', t: 'บอสกุ้งแห้งเล่นเวท', c: 'น้ำหนักตัวเพิ่มขึ้นทุกๆ 2 กิโลกรัม จากฐานน้ำหนักเดิม (เน้นความแข็งแรง)', r: '🍖 +30 B-Coin (รับได้เรื่อยๆ เมื่อตัวหนาขึ้น)', n: 'กินอาหารที่มีประโยชน์เพื่อเอาชนะบอสตัวนี้!' } };
 
-var S={ coins:0, todayCoins:0, todayGmCoins:0, w:'', h:'', exp:0, expMax:100, lv:1, curAv:0, selAv:0, phoenix:0, ticket:0, bcards:0, bcUsed:0, bcTotal: 0, bcList: [], keys:0, streak:['grey','grey','grey','grey','grey','grey','grey'], currentDayIndex: 0, lastSyncDate: null, quests:[false,false,false], pin:'', PIN:'2308', pending:null, submitted:false, gmSubmitted:false, isResubmit: false, feeling:3, illness:'ไม่มี', swimFr:'', swimBt:'', swimFg:'', swimBk:'', laps:'', achievement:'', specialCoin:0, gpa:'', score:'', weekKey:'', phWeekBought:0, foodWeekBought:0, monthBest:{fr:null,bt:null,fg:null,bk:null}, allBest:{fr:null,bt:null,fg:null,bk:null}, hof: { shark: false, book: false, heart: false }, bossTargets: { speed: 25, heightBase: 129, weightBase: 24 }, todayGacha: [], todayItemsUsed: [], bcList: [], gmBuffs: { jackpot: false, prophecy: '', buddy: false }, gmPopupSeen: true, gmPopupSeen: true, prophecySeen: true };
+var S={ coins:0, todayCoins:0, todayGmCoins:0, w:'', h:'', exp:0, expMax:100, lv:1, curAv:0, selAv:0, phoenix:0, ticket:0, bcards:0, bcUsed:0, bcTotal: 0, bcList: [], keys:0, streak:['grey','grey','grey','grey','grey','grey','grey'], currentDayIndex: 0, lastSyncDate: null, quests:[false,false,false], pin:'', PIN:'2308', pending:null, pendingReward:null, submitted:false, gmSubmitted:false, isResubmit: false, feeling:3, illness:'ไม่มี', swimFr:'', swimBt:'', swimFg:'', swimBk:'', laps:'', achievement:'', specialCoin:0, gpa:'', score:'', weekKey:'', phWeekBought:0, foodWeekBought:0, monthBest:{fr:null,bt:null,fg:null,bk:null}, allBest:{fr:null,bt:null,fg:null,bk:null}, hof: { shark: false, book: false, heart: false }, bossTargets: { speed: 25, heightBase: 129, weightBase: 24 }, todayGacha: [], todayItemsUsed: [], gmBuffs: { jackpot: false, prophecy: '', buddy: false }, gmPopupSeen: true, prophecySeen: true };
 var qcnt=0, chIdx=0;
 
 // 🔊 เสียง 8-Bit
@@ -57,10 +50,6 @@ var SFX = {
   drumroll: function(){ for(var i=0; i<15; i++) { setTimeout(function(){playTone(100, 'square', 0.05, 0.1);}, i*100); } },
   beep: function(){ playTone(880, 'square', 0.1, 0.1); } 
 };
-
-// 🔗 URL Apps Script
-var SHEET_URL = BIFROST_API_URL;
-
 
 function clearBrowserCachesForUpdate_() {
   try {
@@ -109,16 +98,95 @@ function checkRemoteVersion() {
     return Promise.resolve(false);
   }
 }
+
+var RETRY_QUEUE_KEY = 'bifrost_retry_queue_v1';
+var retryQueueBusy = false;
+function readRetryQueue_() {
+  try { return JSON.parse(localStorage.getItem(RETRY_QUEUE_KEY) || '[]'); }
+  catch (e) { return []; }
+}
+function writeRetryQueue_(queue) {
+  localStorage.setItem(RETRY_QUEUE_KEY, JSON.stringify(queue.slice(-60)));
+}
+function retryQueueCount_() {
+  return readRetryQueue_().length;
+}
+function enqueueRetry_(type, payload, options) {
+  options = options || {};
+  var queue = readRetryQueue_();
+  var item = {
+    id: options.id || (type + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8)),
+    dedupeKey: options.dedupeKey || '',
+    type: type,
+    payload: payload,
+    noCors: options.noCors !== false,
+    createdAt: new Date().toISOString(),
+    tries: 0
+  };
+  if (item.dedupeKey) queue = queue.filter(function(old) { return old.dedupeKey !== item.dedupeKey; });
+  queue.push(item);
+  writeRetryQueue_(queue);
+  return item;
+}
+function postRetryPayload_(item) {
+  var fetchOptions = {
+    method: 'POST',
+    cache: 'no-cache',
+    keepalive: true,
+    body: JSON.stringify(item.payload)
+  };
+  if (item.noCors) fetchOptions.mode = 'no-cors';
+  return fetch(SHEET_URL, fetchOptions);
+}
+function sendRetryablePost_(type, payload, options) {
+  options = options || {};
+  if (!SHEET_URL || SHEET_URL.length < 10) return Promise.resolve(false);
+  var item = {
+    id: options.id || (type + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8)),
+    dedupeKey: options.dedupeKey || '',
+    type: type,
+    payload: payload,
+    noCors: options.noCors !== false
+  };
+  if (!navigator.onLine) {
+    enqueueRetry_(type, payload, options);
+    return Promise.resolve(false);
+  }
+  return postRetryPayload_(item).catch(function() {
+    enqueueRetry_(type, payload, options);
+    return false;
+  });
+}
+function processRetryQueue_() {
+  if (retryQueueBusy || !navigator.onLine || !SHEET_URL || SHEET_URL.length < 10) return Promise.resolve(false);
+  var queue = readRetryQueue_();
+  if (!queue.length) return Promise.resolve(true);
+  retryQueueBusy = true;
+  var remaining = [];
+  var chain = Promise.resolve();
+  queue.forEach(function(item) {
+    chain = chain.then(function() {
+      return postRetryPayload_(item).catch(function() {
+        item.tries = Number(item.tries || 0) + 1;
+        if (item.tries < 8) remaining.push(item);
+      });
+    });
+  });
+  return chain.then(function() {
+    writeRetryQueue_(remaining);
+    retryQueueBusy = false;
+    if (remaining.length) showToast('⚠️ ยังมีรายการรอส่ง ' + remaining.length + ' รายการ');
+    return true;
+  }).catch(function() {
+    retryQueueBusy = false;
+    return false;
+  });
+}
 function sendToLine(msgType, msgContent) {
   if (BIFROST_DEV_MODE) { console.log("[LINE muted]", msgType, msgContent); return; }
   // return; // 🛑 เปิดแจ้งเตือน Line ให้ลบสองขีดหน้ารีเทินออก
   if(!SHEET_URL || SHEET_URL.length < 10) return;
-  fetch(SHEET_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    // 🌟 เติม type เข้าไปตรงนี้ เพื่อให้ Google Apps Script รู้ว่าต้องดึงรูปไหน!
-    body: JSON.stringify({ action: "LINE_ALERT", type: msgType, message: msgContent })
-  });
+  sendRetryablePost_('LINE_ALERT', { action: "LINE_ALERT", type: msgType, message: msgContent }, { dedupeKey: '', noCors: true });
 }
 
 function showVersionUpdateIfNeeded() {
@@ -169,6 +237,12 @@ function syncWalletActivityFromLocal() {
         if (S.todayItemsUsed.indexOf(item) === -1) { S.todayItemsUsed.push(item); changed = true; }
       });
     }
+    if (Array.isArray(saved.todayGacha)) {
+      if (!Array.isArray(S.todayGacha)) S.todayGacha = [];
+      saved.todayGacha.forEach(function(item) {
+        if (S.todayGacha.indexOf(item) === -1) { S.todayGacha.push(item); changed = true; }
+      });
+    }
     return changed;
   } catch (e) {
     return false;
@@ -190,22 +264,22 @@ function getSaveRevision_(data) {
   return Number((data && data._revision) || 0);
 }
 function isCloudSaveNewer_(cloudData, localData) {
+  var cloudRev = getSaveRevision_(cloudData);
+  var localRev = getSaveRevision_(localData);
+  if (cloudRev !== localRev) return cloudRev > localRev;
   var cloudTime = getSaveTimestamp_(cloudData);
   var localTime = getSaveTimestamp_(localData);
   if (cloudTime || localTime) return cloudTime >= localTime;
-  return getSaveRevision_(cloudData) >= getSaveRevision_(localData);
+  return true;
 }
 function saveLocal() { 
   S._clientUpdatedAt = new Date().toISOString();
   localStorage.setItem('bifrost_data', JSON.stringify(S)); 
   // ส่งเซฟขึ้น Cloud ทันทีที่เครื่องมีการอัปเดต
   if (navigator.onLine && SHEET_URL && SHEET_URL.length > 10) {
-    fetch(SHEET_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      keepalive: true,
-      body: JSON.stringify({ action: "saveCloud", payload: S })
-    });
+    sendRetryablePost_('saveCloud', { action: "saveCloud", payload: S }, { dedupeKey: 'saveCloud', noCors: true });
+  } else if (SHEET_URL && SHEET_URL.length > 10) {
+    enqueueRetry_('saveCloud', { action: "saveCloud", payload: S }, { dedupeKey: 'saveCloud', noCors: true });
   }
 }
 
@@ -319,7 +393,7 @@ function clearCloudDraft_() {
   if(!SHEET_URL || SHEET_URL.length < 10 || !navigator.onLine) return;
   var todayStr = new Date().toLocaleDateString('en-CA');
   var payload = { _draftCleared: true, _draftUpdatedAt: new Date().toISOString(), _draftDeviceId: getDraftDeviceId_(), _draftDeviceName: getDraftDeviceName_() };
-  fetch(SHEET_URL, { method: 'POST', mode: 'no-cors', keepalive: true, body: JSON.stringify({ syncType: 'DRAFT', syncDate: todayStr, payload: payload, clearDraft: true }) });
+  sendRetryablePost_('DRAFT_CLEAR', { syncType: 'DRAFT', syncDate: todayStr, payload: payload, clearDraft: true }, { dedupeKey: 'draft:' + todayStr, noCors: true });
 }
 function autoSyncDraft(e) {
   if (S.submitted) { clearCloudDraft_(); return; }
@@ -333,7 +407,7 @@ function autoSyncDraft(e) {
     return;
   }
   var todayStr = new Date().toLocaleDateString('en-CA');
-  fetch(SHEET_URL, { method: 'POST', mode: 'no-cors', keepalive: true, body: JSON.stringify({ syncType: 'DRAFT', syncDate: todayStr, payload: payload }) }).then(function() {
+  sendRetryablePost_('DRAFT_SAVE', { syncType: 'DRAFT', syncDate: todayStr, payload: payload }, { dedupeKey: 'draft:' + todayStr, noCors: true }).then(function() {
     if (!isDraftEmpty_(payload)) setDraftSyncStatus_('บันทึกข้อมูลร่างขึ้น Cloud แล้ว เวลา ' + formatDraftTime_(payload._draftUpdatedAt) + ' • ยังไม่ได้ส่งภารกิจจริง', 'ok');
     SFX.save();
     if(e && e.target) { e.target.classList.remove('save-glow'); void e.target.offsetWidth; e.target.classList.add('save-glow'); }
@@ -356,11 +430,8 @@ function processAutoNextDay() {
 
     if(!SHEET_URL || SHEET_URL.length < 10) return;
     var payload = Object.assign({}, S, { syncDate: dateLabel });
-    fetch(SHEET_URL, { method: 'POST', mode: 'no-cors', cache: 'no-cache', body: JSON.stringify(payload) });
+    sendRetryablePost_('ARCHIVE_AUTO_DAY', payload, { dedupeKey: 'archive:' + dateLabel, noCors: true });
 
-    // รีเซ็ตโควตาซื้อของในร้านค้าทุกๆ วันจันทร์ (ไม่ต้องยุ่งกับก้าวเดินแล้ว)
-if (new Date().getDay() === 1) { S.phWeekBought = 0; S.foodWeekBought = 0; }
-    
     S.submitted = false; S.gmSubmitted = false; S.isResubmit = false;
     S.quests = [false, false, false];
     S.todayCoins = 0; S.todayGmCoins = 0; S.todayGacha = []; S.todayItemsUsed = []; S.todayCoinsSpent = 0;
@@ -370,6 +441,8 @@ if (new Date().getDay() === 1) { S.phWeekBought = 0; S.foodWeekBought = 0; }
     S.achievement = ''; S.specialCoin = 0;
 
     lastDate.setDate(lastDate.getDate() + 1);
+    // รีเซ็ตโควตาซื้อของในร้านค้าทุกวันจันทร์ แม้เครื่องไม่ได้เปิดแอปหลายวัน
+    if (lastDate.getDay() === 1) { S.phWeekBought = 0; S.foodWeekBought = 0; }
     var oldMonth = new Date(lastDate.getTime() - 86400000).getMonth();
     var newMonth = lastDate.getMonth();
     if (oldMonth !== newMonth) { S.monthBest = { fr: null, bt: null, fg: null, bk: null }; }
@@ -626,7 +699,51 @@ function tQ(n) {
 function updateFeel(v){ S.feeling=parseInt(v);var f=FEEL[S.feeling]; var ico = document.getElementById('feel-ico'), lbl = document.getElementById('feel-lbl'), sl = document.getElementById('feel-sl'); if(ico) ico.textContent=f.i; if(lbl) lbl.textContent=f.l; var pct=(S.feeling-1)/4*100; if(sl) sl.style.background='linear-gradient(90deg,var(--gold) '+pct+'%,var(--bg2) '+pct+'%)'; }
 
 function checkPin(){ if(S.pin.length<4){showToast('กรุณากรอกรหัส 4 หลักให้ครบ');return false;} if(S.pin!==S.PIN){showToast('🔐 รหัสผ่านไม่ถูกต้อง!');clrPin();return false;} return true; }
-function showBossDetail(id) { var info = BOSS_DETAILS[id]; document.getElementById('bd-ico').textContent = info.i; document.getElementById('bd-ttl').textContent = info.t; document.getElementById('bd-cond').textContent = info.c; document.getElementById('bd-reward').textContent = info.r; document.getElementById('bd-note').textContent = '* ' + info.n; var mov = document.getElementById('boss-detail-mov'); if(mov) mov.classList.add('on'); }
+function showBossDetail(id) {
+  var info = BOSS_DETAILS[id];
+  if (!info) return;
+  var set = function(elId, value) { var el = document.getElementById(elId); if (el) el.textContent = value; };
+  set('bd-ico', info.i);
+  set('bd-ttl', info.t);
+  set('bd-cond', info.c);
+  set('bd-reward', info.r);
+  set('boss-bd-note', '* ' + info.n);
+  var mov = document.getElementById('boss-detail-mov');
+  if(mov) {
+    mov.classList.add('on');
+    mov.setAttribute('aria-hidden', 'false');
+  }
+}
+
+function closeBossDetail() {
+  var mov = document.getElementById('boss-detail-mov');
+  if(!mov) return;
+  mov.classList.remove('on');
+  mov.setAttribute('aria-hidden', 'true');
+}
+
+window.showBossDetail = showBossDetail;
+window.closeBossDetail = closeBossDetail;
+
+function showHof(id) {
+  var info = HOF_INFO[id];
+  if (!info) return;
+  var unlocked = !!(S.hof && S.hof[id]);
+  var set = function(elId, value) { var el = document.getElementById(elId); if (el) el.textContent = value; };
+  set('hof-m-ico', info.i || '🏆');
+  set('hof-m-ttl', info.t || 'Hall of Fame');
+  set('hof-m-sts', unlocked ? 'ปลดล็อกแล้ว' : 'ยังไม่ปลดล็อก');
+  set('hof-m-desc', unlocked ? 'ฮีโร่พิชิตเงื่อนไขนี้เรียบร้อยแล้ว' : 'ยังต้องทำภารกิจนี้ให้สำเร็จก่อน');
+  set('hof-m-cond', '🎯 เงื่อนไข: ' + (info.c || '-'));
+  var st = document.getElementById('hof-m-sts');
+  if (st) {
+    st.style.background = unlocked ? 'rgba(0,230,118,0.18)' : 'rgba(255,255,255,0.08)';
+    st.style.color = unlocked ? '#00e676' : 'var(--txt2)';
+    st.style.border = unlocked ? '1px solid rgba(0,230,118,0.45)' : '1px solid var(--gbdr)';
+  }
+  var mov = document.getElementById('hof-mov');
+  if (mov) mov.classList.add('on');
+}
 
 var questSubmitBusy = false;
 function setQuestSubmitState_(mode, title, message, coinsText) {
@@ -715,7 +832,7 @@ function doSubmit(){
       if (navigator.onLine && SHEET_URL && SHEET_URL.length > 10) {
          var dateLabel = new Date().toLocaleDateString('th-TH', {year:'numeric',month:'long',day:'numeric'});
          var payload = Object.assign({}, S, { syncDate: dateLabel });
-         archiveSavePromise = fetch(SHEET_URL, { method: 'POST', mode: 'no-cors', cache: 'no-cache', keepalive: true, body: JSON.stringify(payload) });
+         archiveSavePromise = sendRetryablePost_('ARCHIVE_SUBMIT', payload, { dedupeKey: 'archive:' + dateLabel, noCors: true });
       }
     // บันทึกสถิติวันนี้สำหรับ Ghost Data
       S.todayStats = questData;
@@ -861,7 +978,76 @@ function showBossRewards(bosses) {
   var bModal = document.querySelector('.boss-modal'); if(bModal) { bModal.classList.remove('boss-zoom'); void bModal.offsetWidth; bModal.classList.add('boss-zoom'); } 
 }
 
+var pendingRewardAutoShown = false;
+function hasPendingGachaReward_() {
+  return !!(S.pendingReward && S.pendingReward.type === 'gacha' && S.pendingReward.status === 'pending' && S.pendingReward.result);
+}
+function lockPendingGachaReward_(res) {
+  S.keys = Math.max(0, Number(S.keys || 0) - 1);
+  S.pendingReward = {
+    id: 'GACHA-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+    type: 'gacha',
+    status: 'pending',
+    cost: { keys: 1 },
+    result: res,
+    createdAt: new Date().toISOString()
+  };
+  saveLocal();
+}
+function showPendingGachaReward_(auto) {
+  if (!hasPendingGachaReward_()) return false;
+  var gachaMov = document.getElementById('gacha-mov');
+  var gachaLight = document.getElementById('gacha-light');
+  var chestAnim = document.getElementById('chest-anim');
+  var gRes = document.getElementById('gacha-result');
+  if (!gachaMov || !gachaLight || !chestAnim || !gRes) return false;
+  gachaMov.classList.add('on');
+  gachaLight.classList.add('on');
+  chestAnim.classList.remove('chest-rumbling');
+  chestAnim.classList.add('chest-open');
+  gRes.classList.remove('item-pop');
+  void gRes.offsetWidth;
+  gRes.classList.add('item-pop');
+  displayGachaResult(S.pendingReward.result);
+  if (auto) showToast('🎁 มีรางวัลกล่องสมบัติที่ยังไม่ได้รับ');
+  return true;
+}
+function claimPendingGachaReward_(menuText) {
+  if (!hasPendingGachaReward_()) { closeGacha(); return; }
+  var pending = S.pendingReward;
+  var res = pending.result;
+  if(!S.todayGacha) S.todayGacha = [];
+  if(res.type === 'chef') {
+    var menu = String(menuText || '').trim();
+    if(!menu) { showToast('พิมพ์เมนูก่อนนะครับ!'); return; }
+    S.coins += res.val; S.todayCoins += res.val;
+    S.todayGacha.push('👨‍🍳 สั่งเมนู: ' + menu + ' (+'+res.val+' Coins)');
+    S.pendingReward = null;
+    saveLocal(); renderAll();
+    sendToLine("CHEF_TICKET", "👨‍🍳 [BIFROST] ออเดอร์พิเศษ!\nเมนู: " + menu + "\n(ได้รับจาก: 🎫 ตั๋วเชฟทองคำ ในกาชา)");
+    showToast('🍜 ส่งเมนูให้ปะป๊าเรียบร้อย! ได้รับ +5 B-Coin'); closeGacha();
+    return;
+  }
+  if(res.type === 'coin') { S.coins += res.val; S.todayCoins += res.val; S.todayGacha.push(res.ico + ' หมุนได้ ' + res.ttl); }
+  else if(res.type === 'item') { S.phoenix++; S.todayGacha.push(res.ico + ' หมุนได้ น้ำตาฟีนิกซ์'); }
+  else if(res.type === 'info') { S.coins += res.val; S.todayCoins += res.val; S.todayGacha.push(res.ico + ' ภารกิจ: ' + res.ttl + ' (+'+res.val+' Coins)'); }
+  S.pendingReward = null;
+  saveLocal(); renderAll(); closeGacha();
+  if (res.rarity === 'LEGENDARY') {
+    sendToLine("GACHA", "🏆 [BIFROST] แจ็คพอตแตก!!! 🏆\nไบฟรอสเปิดกล่องสมบัติได้รับ:\n✨ " + res.ttl + "\n(ยอดเงินล่าสุด: " + S.coins + " B-Coin)");
+  }
+}
+function resumePendingRewardIfAny_() {
+  if (pendingRewardAutoShown || !hasPendingGachaReward_()) return;
+  pendingRewardAutoShown = true;
+  setTimeout(function(){ showPendingGachaReward_(true); }, 700);
+}
+
 function doGacha() {
+  if (hasPendingGachaReward_()) {
+    showPendingGachaReward_(true);
+    return;
+  }
   // บล็อกการเปิดกล่องเมื่อออฟไลน์
   if (!navigator.onLine) {
      showToast('📡 ออฟไลน์! โปรดเชื่อมต่ออินเทอร์เน็ตก่อนเปิดกล่อง');
@@ -885,13 +1071,13 @@ function doGacha() {
     return;
   }
 
-  S.keys -= 1; saveLocal(); renderAll(); 
+  var res = getGachaResult();
+  lockPendingGachaReward_(res);
+  renderAll(); 
   gachaMov.classList.add('on'); gachaLight.classList.add('on');
   
   SFX.drumroll(); chestAnim.classList.remove('chest-open'); chestAnim.classList.add('chest-rumbling');
   gRes.style.display = 'none'; gachaClose.style.display = 'none';
-  
-  var res = getGachaResult();
   
   setTimeout(function() { 
     chestAnim.classList.remove('chest-rumbling'); chestAnim.classList.add('chest-open'); 
@@ -940,26 +1126,11 @@ function displayGachaResult(res) {
     action.style.display = 'block'; input.style.display = 'block'; input.value = '';
     btn.onclick = function() { 
       if(!input.value) { showToast('พิมพ์เมนูก่อนนะครับ!'); return; }
-      S.coins += res.val; S.todayCoins += res.val;
-      S.todayGacha.push('👨‍🍳 สั่งเมนู: ' + input.value + ' (+'+res.val+' Coins)');
-      
-      // 🌟 แจ้งเตือน LINE: สั่งอาหารจาก "ตั๋วเชฟทองคำ" (กาชา)
-      sendToLine("CHEF_TICKET", "👨‍🍳 [BIFROST] ออเดอร์พิเศษ!\nเมนู: " + input.value + "\n(ได้รับจาก: 🎫 ตั๋วเชฟทองคำ ในกาชา)");
-      
-      saveLocal(); renderAll();
-      showToast('🍜 ส่งเมนูให้ปะป๊าเรียบร้อย! ได้รับ +5 B-Coin'); closeGacha(); 
+      claimPendingGachaReward_(input.value);
     };
   } else {
     btn.onclick = function() { 
-      if(res.type === 'coin') { S.coins += res.val; S.todayCoins += res.val; S.todayGacha.push(res.ico + ' หมุนได้ ' + res.ttl); } 
-      else if(res.type === 'item') { S.phoenix++; S.todayGacha.push(res.ico + ' หมุนได้ น้ำตาฟีนิกซ์'); }
-      else if(res.type === 'info') { S.coins += res.val; S.todayCoins += res.val; S.todayGacha.push(res.ico + ' ภารกิจ: ' + res.ttl + ' (+'+res.val+' Coins)'); }
-      saveLocal(); renderAll(); closeGacha();
-      
-      // 🌟 แจ้งเตือน LINE: ให้เด้งเฉพาะตอนได้รางวัล LEGENDARY (JACKPOT) เท่านั้น รางวัลอื่นเงียบกริบ!
-      if (res.rarity === 'LEGENDARY') {
-          sendToLine("GACHA", "🏆 [BIFROST] แจ็คพอตแตก!!! 🏆\nไบฟรอสเปิดกล่องสมบัติได้รับ:\n✨ " + res.ttl + "\n(ยอดเงินล่าสุด: " + S.coins + " B-Coin)");
-      }
+      claimPendingGachaReward_();
     };
     action.style.display = 'block'; btn.textContent = "รับรางวัล"; document.getElementById('gacha-close').style.display = 'none';
   }
@@ -984,12 +1155,13 @@ function updateLog() {
             let qEarn = (S.quests[0]?2:0) + (S.quests[1]?2:0) + (S.quests[2]?2:0);
             html += `<div style="margin-bottom:2px; color:#4caf50; font-weight:bold;">✅ ภารกิจรายวัน: ${qCnt === 3 ? 'ครบถ้วน' : qCnt+' ข้อ'} (+${qEarn} Coins)</div>`;
         }
-        if (S.todayItemsUsed && S.todayItemsUsed.length > 0) {
-            html += `<div style="margin-bottom:2px; color:#2196f3; font-weight:bold;">🎒 ใช้ไอเทม: ${S.todayItemsUsed.join(', ')}</div>`;
-        }
-        if (S.todayGacha && S.todayGacha.length > 0) {
-            html += `<div style="margin-bottom:2px; color:#9c27b0; font-weight:bold;">💎 สมบัติ: ${S.todayGacha.join(', ')}</div>`;
-        }
+    }
+
+    if (S.todayItemsUsed && S.todayItemsUsed.length > 0) {
+        html += `<div style="margin-bottom:2px; color:#2196f3; font-weight:bold;">🎒 ใช้ไอเทม: ${S.todayItemsUsed.join(', ')}</div>`;
+    }
+    if (S.todayGacha && S.todayGacha.length > 0) {
+        html += `<div style="margin-bottom:2px; color:#9c27b0; font-weight:bold;">💎 สมบัติ: ${S.todayGacha.join(', ')}</div>`;
     }
 
     // ==========================================
@@ -1188,7 +1360,7 @@ function checkGachaLock() {
   }
 }
 function updateBestTable(){ var fmt=function(v){return(v===null||v===undefined||v==='')?'—':(v+' วิ');}; ['fr','bt','fg','bk'].forEach(function(k){ var mEl = document.getElementById('mb-'+k), aEl = document.getElementById('ab-'+k); if(mEl && S.monthBest) mEl.textContent=fmt(S.monthBest[k]); if(aEl && S.allBest) aEl.textContent=fmt(S.allBest[k]); }); }
-function syncInv(){ var invK = document.getElementById('inv-key'); if(invK) invK.textContent=S.keys||0; var invP = document.getElementById('inv-ph'); if(invP) invP.textContent=S.phoenix; var shP = document.getElementById('sh-ph'); if(shP) shP.textContent=S.phoenix; var invT = document.getElementById('inv-tk'); if(invT) invT.textContent=S.ticket; var shT = document.getElementById('sh-tk'); if(shT) shT.textContent=S.ticket; }
+function syncInv(){ var invK = document.getElementById('inv-key'); if(invK) invK.textContent=S.keys||0; var invT = document.getElementById('inv-tk'); if(invT) invT.textContent=S.ticket; var shT = document.getElementById('sh-tk'); if(shT) shT.textContent=S.ticket; }
 function syncShopQuota(){ var fQ = document.getElementById('food-quota'); if(fQ) fQ.textContent='✅ โควต้าคงเหลือ: '+Math.max(0, 1-(S.foodWeekBought||0))+'/1'; }
 
 var toastTm; function showToast(m){ var t=document.getElementById('toast'); if(!t) return; t.textContent=m;t.classList.add('on'); clearTimeout(toastTm);toastTm=setTimeout(function(){t.classList.remove('on');},3200); }
@@ -1241,7 +1413,7 @@ function buyFood() {
     if(S.coins < 50){ showToast('❌ B-Coin ไม่พอ!'); return; }
     if(S.foodWeekBought >= 1){ showToast('❌ หมดโควต้าสัปดาห์นี้แล้ว!'); return; }
     
-    cfmShow('🍜', 'ซื้อตั๋วเชฟทองคำ?', 'ราคา 50 B-Coin', function() {
+    cfmShow('🍜', 'ซื้อน้ำยาแสนอร่อย?', 'ราคา 50 B-Coin', function() {
         // 🌟 ให้ระบบหน้าจอ หักเงินและเพิ่มตั๋วเองทันที!
         S.coins -= 50;
         S.todayCoinsSpent = (S.todayCoinsSpent || 0) + 50;
@@ -1252,7 +1424,7 @@ function buyFood() {
         
         saveLocal();
         renderAll();
-        showToast('🍜 ซื้อตั๋วเชฟทองคำสำเร็จ!');
+        showToast('🍜 ซื้อน้ำยาแสนอร่อยสำเร็จ!');
     });
 }
 
@@ -1307,6 +1479,7 @@ function fillRepairCenter() {
   setRepairValue('rp-boss-height', S.bossTargets ? S.bossTargets.heightBase : '');
   setRepairValue('rp-boss-weight', S.bossTargets ? S.bossTargets.weightBase : '');
   setRepairValue('rp-log', Array.isArray(S.todayItemsUsed) ? S.todayItemsUsed.join('\n') : '');
+  setRepairValue('rp-gacha-log', Array.isArray(S.todayGacha) ? S.todayGacha.join('\n') : '');
 }
 
 function openRepairCenter() {
@@ -1348,6 +1521,8 @@ function doRepairSubmit() {
 
   var logText = readRepairText('rp-log');
   if (logText !== undefined) fields.todayItemsUsed = logText.split('\n').map(function(x){ return x.trim(); }).filter(Boolean);
+  var gachaLogText = readRepairText('rp-gacha-log');
+  if (gachaLogText !== undefined) fields.todayGacha = gachaLogText.split('\n').map(function(x){ return x.trim(); }).filter(Boolean);
 
   fetch(SHEET_URL, { method:'POST', body:JSON.stringify({ action:'ADMIN_REPAIR', pin:pin, reason:reason, fields:fields, nested:nested }) })
     .then(function(res){ return res.json(); })
@@ -1446,7 +1621,8 @@ var GM_HELP_CONTENT = {
   run: { title: 'รันคำสั่งลับ', body: '<p>ปุ่มนี้จะส่งค่าทั้งหมดใน GM Mode ไปปรับข้อมูลจริง ก่อนกดควรตรวจว่าช่องที่ไม่ต้องการแก้เว้นว่างไว้ และเลือกเฉพาะไอเท็ม/ตัวเลือกที่ต้องการจริง ๆ</p>' },
   repair: { title: 'ศูนย์ซ่อมข้อมูล', body: '<p>ใช้แก้ค่าหลักของระบบแบบละเอียด เช่น เหรียญ, EXP, ไอเท็ม, ค่าสถิติ และ Log เหมาะสำหรับแก้ข้อมูลที่ผิดจริง ๆ โดยต้องใส่รหัสผู้ปกครอง</p>' },
   backdate: { title: 'ส่งภารกิจย้อนหลัง', body: '<p>ใช้บันทึกภารกิจของวันที่ผ่านมา ระบบจะบันทึกตามวันที่เลือกและเรียงข้อมูลสถิติให้ถูกวัน เหมาะกับกรณีลืมส่งภารกิจเมื่อวานหรือส่งไม่ทันก่อนข้ามวัน</p>' },
-  unlockChest: { title: 'เปิดหีบสมบัติชั่วคราว', body: '<p>ปลดล็อกสถานะหีบสมบัติเป็นเวลา 1 ชั่วโมง เหมาะสำหรับกรณีผู้ปกครองต้องการอนุญาตให้เปิดหีบนอกเวลาปกติ หลังครบเวลา ระบบจะกลับไปใช้กฎเดิมอัตโนมัติ</p>' }
+  unlockChest: { title: 'เปิดหีบสมบัติชั่วคราว', body: '<p>ปลดล็อกสถานะหีบสมบัติเป็นเวลา 1 ชั่วโมง เหมาะสำหรับกรณีผู้ปกครองต้องการอนุญาตให้เปิดหีบนอกเวลาปกติ หลังครบเวลา ระบบจะกลับไปใช้กฎเดิมอัตโนมัติ</p>' },
+  health: { title: 'GM Health Check', body: '<p>ใช้ตรวจสุขภาพระบบ เช่น เวอร์ชันหน้าเว็บกับ backend, Sheet ที่เชื่อมอยู่, LINE, CloudSave และจำนวนรายการ Retry Queue ก่อนปล่อยใช้งานจริง</p>' }
 };
 
 function openGmHelp(key) {
@@ -1462,6 +1638,46 @@ function openGmHelp(key) {
 function closeGmHelp() {
   var modal = document.getElementById('gm-help-modal');
   if (modal) modal.classList.remove('on');
+}
+
+function healthBadge_(ok, text) {
+  return '<span style="display:inline-block; min-width:54px; text-align:center; border-radius:999px; padding:2px 8px; margin-right:6px; font-weight:900; color:' + (ok ? '#052e1a' : '#3b0909') + '; background:' + (ok ? '#86efac' : '#fecaca') + ';">' + (text || (ok ? 'OK' : 'CHECK')) + '</span>';
+}
+function healthLine_(label, value, ok) {
+  return '<div style="padding:7px 0; border-bottom:1px solid rgba(255,255,255,0.08);">' + healthBadge_(ok, ok ? 'OK' : 'WARN') + '<b style="color:#bbf7d0;">' + escapeHtml(label) + '</b><br><span style="color:#fff;">' + escapeHtml(value) + '</span></div>';
+}
+function openHealthCheck() {
+  var modal = document.getElementById('health-modal');
+  if (modal) modal.classList.add('on');
+  runHealthCheck();
+}
+function closeHealthCheck() {
+  var modal = document.getElementById('health-modal');
+  if (modal) modal.classList.remove('on');
+}
+function runHealthCheck() {
+  var body = document.getElementById('health-body');
+  if (!body) return;
+  body.innerHTML = 'กำลังตรวจ Apps Script, CloudSave และ Retry Queue...';
+  var healthFetch = (SHEET_URL && navigator.onLine) ? fetch(SHEET_URL + '?action=health&ts=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.json(); }) : Promise.reject(new Error('offline'));
+  var saveFetch = (SHEET_URL && navigator.onLine) ? fetch(SHEET_URL + '?action=loadSave&ts=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.json(); }) : Promise.reject(new Error('offline'));
+  Promise.allSettled([healthFetch, saveFetch]).then(function(results) {
+    var health = results[0].status === 'fulfilled' ? results[0].value : null;
+    var cloud = results[1].status === 'fulfilled' ? results[1].value : null;
+    var html = '';
+    html += healthLine_('Mode', BIFROST_DEV_MODE ? 'DEV Mode' : 'Production Mode', true);
+    html += healthLine_('Frontend Version', APP_VERSION, true);
+    html += healthLine_('Backend Version', health && health.apiVersion ? health.apiVersion : 'ติดต่อ backend ไม่สำเร็จ', !!(health && health.apiVersion === APP_VERSION));
+    html += healthLine_('Apps Script URL', SHEET_URL || 'ยังไม่ได้ตั้งค่า', !!SHEET_URL);
+    html += healthLine_('Sheet ID', health && health.sheetId ? health.sheetId : 'ไม่ทราบ', !!(health && health.sheetId));
+    html += healthLine_('LINE', health ? ((health.lineAlertsDisabled ? 'Disabled' : 'Enabled') + ' / ' + (health.lineSendMode || 'push')) : 'ตรวจไม่ได้', !!health && (BIFROST_DEV_MODE || !health.lineAlertsDisabled));
+    html += healthLine_('CloudSave', cloud && Object.keys(cloud).length ? ('Revision ' + (cloud._revision || 0) + ' / Coins ' + (cloud.coins || 0) + ' / Updated ' + (cloud._serverUpdatedAt || cloud._clientUpdatedAt || '-')) : 'ยังไม่มีข้อมูล CloudSave หรือโหลดไม่ได้', !!(cloud && Object.keys(cloud).length));
+    html += healthLine_('Pending Reward', hasPendingGachaReward_() ? ('มีรางวัลรอรับ: ' + S.pendingReward.result.ttl) : 'ไม่มีรางวัลค้างรับ', true);
+    html += healthLine_('Retry Queue', retryQueueCount_() + ' รายการรอส่ง', retryQueueCount_() === 0);
+    html += '<div style="margin-top:12px; color:#86efac; font-weight:900;">Deploy Checklist</div>';
+    html += '<ol style="padding-left:18px; margin-top:6px;">' + DEPLOY_CHECKLIST.map(function(item){ return '<li style="margin-bottom:5px;">' + escapeHtml(item) + '</li>'; }).join('') + '</ol>';
+    body.innerHTML = html;
+  });
 }
 
 function bindGmHelpButtons() {
@@ -1489,15 +1705,27 @@ function bindAll(){
   a('btn-av', 'click', openAv);
   var avm = document.getElementById('av-mov'); if(avm) avm.addEventListener('click', function(e){ if(e.target===this) this.classList.remove('on'); });
   var hofm = document.getElementById('hof-mov'); if(hofm) { hofm.addEventListener('click', function(e){ if(e.target === this) this.classList.remove('on'); }); }
-  var bdm = document.getElementById('boss-detail-mov'); if(bdm) bdm.addEventListener('click', function(e){ if(e.target===this) this.classList.remove('on'); });
+  var bdm = document.getElementById('boss-detail-mov'); if(bdm) bdm.addEventListener('click', function(e){ if(e.target===this) closeBossDetail(); });
+  document.querySelectorAll('[data-boss-id]').forEach(function(el) {
+    if(el.dataset.bossBound === '1') return;
+    el.dataset.bossBound = '1';
+    var openBoss = function(e) {
+      e.preventDefault();
+      showBossDetail(el.getAttribute('data-boss-id'));
+    };
+    el.addEventListener('click', openBoss);
+    el.addEventListener('keydown', function(e) {
+      if(e.key === 'Enter' || e.key === ' ') openBoss(e);
+    });
+  });
   a('btn-av-confirm', 'click', () => { gasCall('saveAvatar', S.selAv, function(r){ applyData(r); var m = document.getElementById('av-mov'); if(m) m.classList.remove('on'); showToast('✦ เปลี่ยนอวาตาร์สำเร็จ!'); }); });
   [1,2,3].forEach(function(n){ a('qi'+n, 'click', () => tQ(n)); });
   a('feel-sl', 'input', function(){ updateFeel(this.value); });
    
   bindGmHelpButtons(); a('gm-help-close', 'click', closeGmHelp);
-  a('btn-submit', 'click', doSubmit); a('btn-reset', 'click', doReset); a('btn-gm-submit', 'click', doGmSubmit); a('btn-gm-unlock-chest', 'click', gmTempUnlockChest); a('btn-open-repair', 'click', openRepairCenter); a('btn-repair-submit', 'click', doRepairSubmit); a('btn-repair-close', 'click', closeRepairCenter); a('btn-open-backdate', 'click', openBackdateQuest); a('btn-backdate-submit', 'click', doBackdateSubmit); a('btn-backdate-close', 'click', closeBackdateQuest);
+  a('btn-submit', 'click', doSubmit); a('btn-gm-submit', 'click', doGmSubmit); a('btn-gm-unlock-chest', 'click', gmTempUnlockChest); a('btn-open-repair', 'click', openRepairCenter); a('btn-repair-submit', 'click', doRepairSubmit); a('btn-repair-close', 'click', closeRepairCenter); a('btn-open-backdate', 'click', openBackdateQuest); a('btn-backdate-submit', 'click', doBackdateSubmit); a('btn-backdate-close', 'click', closeBackdateQuest); a('btn-open-health', 'click', openHealthCheck); a('btn-health-refresh', 'click', runHealthCheck); a('btn-health-close', 'click', closeHealthCheck); a('btn-health-retry', 'click', function(){ processRetryQueue_().then(runHealthCheck); });
   ['bd-q1','bd-q2','bd-q3','bd-bonus','bd-apply-streak'].forEach(function(id){ a(id, 'input', updateBackdatePreview); a(id, 'change', updateBackdatePreview); });
-  a('inv-ph-row', 'click', usePhoenix); a('inv-tk-row', 'click', useTicket);
+  a('inv-tk-row', 'click', useTicket);
   a('sh-food-btn', 'click', buyFood);
   var fdm = document.getElementById('fd-mov'); if(fdm) fdm.addEventListener('click', function(e){ if(e.target===this) this.classList.remove('on'); });
   a('btn-fd-confirm', 'click', confirmFd);
@@ -1505,8 +1733,8 @@ function bindAll(){
   a('cfm-no', 'click', () => { var c = document.getElementById('cfm'); if(c) c.classList.remove('on'); S.pending=null; });
   a('chef-close-btn', 'click', () => { var scr = document.getElementById('chef-screen'); if(scr) scr.style.display='none'; });
   a('btn-boss-claim', 'click', () => { SFX.coin(); var bo = document.getElementById('boss-overlay'); if(bo) bo.classList.remove('on'); goP('dashboard'); setChar(chForLevel(S.lv)); });
-  document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'visible') { fetchDraftFromCloud(); refreshWalletActivityLog(); } });
-  window.addEventListener('focus', refreshWalletActivityLog);
+  document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'visible') { fetchDraftFromCloud(); refreshWalletActivityLog(); processRetryQueue_(); resumePendingRewardIfAny_(); } });
+  window.addEventListener('focus', function(){ refreshWalletActivityLog(); processRetryQueue_(); });
   ['in-ill','in-w','in-h','in-lp','in-fr','in-bt','in-fg','in-bk','in-gpa','in-sc'].forEach(function(id){ var input = document.getElementById(id); if(input) input.addEventListener('blur', autoSyncDraft); });
   var feelDraft = document.getElementById('feel-sl'); if(feelDraft) feelDraft.addEventListener('change', autoSyncDraft);
 
@@ -1621,7 +1849,7 @@ window.devNextDay = function() {
   var dateLabel = new Date().toLocaleDateString('th-TH', {year:'numeric',month:'long',day:'numeric'});
   if(SHEET_URL && SHEET_URL.length >= 10) {
       var payload = Object.assign({}, S, { syncDate: dateLabel });
-      fetch(SHEET_URL, { method: 'POST', mode: 'no-cors', cache: 'no-cache', body: JSON.stringify(payload) });
+      sendRetryablePost_('DEV_NEXT_DAY', payload, { dedupeKey: 'archive:' + dateLabel, noCors: true });
   }
   
 if (new Date().getDay() === 1) { S.phWeekBought = 0; S.foodWeekBought = 0; showToast('✨ เริ่มต้นสัปดาห์ใหม่!'); }
@@ -1654,7 +1882,7 @@ document.addEventListener('DOMContentLoaded',function(){ checkRemoteVersion();
   if(mainVerEl) mainVerEl.textContent = 'Ver.' + APP_VERSION;
   loadLocal(); 
   loadDraft();
-  window.addEventListener('online', () => { document.getElementById('offline-overlay').style.display = 'none'; showToast('🟢 สัญญาณอินเทอร์เน็ตกลับมาแล้ว!'); });
+  window.addEventListener('online', () => { document.getElementById('offline-overlay').style.display = 'none'; showToast('🟢 สัญญาณอินเทอร์เน็ตกลับมาแล้ว!'); processRetryQueue_(); });
   window.addEventListener('offline', () => { document.getElementById('offline-overlay').style.display = 'flex'; SFX.error(); });
   if(!navigator.onLine) document.getElementById('offline-overlay').style.display = 'flex';
 
@@ -1675,7 +1903,7 @@ document.addEventListener('DOMContentLoaded',function(){ checkRemoteVersion();
   // 🌟 โหลดเซฟจาก Cloud ตอนเปิดแอป
   if (navigator.onLine && SHEET_URL && SHEET_URL.length > 10) {
     setSkeleton(true);
-    fetch(SHEET_URL + "?action=loadSave")
+    fetch(SHEET_URL + "?action=loadSave&ts=" + Date.now(), { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         setSkeleton(false);
@@ -1691,13 +1919,13 @@ document.addEventListener('DOMContentLoaded',function(){ checkRemoteVersion();
           }
         }
         if (S.bossTargets && S.bossTargets.speed === 21) { S.bossTargets.speed = 25; saveLocal(); }
-        setChar(chForLevel(S.lv)); processAutoNextDay(); renderAll(); fetchDraftFromCloud();
+        setChar(chForLevel(S.lv)); processAutoNextDay(); renderAll(); fetchDraftFromCloud(); processRetryQueue_(); resumePendingRewardIfAny_();
       }).catch(err => {
         setSkeleton(false); showToast('⚠️ ใช้เซฟในเครื่อง (ออฟไลน์)');
-        gasCall('getHeroData', null, function(data) { applyData(data); setChar(chForLevel(S.lv)); processAutoNextDay(); renderAll(); fetchDraftFromCloud(); });
+        gasCall('getHeroData', null, function(data) { applyData(data); setChar(chForLevel(S.lv)); processAutoNextDay(); renderAll(); fetchDraftFromCloud(); processRetryQueue_(); resumePendingRewardIfAny_(); });
       });
   } else {
-     gasCall('getHeroData', null, function(data) { applyData(data); setChar(chForLevel(S.lv)); processAutoNextDay(); renderAll(); fetchDraftFromCloud(); });
+     gasCall('getHeroData', null, function(data) { applyData(data); setChar(chForLevel(S.lv)); processAutoNextDay(); renderAll(); fetchDraftFromCloud(); processRetryQueue_(); resumePendingRewardIfAny_(); });
   }
 });
 
@@ -1882,59 +2110,3 @@ function doDraft() {
 function loadDraft() {
     if(S.draft && !S.submitted) applyDraftToForm_(S.draft, 'local');
 }
-  // ==========================================
-  // 🛒 ชุดแพตช์อัปเกรดร้านค้า V.3 (แยกระบบน้ำยาแสนอร่อย)
-// ==========================================
-setTimeout(function() {
-    // 1. ปุ่มซื้อ "น้ำตาฟีนิกซ์"
-    var btnPh = document.getElementById('sh-ph-btn');
-    if (btnPh) {
-        var newBtnPh = btnPh.cloneNode(true);
-        btnPh.parentNode.replaceChild(newBtnPh, btnPh);
-        
-        newBtnPh.onclick = function() {
-            if((S.coins||0) < 15){ showToast('❌ B-Coin ไม่พอ!'); return; }
-            if((S.phWeekBought||0) >= 1){ showToast('❌ หมดโควต้าสัปดาห์นี้แล้ว!'); return; }
-            if((S.phoenix||0) >= 2){ showToast('❌ คลังเต็มแล้ว!'); return; }
-            
-            cfmShow('💧', 'ซื้อน้ำตาฟีนิกซ์?', 'ราคา 15 B-Coin', function() {
-                S.coins -= 15; 
-                S.todayCoinsSpent = (S.todayCoinsSpent || 0) + 15; // 🌟 แทรกบรรทัดนี้ลงไป
-                S.phoenix = (S.phoenix || 0) + 1;
-                
-                if (!S.todayItemsUsed) S.todayItemsUsed = [];
-                S.todayItemsUsed.push('🛒 ซื้อน้ำตาฟีนิกซ์ (-15 Coins)');
-                
-                saveLocal(); renderAll();
-                if (typeof updateLog === 'function') updateLog();
-                showToast('💧 ซื้อน้ำตาฟีนิกซ์สำเร็จ!');
-            });
-        };
-    }
-
-    // 2. ปุ่มซื้อ "น้ำยาแสนอร่อย" (ตั้งโควต้าสัปดาห์ละ 1 ครั้ง)
-    var btnFood = document.getElementById('sh-food-btn');
-    if (btnFood) {
-        var newBtnFood = btnFood.cloneNode(true);
-        btnFood.parentNode.replaceChild(newBtnFood, btnFood);
-        
-        newBtnFood.onclick = function() {
-            if((S.coins||0) < 50){ showToast('❌ B-Coin ไม่พอ!'); return; }
-            if((S.foodWeekBought||0) >= 1){ showToast('❌ หมดโควต้าสัปดาห์นี้แล้ว!'); return; } // โควต้า 1 ครั้ง/สัปดาห์
-            
-            cfmShow('🍜', 'ซื้อน้ำยาแสนอร่อย?', 'ราคา 50 B-Coin', function() {
-                S.coins -= 50; 
-                S.todayCoinsSpent = (S.todayCoinsSpent || 0) + 50; // 🌟 แทรกบรรทัดนี้ลงไป
-                S.ticket = (S.ticket || 0) + 1;
-                S.foodWeekBought = (S.foodWeekBought || 0) + 1;
-                
-                if (!S.todayItemsUsed) S.todayItemsUsed = [];
-                S.todayItemsUsed.push('🛒 ซื้อน้ำยาแสนอร่อย (-50 Coins)');
-                
-                saveLocal(); renderAll();
-                if (typeof updateLog === 'function') updateLog();
-                showToast('🍜 ซื้อน้ำยาแสนอร่อยสำเร็จ!');
-            });
-        };
-    }
-}, 600);

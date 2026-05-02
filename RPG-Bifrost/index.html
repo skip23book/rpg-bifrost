@@ -9,9 +9,9 @@
 <meta name="theme-color" content="#1e1e1e">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="manifest" href="manifest.json?v=1.0.5">
+  <link rel="manifest" href="manifest.json?v=1.1.0">
 <title>RPG BIFROST</title>
-<link rel="stylesheet" href="style.css?v=1.0.5">
+  <link rel="stylesheet" href="style.css?v=1.1.0">
 
 <style>
   
@@ -314,11 +314,11 @@
       <div class="card" style="background: linear-gradient(135deg, #1e1e1e 0%, #050505 100%); border: 2px solid var(--gold); box-shadow: 0 5px 20px rgba(184,144,32,0.2);">
         <div class="ct" style="margin-bottom:15px; color: var(--gold); text-align: center; font-size: 16px; font-weight: bold; letter-spacing: 2px; text-shadow: 0 0 8px rgba(184,144,32,0.6);">⚔️ ULTRA BOSS MENU ⚔️</div>
         <div class="boss-row">
-          <div class="boss-cir" onclick="showBossDetail('shark')">🦈</div>
-          <div class="boss-cir" onclick="showBossDetail('book')">📚</div>
-          <div class="boss-cir" onclick="showBossDetail('heart')">❤️</div>
-          <div class="boss-cir" onclick="showBossDetail('pole')">🦒</div>
-          <div class="boss-cir" onclick="showBossDetail('shrimp')">💪</div>
+          <div class="boss-cir" role="button" tabindex="0" data-boss-id="shark" aria-label="ดูวิธีปลดล็อกบอสฉลามขาว">🦈</div>
+          <div class="boss-cir" role="button" tabindex="0" data-boss-id="book" aria-label="ดูวิธีปลดล็อกบอสหมอโหด">📚</div>
+          <div class="boss-cir" role="button" tabindex="0" data-boss-id="heart" aria-label="ดูวิธีปลดล็อกบอสมุ่งมั่น">❤️</div>
+          <div class="boss-cir" role="button" tabindex="0" data-boss-id="pole" aria-label="ดูวิธีปลดล็อกบอสเสาไฟ">🦒</div>
+          <div class="boss-cir" role="button" tabindex="0" data-boss-id="shrimp" aria-label="ดูวิธีปลดล็อกบอสกุ้งแห้งเล่นเวท">💪</div>
         </div>
         <div style="text-align:center; font-size:11px; color:#ffffff; margin-top:15px; letter-spacing:1px; background: rgba(184,144,32,0.25); padding: 6px; border-radius: 6px; font-weight: 500;">👆 แตะที่ไอคอนเพื่อดูวิธีล่ารางวัล 👆</div>
       </div>
@@ -390,6 +390,41 @@
     <div class="cfm-r"><button class="bdim" id="cfm-no">ยกเลิก</button><button class="btn bg" id="cfm-yes">ยืนยัน</button></div>
   </div>
 </div>
+<div class="boss-overlay" id="boss-overlay" style="z-index: 100000;">
+  <div class="boss-modal">
+    <div class="bm-stars">✦ ✦ ✦ ✦ ✦</div><div class="bm-title">BOSS DEFEATED</div><div class="bm-subtitle">กำจัดอัลตร้าบอสสำเร็จ!</div>
+    <div class="bm-list" id="bm-list"></div>
+    <button class="bm-btn" id="btn-boss-claim">รับรางวัล ✦</button>
+  </div>
+</div>
+
+<div class="mov" id="hof-mov">
+  <div class="mpan" style="text-align:center; padding: 30px 20px;">
+    <div id="hof-m-ico" style="font-size:56px; margin-bottom:10px; transition: all 0.3s;">🏆</div>
+    <div id="hof-m-ttl" style="font-family:'Cinzel',serif; font-size:20px; font-weight:700; color:var(--gold2);">ชื่อรางวัล</div>
+    <div id="hof-m-sts" style="display:inline-block; font-size:11px; font-weight:700; padding:4px 12px; border-radius:12px; margin:12px 0; transition: all 0.3s;">สถานะ</div>
+    <div id="hof-m-desc" style="font-size:13px; color:var(--txt2); line-height:1.6; margin-top:5px; white-space:pre-line;">รายละเอียด</div>
+    <div id="hof-m-cond" style="font-size:11px; color:var(--yel); font-weight:600; margin-top:15px; padding-top:15px; border-top:1px dashed var(--gbdr);">🎯 เงื่อนไข:</div>
+    <button class="btn bg bf" style="margin-top:20px;" onclick="document.getElementById('hof-mov').classList.remove('on')">ปิดหน้าต่าง</button>
+  </div>
+</div>
+
+<div class="mov" id="boss-detail-mov" aria-hidden="true">
+  <div class="mpan" style="border: 2px solid var(--gold); background: #0f0f0f;">
+    <div id="bd-ico" style="font-size:64px; text-align:center; margin-bottom:10px; filter: drop-shadow(0 0 10px var(--gold));">❓</div>
+    <div id="bd-ttl" style="text-align:center; font-family:'Cinzel',serif; font-size:22px; color:var(--gold); font-weight:700;">ชื่อบอส</div>
+    <div style="margin-top:20px; background: rgba(255,255,255,0.05); padding:15px; border-radius:10px;">
+      <div style="color:var(--gold); font-size:12px; font-weight:bold; margin-bottom:5px;">🎯 ภารกิจที่ต้องทำ:</div>
+      <div id="bd-cond" style="color:#fff; font-size:14px; line-height:1.4;">รายละเอียด...</div>
+    </div>
+    <div style="margin-top:10px; background: rgba(184,144,32,0.1); padding:15px; border-radius:10px; border: 1px solid rgba(184,144,32,0.3);">
+      <div style="color:#ffd700; font-size:12px; font-weight:bold; margin-bottom:5px;">💰 ของรางวัลที่จะได้รับ:</div>
+      <div id="bd-reward" style="color:#fff; font-size:16px; font-weight:bold;">+0 B-Coin</div>
+    </div>
+    <div id="boss-bd-note" style="margin-top:15px; font-size:11px; color:var(--txt3); text-align:center; font-style:italic;">*หมายเหตุ*</div>
+    <button class="btn bg" style="width:100%; margin-top:25px; background:var(--gold); color:#000;" onclick="closeBossDetail()">รับทราบ!</button>
+  </div>
+</div>
 <div class="mov" id="gacha-mov" style="background: rgba(0,0,0,0.95); z-index: 9999;">
   <div id="gacha-light" class="gacha-light"></div>
   <div class="firework fw-1">🎆</div><div class="firework fw-2">🎇</div><div class="firework fw-3">✨</div>
@@ -407,6 +442,16 @@
       </div>
       <button class="btn" id="gacha-close" style="width: 100%; margin-top: 20px; background: #333; color: #fff; display: none;" onclick="closeGacha()">รับรางวัล</button>
     </div>
+  </div>
+</div>
+<div class="level-overlay" id="level-overlay">
+  <div class="level-modal">
+    <div class="lm-glow"></div>
+    <div class="lm-icon">🌟</div>
+    <div class="lm-title">LEVEL UP!</div>
+    <div class="lm-desc">ยินดีด้วย! ฮีโร่พัฒนาขึ้นไปอีกขั้นแล้ว</div>
+    <div class="lm-lv">Lv.<span id="lm-lv-val">2</span></div>
+    <button class="lm-btn" onclick="document.getElementById('level-overlay').classList.remove('on'); SFX.pop();">สุดยอด!</button>
   </div>
 </div>
 <div class="mov" id="version-update-modal" style="z-index: 3000000; align-items:center; justify-content:center; padding:18px;">
@@ -487,48 +532,6 @@
 </div>
     </div>
     
-    <div style="background:var(--bg2); padding:15px; border-radius:10px; margin-top:15px; margin-bottom:15px; border:1px solid var(--gbdr);">
-    <div style="color:var(--gold); font-weight:bold; margin-bottom:10px; font-size:14px;">🏆 แก้ไขสถิติว่ายน้ำ <button type="button" class="gm-help-btn" data-gm-help="swim" title="อธิบายการแก้สถิติว่ายน้ำ">❓</button></div>
-    <select id="gm-swim-type" style="width:100%; padding:8px; margin-bottom:10px; background:var(--bg1); color:#fff; border:1px solid var(--gbdr); border-radius:5px; font-family:inherit;">
-        <option value="">-- เลือกท่าว่ายน้ำ --</option>
-        <option value="fr">🏊 ฟรีสไตล์ (Freestyle)</option>
-        <option value="bt">🦋 ผีเสื้อ (Butterfly)</option>
-        <option value="bk">🐢 กรรเชียง (Backstroke)</option>
-        <option value="fg">🐸 กบ (Breaststroke)</option>
-    </select>
-    <div style="display:flex; gap:10px; margin-bottom:5px;">
-        <div style="flex:1;">
-            <div style="font-size:12px; color:var(--txt2); margin-bottom:3px;">Monthly Best</div>
-            <input type="number" step="0.01" id="gm-swim-m" placeholder="วินาที" style="width:100%; padding:8px; box-sizing:border-box; background:var(--bg1); color:#fff; border:1px solid var(--gbdr); border-radius:5px;">
-        </div>
-        <div style="flex:1;">
-            <div style="font-size:12px; color:var(--txt2); margin-bottom:3px;">All-Time Best</div>
-            <input type="number" step="0.01" id="gm-swim-a" placeholder="วินาที" style="width:100%; padding:8px; box-sizing:border-box; background:var(--bg1); color:#fff; border:1px solid var(--gbdr); border-radius:5px;">
-        </div>
-    </div>
-    <div style="font-size:11px; color:#ff5252; margin-bottom:15px;">*เว้นว่างไว้คือไม่แก้ / หากต้องการล้างค่าให้เป็น 0 พิมพ์เลข 0</div>
-
-    <div style="color:var(--gold); font-weight:bold; margin-bottom:10px; padding-top:15px; border-top:1px dashed var(--gbdr); font-size:14px;">🦈 รีเซ็ตบอส & HOF <button type="button" class="gm-help-btn" data-gm-help="bossHof" title="อธิบายรีเซ็ตบอสและ HOF">❓</button></div>
-    
-    <div style="margin-bottom:12px;">
-        <div style="font-size:12px; color:var(--txt2); margin-bottom:3px;">เป้าหมายบอสฉลามขาว (วินาที)</div>
-        <input type="number" id="gm-boss-shark-target" placeholder="เป้าหมายด่านปัจจุบัน (เช่น 25)" style="width:100%; padding:8px; box-sizing:border-box; background:var(--bg1); color:#fff; border:1px solid var(--gbdr); border-radius:5px;">
-        <div style="font-size:11px; color:var(--txt3); margin-top:3px;">*บอสจะเริ่มต้นใหม่ที่ด่าน 25 วิ</div>
-    </div>
-
-    <div style="font-size:12px; color:var(--txt2); margin-bottom:8px;">ยึดตราประทับ Hall of Fame (ติ๊กเพื่อริบคืน)</div>
-    <div style="display:flex; flex-direction:column; gap:8px;">
-        <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#fff; cursor:pointer;">
-            <input type="checkbox" id="gm-revoke-shark" style="accent-color:#ff5252; width:16px; height:16px;"> 🦈 ยึดตราฉลามขาว (ว่ายน้ำ)
-        </label>
-        <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#fff; cursor:pointer;">
-            <input type="checkbox" id="gm-revoke-book" style="accent-color:#ff5252; width:16px; height:16px;"> 📚 ยึดตราหมอโหด (สอบ >=90%)
-        </label>
-        <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#fff; cursor:pointer;">
-            <input type="checkbox" id="gm-revoke-heart" style="accent-color:#ff5252; width:16px; height:16px;"> ❤️ ยึดตราหัวใจเหล็ก (ภารกิจ 7 วัน)
-        </label>
-    </div>
-</div>
     <div class="brow" style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
       <div style="background:var(--bg2); padding:15px; border-radius:10px; margin-top:20px; margin-bottom:20px; border:1px solid var(--gbdr);">
     
@@ -590,6 +593,8 @@
       <button class="btn" id="btn-open-repair" style="width:100%; background:#243b55; color:#fff; border:1px solid #4fc3f7; padding:15px; margin-bottom:8px;">🛠️ เปิดศูนย์ซ่อมข้อมูล</button>
       <div class="gm-help-line">📅 ส่งภารกิจย้อนหลัง <button type="button" class="gm-help-btn" data-gm-help="backdate" title="อธิบายส่งภารกิจย้อนหลัง">❓</button></div>
       <button class="btn" id="btn-open-backdate" style="width:100%; background:#3b2f55; color:#fff; border:1px solid #c084fc; padding:15px; margin-bottom:8px;">📅 ส่งภารกิจย้อนหลัง</button>
+      <div class="gm-help-line">🩺 GM Health Check <button type="button" class="gm-help-btn" data-gm-help="health" title="อธิบาย Health Check">❓</button></div>
+      <button class="btn" id="btn-open-health" style="width:100%; background:#0f5132; color:#d1fae5; border:1px solid #34d399; padding:15px; margin-bottom:8px;">🩺 ตรวจสุขภาพระบบ</button>
       <button class="btn" style="width:100%; background:#333; color:#fff; border:1px solid #555; padding:15px;" onclick="document.getElementById('gm-modal').classList.remove('on'); ">ปิดหน้าต่าง</button>
     </div>
   </div>
@@ -602,7 +607,21 @@
     <div id="gm-help-body" class="gm-help-body"></div>
   </div>
 </div>
-<script src="script.js?v=1.0.5"></script>
+
+<div class="mov" id="health-modal" style="z-index:1000002;">
+  <div class="mpan" style="background:#07120d; border:2px solid #34d399; max-height:85vh; overflow-y:auto;">
+    <div style="text-align:center; font-size:28px; margin-bottom:6px;">🩺</div>
+    <div class="gm-title" style="color:#86efac; text-align:center; font-weight:bold; letter-spacing:2px; margin-bottom:12px;">GM HEALTH CHECK</div>
+    <div id="health-body" style="font-size:12px; color:#e7fff2; line-height:1.7; background:rgba(255,255,255,0.05); border:1px solid rgba(52,211,153,0.28); border-radius:10px; padding:12px;">กำลังรอตรวจระบบ...</div>
+    <div class="brow" style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;">
+      <button class="btn" id="btn-health-refresh" style="flex:1; min-width:120px; background:#34d399; color:#052e1a; padding:12px; font-weight:bold;">ตรวจอีกครั้ง</button>
+      <button class="btn" id="btn-health-retry" style="flex:1; min-width:120px; background:#1d4ed8; color:#fff; padding:12px;">ส่ง Retry Queue</button>
+      <button class="btn" id="btn-health-close" style="flex:1; min-width:120px; background:#333; color:#fff; border:1px solid #555; padding:12px;">ปิด</button>
+    </div>
+  </div>
+</div>
+<script src="config.js?v=1.1.0"></script>
+<script src="script.js?v=1.1.0"></script>
 <script>
   document.querySelectorAll('.bnav .ni').forEach(el => {
     el.addEventListener('click', function() {
@@ -662,6 +681,7 @@
       <input class="fi gm-input" id="rp-boss-weight" type="number" placeholder="ฐานน้ำหนักบอส">
     </div>
     <textarea class="fi gm-input" id="rp-log" rows="5" placeholder="Daily Adventure Log วันนี้ บรรทัดละ 1 รายการ" style="margin-top:10px; resize:vertical; background:rgba(255,255,255,0.05); color:#fff; border-color:#4fc3f7;"></textarea>
+      <textarea class="fi gm-input" id="rp-gacha-log" rows="4" placeholder="Log กล่องสมบัติวันนี้ บรรทัดละ 1 รายการ" style="margin-top:10px; resize:vertical; background:rgba(255,255,255,0.05); color:#fff; border-color:#9c27b0;"></textarea>
     <div class="brow" style="display:flex; gap:8px; margin-top:14px;">
       <button class="btn" id="btn-repair-submit" style="flex:1; background:#4fc3f7; color:#05131d; padding:13px;">บันทึกซ่อมข้อมูล</button>
       <button class="btn" id="btn-repair-close" style="flex:1; background:#333; color:#fff; border:1px solid #555; padding:13px;">ปิด</button>

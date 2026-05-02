@@ -461,6 +461,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
   z-index: 9999; /* ดันให้อยู่เหนือสุด ทับแถบเมนู */
 }
 
+#boss-detail-mov.on, #hof-mov.on {
+  display: flex;
+  opacity: 1;
+  pointer-events: all;
+}
+
 #boss-detail-mov .mpan, #hof-mov .mpan { 
   position: relative; bottom: unset; transform: none; margin: 0 auto; 
   width: 90%; max-width: 350px; border-radius: 15px; /* ลบเหลี่ยมให้กล่องดูมนสวยขึ้น */

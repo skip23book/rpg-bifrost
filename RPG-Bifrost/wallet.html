@@ -258,18 +258,96 @@
   </div>
   <div class="toast" id="toast"></div>
 
+  <script src="config.js?v=1.1.0"></script>
   <script>
-    const APP_VERSION = "1.0.5";
-    const BIFROST_API_URL = "https://script.google.com/macros/s/AKfycbzhZ4vnKvSMhxay6Wz2Ur86cI3bBXhel3ms_v9yH27eEKT9m8M4QmcMFypts59iwXst/exec";
-    const SHEET_URL = BIFROST_API_URL;
+    const BIFROST_CONFIG = window.BIFROST_CONFIG || {};
+    const APP_VERSION = BIFROST_CONFIG.APP_VERSION || "1.1.0";
+    const SHEET_URL = BIFROST_CONFIG.API_URL || "";
     const RATE_COIN = 100;
     const RATE_BAHT = 100;
     const DEMO_COINS = 1200;
     const DEMO_MODE = false;
+    const WALLET_RETRY_KEY = "bifrost_wallet_retry_v1";
+    const WALLET_RETRY_MAX_AGE_MS = 30 * 60 * 1000;
 
     const state = { coins:0, amount:100, pin:"", save:null, busy:false, status:"กำลังซิงค์" };
     const el = (id) => document.getElementById(id);
     const money = (n) => Number(n || 0).toLocaleString("th-TH");
+
+    function makeWalletRequestId(){
+      return "WALLET-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+    }
+    function readWalletRetry(){
+      try {
+        const req = JSON.parse(localStorage.getItem(WALLET_RETRY_KEY) || "null");
+        if (!req) return null;
+        if (Date.now() - Number(req.createdAt || 0) > WALLET_RETRY_MAX_AGE_MS) {
+          localStorage.removeItem(WALLET_RETRY_KEY);
+          return null;
+        }
+        return req;
+      } catch(e) { return null; }
+    }
+    function writeWalletRetry(req){
+      localStorage.setItem(WALLET_RETRY_KEY, JSON.stringify(req));
+    }
+    function clearWalletRetry(){
+      localStorage.removeItem(WALLET_RETRY_KEY);
+    }
+    function walletPayload(req){
+      return { action:"WALLET_EXCHANGE", requestId:req.requestId, amount:req.amount, pin:req.pin, rateCoin:req.rateCoin, rateBaht:req.rateBaht };
+    }
+    async function postWalletExchange(req){
+      const res = await fetch(SHEET_URL, {
+        method: "POST",
+        cache: "no-cache",
+        body: JSON.stringify(walletPayload(req))
+      });
+      const data = await res.json();
+      if (!data || data.result !== "success") {
+        const err = new Error((data && data.message) || (data && data.error) || "แลกไม่สำเร็จ");
+        err.permanent = true;
+        throw err;
+      }
+      return data;
+    }
+    function completeWalletExchange(data){
+      state.coins = Number(data.coins || 0);
+      state.save = Object.assign(state.save || {}, data.save || {}, { coins: state.coins });
+      recordWalletExchangeInSave(data);
+      localStorage.setItem("bifrost_data", JSON.stringify(state.save));
+      addHistory(data);
+      showRewardCard(data);
+      clearWalletRetry();
+      el("pinModal").classList.remove("on");
+      setPinBusy(false);
+      toast((data.duplicate ? "ยืนยันรายการเดิมสำเร็จ " : "แลกสำเร็จ ได้รับ ") + money(data.baht) + " บาท");
+    }
+    async function processWalletRetry(){
+      const pending = readWalletRetry();
+      if (!pending || state.busy || !navigator.onLine || !SHEET_URL) return;
+      state.busy = true;
+      render("กำลังส่งรายการ Wallet ที่ค้างไว้");
+      try {
+        pending.tries = Number(pending.tries || 0) + 1;
+        writeWalletRetry(pending);
+        const data = await postWalletExchange(pending);
+        completeWalletExchange(data);
+      } catch(e) {
+        if (e.permanent || Number(pending.tries || 0) >= 8) {
+          clearWalletRetry();
+          toast(e.message || "รายการ Wallet ที่ค้างไว้ส่งไม่สำเร็จ");
+        } else {
+          writeWalletRetry(pending);
+          render("มีรายการ Wallet รอส่งซ้ำ");
+        }
+      } finally {
+        state.busy = false;
+        setPinBusy(false);
+        updatePin();
+        render("พร้อมใช้");
+      }
+    }
 
     function toast(msg){
       el("toast").textContent = msg;
@@ -368,6 +446,7 @@
             baht: (state.amount / RATE_COIN) * RATE_BAHT,
             coins: state.coins - state.amount,
             date: new Date().toLocaleString("th-TH"),
+            requestId: makeWalletRequestId(),
             save: Object.assign(state.save || {}, { coins: state.coins - state.amount, PIN: "5918" })
           };
           state.coins = demoData.coins;
@@ -394,32 +473,30 @@
         return;
       }
       try {
-        const res = await fetch(SHEET_URL, {
-          method: "POST",
-          body: JSON.stringify({ action:"WALLET_EXCHANGE", amount:state.amount, pin:state.pin, rateCoin:RATE_COIN, rateBaht:RATE_BAHT })
-        });
-        const data = await res.json();
-        if (!data || data.result !== "success") throw new Error((data && data.message) || (data && data.error) || "แลกไม่สำเร็จ");
-
-        state.coins = Number(data.coins || 0);
-        state.save = Object.assign(state.save || {}, data.save || {}, { coins: state.coins });
-        recordWalletExchangeInSave(data);
-        localStorage.setItem("bifrost_data", JSON.stringify(state.save));
-        addHistory(data);
-        showRewardCard(data);
-        el("pinModal").classList.remove("on");
-        setPinBusy(false);
-        toast("แลกสำเร็จ ได้รับ " + money(data.baht) + " บาท");
-      } catch(e) {
-        state.pin = "";
+        const existing = readWalletRetry();
+        if (existing) {
+          toast("มีรายการ Wallet รอส่งอยู่ ระบบจะส่งรายการเดิมก่อน");
+          state.busy = false;
           setPinBusy(false);
           updatePin();
-          toast(e.message || "เกิดข้อผิดพลาด");
+          await processWalletRetry();
+          return;
+        }
+        const pending = { requestId: makeWalletRequestId(), amount: state.amount, pin: state.pin, rateCoin: RATE_COIN, rateBaht: RATE_BAHT, createdAt: Date.now(), tries: 0 };
+        writeWalletRetry(pending);
+        const data = await postWalletExchange(pending);
+        completeWalletExchange(data);
+      } catch(e) {
+        state.pin = "";
+        if (e.permanent) clearWalletRetry();
+        setPinBusy(false);
+        updatePin();
+        toast(e.permanent ? (e.message || "เกิดข้อผิดพลาด") : "เน็ตสะดุด ระบบเก็บรายการไว้และจะส่งซ้ำด้วย requestId เดิม");
       } finally {
         state.busy = false;
         setPinBusy(false);
         updatePin();
-        render("พร้อมใช้");
+        render(readWalletRetry() ? "มีรายการ Wallet รอส่งซ้ำ" : "พร้อมใช้");
       }
     }
 
@@ -427,6 +504,12 @@
       if (!state.save) state.save = {};
       const amount = Number(data.amount || state.amount || 0);
       const baht = Number(data.baht || (amount / RATE_COIN) * RATE_BAHT || 0);
+      const requestId = String(data.requestId || "");
+      if (requestId) {
+        if (!Array.isArray(state.save.walletExchangeIds)) state.save.walletExchangeIds = [];
+        if (state.save.walletExchangeIds.includes(requestId)) return;
+        state.save.walletExchangeIds.push(requestId);
+      }
       if (!Array.isArray(state.save.todayItemsUsed)) state.save.todayItemsUsed = [];
       const alreadyRecorded = state.save.todayItemsUsed.some(item => String(item).includes("E-Wallet") && String(item).includes(String(amount)) && String(item).includes("แลกเงิน"));
       if (!alreadyRecorded) {
@@ -492,6 +575,8 @@
     loadLocal();
     render("กำลังซิงค์");
     loadCloud();
+    processWalletRetry();
+    window.addEventListener("online", processWalletRetry);
 
     function closeWalletPage(){
       try {
