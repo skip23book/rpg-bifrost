@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════════
 //  STATE (ตัวแปรระบบหลัก)
 // ══════════════════════════════════════════════════
-var APP_VERSION = "1.0.4";
+var APP_VERSION = "1.0.5";
 var BIFROST_DEV_MODE = false;
 // Web App URL ของ Apps Script สำหรับใช้งานจริง
 var BIFROST_API_URL = "https://script.google.com/macros/s/AKfycbzhZ4vnKvSMhxay6Wz2Ur86cI3bBXhel3ms_v9yH27eEKT9m8M4QmcMFypts59iwXst/exec";
@@ -9,12 +9,11 @@ var BIFROST_API_URL = "https://script.google.com/macros/s/AKfycbzhZ4vnKvSMhxay6W
 // กรอกเลขเวอร์ชันและรายละเอียดอัปเดตตรงนี้ได้เลย
 // เพิ่ม/ลบบรรทัดใน APP_UPDATE_NOTES ได้ตามต้องการ เมื่อ APP_VERSION เปลี่ยน popup จะแสดงครั้งแรกอัตโนมัติ
 var APP_UPDATE_NOTES = [
-  "เพิ่มระบบ Draft/อัปเดตภารกิจให้ซิงก์ข้ามอุปกรณ์ พร้อมบอกชัดว่ายังไม่ได้ส่งภารกิจจริง",
-  "ล้างข้อมูลร่างอัตโนมัติหลังส่งภารกิจจริง เพื่อลดความสับสนเมื่อเปิดจากมือถืออีกเครื่อง",
-  "เพิ่มปุ่ม ❓ อธิบายทุกฟังก์ชันใน GM Mode",
-  "เพิ่ม LINE Flex Message สำหรับภารกิจลับพิเศษจาก GM",
-  "เปลี่ยนรูป LINE Flex Message เป็นไฟล์ JPG ขนาดเล็กลง เพื่อให้โหลดไวขึ้น",
-  "อัปเดต BB STATS: การ์ดสถิติเพิ่มเติม ระบบซ่อน/กู้คืน/ลบข้อมูลเฉพาะเครื่อง และ Hidden History แบบใส่รหัส"
+  "แก้ระบบเปิดกล่องสมบัติ: มีกุญแจทองแล้วสามารถเปิดได้ทันที",
+  "แก้บั๊กกดเปิดกล่องแล้วกุญแจหายแต่หน้าต่างรางวัลไม่ขึ้น",
+  "กู้หน้าต่าง/อนิเมชันกล่องสมบัติกลับมา และเพิ่มระบบกันกุญแจหายถ้า modal โหลดไม่ครบ",
+  "เพิ่มปุ่ม GM เปิดหีบสมบัติชั่วคราว 1 ชั่วโมง พร้อมคำอธิบาย ❓",
+  "ปรับข้อความล็อกหีบให้ชัดเจนขึ้นว่าต้องมีกุญแจทองหรืออยู่ช่วงเปิดหีบ"
 ];
 var AV = ['🧙','⚔️','🏹','🧜','🔥','⚡','🌊','🍃','❄️','💫','🦅','🐉','🌸','🗡️','🛡️','👑','🌙','☀️','🎭','✨','🦇','🐺','🧚','🧞','🧟','🤖','👽','👻','☠️','🤡','🦁','🐍','🐢','🐦','🦄','🐝','🦊','🐙','🕷️','🦂','💎','🔮','🪓','🔱','👁️','🪐','☄️','🌪️','🌌','♾️'];
 var AN = ['นักเวทย์','นักรบ','นักธนู','ไฮโดร','ไพโร','อิเล็กโตร','อควา','อะเนโม','ครายโอ','แอสโตร','ฮอว์ค','มังกร','ซากุระ','คาตา','พาลาดิน','ราชัน','ลูน่า','โซลาร์','มายา','ดาวเด่น','แวมไพร์','ไลแคน','แฟรี่','จินนี่','ซอมบี้','ไซบอร์ก','เอเลี่ยน','สเปกเตอร์','เนโครมันเซอร์','โจ๊กเกอร์','ราชสีห์','ไวเปอร์','เก็นบุ','ฟีนิกซ์','ยูนิคอร์น','คิลเลอร์บี','คิทซึเนะ','คราเคน','อารัคเน่','สคอร์เปียน','โกเลม','ออราเคิล','เบอร์เซิร์กเกอร์','โพไซดอน','ผู้หยั่งรู้','คอสมิก','เมเทโอ','พายุหมุน','เนบิวลา','อัลฟ่า'];
@@ -870,20 +869,27 @@ function doGacha() {
   }
 
   var d = new Date(); var day = d.getDay();
+  var hasKey = Number(S.keys || 0) > 0;
   var isTempUnlocked = (S.tempChestUnlockUntil && Date.now() < S.tempChestUnlockUntil);
   
-  if(day !== 0 && day !== 6 && !isTempUnlocked) { 
-    SFX.error(); var lockEl = document.getElementById('gacha-lock-overlay'); if(lockEl) { lockEl.classList.remove('lock-shake'); void lockEl.offsetWidth; lockEl.classList.add('lock-shake'); } showToast('🔒 กล่องถูกปิดผนึก! เปิดได้เฉพาะ เสาร์-อาทิตย์ เท่านั้น');
-    return; 
+  if (!hasKey) { SFX.error(); showToast('❌ ไม่มีกุญแจทอง! (ทำภารกิจ 7 วันรวดเพื่อรับกุญแจ)'); return; }
+
+  var gachaMov = document.getElementById('gacha-mov');
+  var gachaLight = document.getElementById('gacha-light');
+  var chestAnim = document.getElementById('chest-anim');
+  var gRes = document.getElementById('gacha-result');
+  var gachaClose = document.getElementById('gacha-close');
+  if (!gachaMov || !gachaLight || !chestAnim || !gRes || !gachaClose) {
+    SFX.error();
+    showToast('⚠️ ระบบกล่องสมบัติยังโหลดไม่ครบ ลองรีเฟรชแอปก่อน');
+    return;
   }
-  
-  if (S.keys < 1) { SFX.error(); showToast('❌ ไม่มีกุญแจทอง! (ทำภารกิจ 7 วันรวดเพื่อรับกุญแจ)'); return; }
-  
+
   S.keys -= 1; saveLocal(); renderAll(); 
-  document.getElementById('gacha-mov').classList.add('on'); document.getElementById('gacha-light').classList.add('on');
+  gachaMov.classList.add('on'); gachaLight.classList.add('on');
   
-  SFX.drumroll(); var chestAnim = document.getElementById('chest-anim'); chestAnim.classList.remove('chest-open'); chestAnim.classList.add('chest-rumbling');
-  var gRes = document.getElementById('gacha-result'); gRes.style.display = 'none'; document.getElementById('gacha-close').style.display = 'none';
+  SFX.drumroll(); chestAnim.classList.remove('chest-open'); chestAnim.classList.add('chest-rumbling');
+  gRes.style.display = 'none'; gachaClose.style.display = 'none';
   
   var res = getGachaResult();
   
@@ -1155,6 +1161,7 @@ function checkGachaLock() {
   
   // 🌟 เพิ่มการเช็คกุญแจผี 1 ชั่วโมงตรงนี้
   var isTempUnlocked = (S.tempChestUnlockUntil && Date.now() < S.tempChestUnlockUntil);
+  var hasKey = Number(S.keys || 0) > 0;
   
   var gBanner = document.querySelector('[onclick="doGacha()"]');
   if(!gBanner) return;
@@ -1165,12 +1172,12 @@ function checkGachaLock() {
   if(!lockEl) {
     lockEl = document.createElement('div'); lockEl.id = lockId;
     lockEl.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); border-radius:inherit; display:none; flex-direction:column; align-items:center; justify-content:center; z-index:10; border:2px solid #333; backdrop-filter:blur(2px);';
-    lockEl.innerHTML = '<div style="font-size:38px; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.8));">⛓️🔒⛓️</div><div style="color:#ff5252; font-weight:bold; font-size:12px; margin-top:5px; background:rgba(0,0,0,0.7); padding:4px 10px; border-radius:15px;">เปิดได้เฉพาะ เสาร์-อาทิตย์</div>';
+    lockEl.innerHTML = '<div style="font-size:38px; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.8));">⛓️🔒⛓️</div><div style="color:#ff5252; font-weight:bold; font-size:12px; margin-top:5px; background:rgba(0,0,0,0.7); padding:4px 10px; border-radius:15px;">ต้องมีกุญแจทอง หรือเปิดช่วงเสาร์-อาทิตย์</div>';
     gBanner.appendChild(lockEl);
   }
   
-  // 🌟 ถ้าเป็นวันหยุด หรือ ใช้กุญแจผีปลดล็อคชั่วคราว ให้เอาแม่กุญแจออก
-  if(isWeekend || isTempUnlocked) { 
+  // ถ้าเป็นวันหยุด, ปลดล็อกชั่วคราว, หรือมีกุญแจทอง ให้เอาแม่กุญแจออก
+  if(isWeekend || isTempUnlocked || hasKey) { 
     gBanner.style.transform = 'scale(1)'; 
     gBanner.style.filter = 'grayscale(0)'; 
     lockEl.style.setProperty('display', 'none', 'important'); 
@@ -1438,7 +1445,8 @@ var GM_HELP_CONTENT = {
   bossHof: { title: 'รีเซ็ตบอส & ยึดตรา HOF', body: '<p>ใช้ตั้งค่าเป้าหมายบอสใหม่ และสามารถติ๊กเพื่อยึดตรา Hall of Fame กลับไปล็อกได้ เหมาะสำหรับแก้ข้อมูลผิดหรือเริ่มชาเลนจ์ใหม่</p>' },
   run: { title: 'รันคำสั่งลับ', body: '<p>ปุ่มนี้จะส่งค่าทั้งหมดใน GM Mode ไปปรับข้อมูลจริง ก่อนกดควรตรวจว่าช่องที่ไม่ต้องการแก้เว้นว่างไว้ และเลือกเฉพาะไอเท็ม/ตัวเลือกที่ต้องการจริง ๆ</p>' },
   repair: { title: 'ศูนย์ซ่อมข้อมูล', body: '<p>ใช้แก้ค่าหลักของระบบแบบละเอียด เช่น เหรียญ, EXP, ไอเท็ม, ค่าสถิติ และ Log เหมาะสำหรับแก้ข้อมูลที่ผิดจริง ๆ โดยต้องใส่รหัสผู้ปกครอง</p>' },
-  backdate: { title: 'ส่งภารกิจย้อนหลัง', body: '<p>ใช้บันทึกภารกิจของวันที่ผ่านมา ระบบจะบันทึกตามวันที่เลือกและเรียงข้อมูลสถิติให้ถูกวัน เหมาะกับกรณีลืมส่งภารกิจเมื่อวานหรือส่งไม่ทันก่อนข้ามวัน</p>' }
+  backdate: { title: 'ส่งภารกิจย้อนหลัง', body: '<p>ใช้บันทึกภารกิจของวันที่ผ่านมา ระบบจะบันทึกตามวันที่เลือกและเรียงข้อมูลสถิติให้ถูกวัน เหมาะกับกรณีลืมส่งภารกิจเมื่อวานหรือส่งไม่ทันก่อนข้ามวัน</p>' },
+  unlockChest: { title: 'เปิดหีบสมบัติชั่วคราว', body: '<p>ปลดล็อกสถานะหีบสมบัติเป็นเวลา 1 ชั่วโมง เหมาะสำหรับกรณีผู้ปกครองต้องการอนุญาตให้เปิดหีบนอกเวลาปกติ หลังครบเวลา ระบบจะกลับไปใช้กฎเดิมอัตโนมัติ</p>' }
 };
 
 function openGmHelp(key) {
@@ -1487,7 +1495,7 @@ function bindAll(){
   a('feel-sl', 'input', function(){ updateFeel(this.value); });
    
   bindGmHelpButtons(); a('gm-help-close', 'click', closeGmHelp);
-  a('btn-submit', 'click', doSubmit); a('btn-reset', 'click', doReset); a('btn-gm-submit', 'click', doGmSubmit); a('btn-open-repair', 'click', openRepairCenter); a('btn-repair-submit', 'click', doRepairSubmit); a('btn-repair-close', 'click', closeRepairCenter); a('btn-open-backdate', 'click', openBackdateQuest); a('btn-backdate-submit', 'click', doBackdateSubmit); a('btn-backdate-close', 'click', closeBackdateQuest);
+  a('btn-submit', 'click', doSubmit); a('btn-reset', 'click', doReset); a('btn-gm-submit', 'click', doGmSubmit); a('btn-gm-unlock-chest', 'click', gmTempUnlockChest); a('btn-open-repair', 'click', openRepairCenter); a('btn-repair-submit', 'click', doRepairSubmit); a('btn-repair-close', 'click', closeRepairCenter); a('btn-open-backdate', 'click', openBackdateQuest); a('btn-backdate-submit', 'click', doBackdateSubmit); a('btn-backdate-close', 'click', closeBackdateQuest);
   ['bd-q1','bd-q2','bd-q3','bd-bonus','bd-apply-streak'].forEach(function(id){ a(id, 'input', updateBackdatePreview); a(id, 'change', updateBackdatePreview); });
   a('inv-ph-row', 'click', usePhoenix); a('inv-tk-row', 'click', useTicket);
   a('sh-food-btn', 'click', buyFood);
@@ -1798,6 +1806,15 @@ function updateGmStatus() {
 }
 
 // 🔓 ระบบปลดล็อกหีบสมบัติชั่วคราว (1 ชั่วโมง)
+
+function gmTempUnlockChest() {
+  S.tempChestUnlockUntil = Date.now() + (60 * 60 * 1000);
+  saveLocal();
+  renderAll();
+  showToast('🔓 เปิดหีบสมบัติชั่วคราว 1 ชั่วโมงแล้ว');
+  var gm = document.getElementById('gm-modal');
+  if (gm) gm.classList.remove('on');
+}
 window.devTempUnlockChest = function() {
   // บวกเวลาไปอีก 1 ชั่วโมง (60 นาที * 60 วินาที * 1000 มิลลิวินาที)
   S.tempChestUnlockUntil = Date.now() + (60 * 60 * 1000); 
@@ -1810,7 +1827,7 @@ window.devTempUnlockChest = function() {
 function checkGmNotif() {
   // ตรวจสอบว่ามีการส่งคำสั่ง GM และน้องยังไม่ได้กดรับทราบ
   if (S.gmSubmitted && S.gmPopupSeen === false) {
-    let msg = "<b>มีการอัปเดตจากปะป๊า!</b><br>";
+    let msg = "<b>มีข้อความจาก GM</b><br>";
     if (S.specialCoin !== 0) msg += "• B-Coin: " + (S.specialCoin > 0 ? "+" : "") + S.specialCoin + " เหรียญ<br>";
     if (S.achievement) msg += "• บันทึก: " + S.achievement;
     

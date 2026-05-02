@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="UTF-8">
@@ -9,9 +9,9 @@
 <meta name="theme-color" content="#1e1e1e">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="manifest" href="manifest.json?v=1.0.3">
+<link rel="manifest" href="manifest.json?v=1.0.5">
 <title>RPG BIFROST</title>
-<link rel="stylesheet" href="style.css?v=1.0.3">
+<link rel="stylesheet" href="style.css?v=1.0.5">
 
 <style>
   
@@ -346,7 +346,7 @@
       <div class="card" id="gacha-card" style="background: linear-gradient(45deg, #1e293b, #0f172a); border: 2px solid var(--gold); margin-top: 15px; margin-bottom: 20px; overflow: hidden; position: relative; transition: all 0.3s;">
         <div id="gacha-lock-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10; display: flex; flex-direction: column; justify-content: center; align-items: center; backdrop-filter: blur(2px); display: none;">
           <div style="font-size: 45px; text-shadow: 0 0 10px #000;">⛓️🔒⛓️</div>
-          <div style="color: #ff4d4d; font-weight: bold; font-size: 13px; margin-top: 8px; text-shadow: 0 0 5px #000; letter-spacing: 1px;">หีบถูกล็อค! เปิดได้เฉพาะ เสาร์-อาทิตย์</div>
+          <div style="color: #ff4d4d; font-weight: bold; font-size: 13px; margin-top: 8px; text-shadow: 0 0 5px #000; letter-spacing: 1px;">ต้องมีกุญแจทอง หรือเปิดช่วงเสาร์-อาทิตย์</div>
         </div>
         <div style="position: absolute; right: -10px; top: -10px; font-size: 80px; opacity: 0.1; z-index: 1;">🎁</div>
         <div class="ct" style="color: var(--gold); text-shadow: 0 0 10px rgba(184,144,32,0.5); position: relative; z-index: 2;">✨ B TREASURE BOX</div>
@@ -388,6 +388,25 @@
   <div class="cfmb">
     <div class="cfm-i" id="ci"></div><div class="cfm-t" id="ct2"></div><div class="cfm-m" id="cm"></div>
     <div class="cfm-r"><button class="bdim" id="cfm-no">ยกเลิก</button><button class="btn bg" id="cfm-yes">ยืนยัน</button></div>
+  </div>
+</div>
+<div class="mov" id="gacha-mov" style="background: rgba(0,0,0,0.95); z-index: 9999;">
+  <div id="gacha-light" class="gacha-light"></div>
+  <div class="firework fw-1">🎆</div><div class="firework fw-2">🎇</div><div class="firework fw-3">✨</div>
+  <div class="mpan" id="gacha-panel" style="background: transparent; border: none; box-shadow: none; overflow: visible;">
+    <div id="chest-anim" class="chest-container"><div class="chest-box">📦</div></div>
+    <div id="gacha-result" class="gacha-result" style="position: relative;">
+      <div id="gr-rarity" class="gr-rarity">COMMON</div>
+      <div id="gr-ico" class="gr-ico">🎁</div>
+      <div id="gr-big-coin" class="gr-big-coin">+300 B-Coin</div>
+      <div id="gr-ttl" class="gr-ttl">รางวัลที่ได้รับ</div>
+      <div id="gr-desc" class="gr-desc">รายละเอียด</div>
+      <div id="gr-action" class="gr-action" style="display: none;">
+        <input type="text" id="gr-input" class="fi" style="background: #fff; color: #000; margin-top: 10px;" placeholder="พิมพ์เมนูที่ต้องการ...">
+        <button class="btn bg" id="gr-btn" style="width: 100%; margin-top: 15px;">ตกลง</button>
+      </div>
+      <button class="btn" id="gacha-close" style="width: 100%; margin-top: 20px; background: #333; color: #fff; display: none;" onclick="closeGacha()">รับรางวัล</button>
+    </div>
   </div>
 </div>
 <div class="mov" id="version-update-modal" style="z-index: 3000000; align-items:center; justify-content:center; padding:18px;">
@@ -565,6 +584,8 @@
       <div class="gm-help-line">⚙️ รันคำสั่งลับ <button type="button" class="gm-help-btn" data-gm-help="run" title="อธิบายปุ่มรันคำสั่ง">❓</button></div>
       <button class="btn" id="btn-gm-submit" style="width:100%; background:var(--gold); color:#000; font-weight:bold; padding:15px;">⚙️ รันคำสั่งลับ</button>
       
+      <div class="gm-help-line">🔓 เปิดหีบสมบัติชั่วคราว <button type="button" class="gm-help-btn" data-gm-help="unlockChest" title="อธิบายเปิดหีบชั่วคราว">❓</button></div>
+      <button class="btn" id="btn-gm-unlock-chest" style="width:100%; background:#4c1d95; color:#fff; border:1px solid #c084fc; padding:15px; margin-bottom:8px;">🔓 เปิดหีบสมบัติชั่วคราว 1 ชั่วโมง</button>
       <div class="gm-help-line">🛠️ ศูนย์ซ่อมข้อมูล <button type="button" class="gm-help-btn" data-gm-help="repair" title="อธิบายศูนย์ซ่อมข้อมูล">❓</button></div>
       <button class="btn" id="btn-open-repair" style="width:100%; background:#243b55; color:#fff; border:1px solid #4fc3f7; padding:15px; margin-bottom:8px;">🛠️ เปิดศูนย์ซ่อมข้อมูล</button>
       <div class="gm-help-line">📅 ส่งภารกิจย้อนหลัง <button type="button" class="gm-help-btn" data-gm-help="backdate" title="อธิบายส่งภารกิจย้อนหลัง">❓</button></div>
@@ -581,7 +602,7 @@
     <div id="gm-help-body" class="gm-help-body"></div>
   </div>
 </div>
-<script src="script.js?v=1.0.4"></script>
+<script src="script.js?v=1.0.5"></script>
 <script>
   document.querySelectorAll('.bnav .ni').forEach(el => {
     el.addEventListener('click', function() {
