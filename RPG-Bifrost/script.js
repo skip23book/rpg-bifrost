@@ -12,11 +12,92 @@ var AV = ['🧙','⚔️','🏹','🧜','🔥','⚡','🌊','🍃','❄️','�
 var AN = ['นักเวทย์','นักรบ','นักธนู','ไฮโดร','ไพโร','อิเล็กโตร','อควา','อะเนโม','ครายโอ','แอสโตร','ฮอว์ค','มังกร','ซากุระ','คาตา','พาลาดิน','ราชัน','ลูน่า','โซลาร์','มายา','ดาวเด่น','แวมไพร์','ไลแคน','แฟรี่','จินนี่','ซอมบี้','ไซบอร์ก','เอเลี่ยน','สเปกเตอร์','เนโครมันเซอร์','โจ๊กเกอร์','ราชสีห์','ไวเปอร์','เก็นบุ','ฟีนิกซ์','ยูนิคอร์น','คิลเลอร์บี','คิทซึเนะ','คราเคน','อารัคเน่','สคอร์เปียน','โกเลม','ออราเคิล','เบอร์เซิร์กเกอร์','โพไซดอน','ผู้หยั่งรู้','คอสมิก','เมเทโอ','พายุหมุน','เนบิวลา','อัลฟ่า'];
 var CHAR_NAMES=['นักดาบฝึกหัด','นักรบฝึกหัด','สำนักดาบ','ทหารยาม','อัศวินสามัญ','ผู้พิทักษ์','นักรบแนวหน้า','อัศวินศักดิ์สิทธิ์','พาลาดินศักดิ์สิทธิ์','เทมพลาร์หลวง','อัศวินองครักษ์','อัศวินเพลิง','จทัพศักดิ์สิทธิ์','นักดาบเงา','อัศวินรัตติกาล','จ้าวแห่งเพลิง','ผู้พิทักษ์เหมันต์','จ้าวแห่งพายุ','ผู้พิทักษ์สวรรค์','ตำนานนิรันดร์'];
 var FEEL=[null,{i:'😫',l:'เหนื่อยมาก'},{i:'😔',l:'ค่อนข้างเหนื่อย'},{i:'😐',l:'พอสู้ได้'},{i:'😊',l:'ดีมาก'},{i:'🌟',l:'ยอดเยี่ยม!'}];
-var HOF_INFO = { shark: { i: '🦈', t: 'บอสฉลามขาว', c: 'ว่ายฟรีสไตล์ต่ำกว่าเป้าหมาย' }, book:  { i: '📚', t: 'บอสหมอโหด', c: 'สอบได้คะแนน >= 90% (โดนยึดคืนถ้าคะแนนตก)' }, heart: { i: '❤️', t: 'บอสมุ่งมั่น', c: 'ได้ดาบทอง 7 วันรวด (โดนยึดคืนถ้าพลาด)' }, pole: { i: '🦒', t: 'บอสเสาไฟ', c: 'ส่วนสูงเพิ่มขึ้นทุกๆ 2 ซม.' }, shrimp: { i: '💪', t: 'บอสกุ้งแห้งเล่นเวท', c: 'น้ำหนักเพิ่มขึ้นทุกๆ 2 กก.' } };
-var BOSS_DETAILS = { shark: { i: '🦈', t: 'บอสฉลามขาว', c: 'ว่าย Sprint ฟรีสไตล์ 25 เมตร เพื่อล้มบอสไปทีละด่าน!\n(ทีละ 1 วิ)', r: '🏆 ล้มบอสระดับ 25-21 วิ รับ 50 B-Coin |\nระดับ 20 วิลงไป รับ 200 B-Coin!', n: 'บอสจะโผล่มาให้สู้ทีละด่านเท่านั้น เริ่มต้นที่ด่าน 25 วิ!' }, book: { i: '📚', t: 'บอสหมอโหด', c: 'ทำคะแนนสอบวิชาใดก็ได้ให้ได้ตั้งแต่ 90% ขึ้นไป', r: '💎 +300 B-Coin และปลดล็อกตราคัมภีร์', n: 'ระวัง!\nถ้าสอบครั้งถัดไปได้น้อยกว่า 90% ตราจะหายไปนะ' }, heart: { i: '❤️', t: 'บอสมุ่งมั่น', c: 'ทำภารกิจรายวัน (โซน 1) ให้ครบทั้ง 3 ข้อ ติดต่อกัน 7 วัน (จันทร์-อาทิตย์)', r: '🌟 +18 B-Coin และปลดล็อกตราหัวใจเหล็กไหล (พร้อมกุญแจทอง 2 ดอก)', n: 'ถ้าพลาดแม้แต่วันเดียวในสัปดาห์ ตราจะโดนยึดคืนทันที' }, pole: { i: '🦒', t: 'บอสเสาไฟ', c: 'ส่วนสูงเพิ่มขึ้นทุกๆ 2 เซนติเมตร จากฐานความสูงเดิมของคุณ', r: '💰 +30 B-Coin (รับได้เรื่อยๆ ทุกครั้งที่สูงขึ้น)', n: 'ปัดเศษทศนิยมทิ้ง นับเฉพาะจำนวนเต็มที่เพิ่มขึ้น' }, shrimp: { i: '💪', t: 'บอสกุ้งแห้งเล่นเวท', c: 'น้ำหนักตัวเพิ่มขึ้นทุกๆ 2 กิโลกรัม จากฐานน้ำหนักเดิม (เน้นความแข็งแรง)', r: '🍖 +30 B-Coin (รับได้เรื่อยๆ เมื่อตัวหนาขึ้น)', n: 'กินอาหารที่มีประโยชน์เพื่อเอาชนะบอสตัวนี้!' } };
+var HOF_INFO = { shark: { i: '🦈', t: 'บอสฉลามขาว', c: 'ว่ายฟรีสไตล์ต่ำกว่าเป้าหมาย' }, book:  { i: '📚', t: 'บอสหมอโหด', c: 'สอบได้คะแนน >= 90% (โดนยึดคืนถ้าคะแนนตก)' }, heart: { i: '❤️', t: 'บอสมุ่งมั่น', c: 'ผจญภัยสะสมครบ 7 ครั้ง (ไม่ต้องต่อเนื่อง)' }, pole: { i: '🦒', t: 'บอสเสาไฟ', c: 'ส่วนสูงเพิ่มขึ้นทุกๆ 2 ซม.' }, shrimp: { i: '💪', t: 'บอสกุ้งแห้งเล่นเวท', c: 'น้ำหนักเพิ่มขึ้นทุกๆ 2 กก.' } };
+var BOSS_DETAILS = { shark: { i: '🦈', t: 'บอสฉลามขาว', c: 'ว่าย Sprint ฟรีสไตล์ 25 เมตร เพื่อล้มบอสไปทีละด่าน!\n(ทีละ 1 วิ)', r: '🏆 ล้มบอสระดับ 25-21 วิ รับ 50 B-Coin |\nระดับ 20 วิลงไป รับ 200 B-Coin!', n: 'บอสจะโผล่มาให้สู้ทีละด่านเท่านั้น เริ่มต้นที่ด่าน 25 วิ!' }, book: { i: '📚', t: 'บอสหมอโหด', c: 'ทำคะแนนสอบวิชาใดก็ได้ให้ได้ตั้งแต่ 90% ขึ้นไป', r: '💎 +300 B-Coin และปลดล็อกตราคัมภีร์', n: 'ระวัง!\nถ้าสอบครั้งถัดไปได้น้อยกว่า 90% ตราจะหายไปนะ' }, heart: { i: '❤️', t: 'บอสมุ่งมั่น', c: 'ส่งภารกิจประจำวันสะสมให้ครบ 7 ครั้ง (ไม่ต้องต่อเนื่อง อยากทำเมื่อไหร่ก็ทำ)', r: '🌟 +18 B-Coin และปลดล็อกตราหัวใจเหล็กไหล (พร้อมกุญแจทอง 2 ดอก)', n: 'ภารกิจจะรีเซ็ตเฉพาะเมื่อสะสมครบ 7 ครั้งและรับรางวัลเรียบร้อยแล้ว' }, pole: { i: '🦒', t: 'บอสเสาไฟ', c: 'ส่วนสูงเพิ่มขึ้นทุกๆ 2 เซนติเมตร จากฐานความสูงเดิมของคุณ', r: '💰 +30 B-Coin (รับได้เรื่อยๆ ทุกครั้งที่สูงขึ้น)', n: 'ปัดเศษทศนิยมทิ้ง นับเฉพาะจำนวนเต็มที่เพิ่มขึ้น' }, shrimp: { i: '💪', t: 'บอสกุ้งแห้งเล่นเวท', c: 'น้ำหนักตัวเพิ่มขึ้นทุกๆ 2 กิโลกรัม จากฐานน้ำหนักเดิม (เน้นความแข็งแรง)', r: '🍖 +30 B-Coin (รับได้เรื่อยๆ เมื่อตัวหนาขึ้น)', n: 'กินอาหารที่มีประโยชน์เพื่อเอาชนะบอสตัวนี้!' } };
 
 var S={ coins:0, todayCoins:0, todayGmCoins:0, w:'', h:'', exp:0, expMax:100, lv:1, curAv:0, selAv:0, phoenix:0, ticket:0, bcards:0, bcUsed:0, bcTotal: 0, bcList: [], keys:0, streak:['grey','grey','grey','grey','grey','grey','grey'], currentDayIndex: 0, lastSyncDate: null, quests:[false,false,false], pin:'', PIN:'2308', pending:null, pendingReward:null, submitted:false, gmSubmitted:false, isResubmit: false, feeling:3, illness:'ไม่มี', swimFr:'', swimBt:'', swimFg:'', swimBk:'', laps:'', achievement:'', specialCoin:0, gpa:'', score:'', weekKey:'', phWeekBought:0, foodWeekBought:0, monthBest:{fr:null,bt:null,fg:null,bk:null}, allBest:{fr:null,bt:null,fg:null,bk:null}, hof: { shark: false, book: false, heart: false }, bossTargets: { speed: 25, heightBase: 129, weightBase: 24 }, todayGacha: [], todayItemsUsed: [], gmBuffs: { jackpot: false, prophecy: '', buddy: false }, gmPopupSeen: true, prophecySeen: true };
 var qcnt=0, chIdx=0;
+
+// 🛠️ [v1.1.1] Dev Tools Bar delegated handler — แทน inline onclick="devXxx()"
+// เดิม: 9 ปุ่มมี inline onclick + inline style → HTML รก override CSS ยาก
+// ใหม่: data-dev-action + class ตาม BEM, ฟังก์ชันยังคงเดิม (devQuickComplete, etc.)
+(function setupDevToolsBar_(){
+  if (typeof document === 'undefined') return;
+  var DEV_ACTIONS = {
+    quickComplete:    function(){ if (typeof devQuickComplete    === 'function') devQuickComplete(); },
+    levelUp:          function(){ if (typeof devLevelUp          === 'function') devLevelUp(); },
+    addExp:           function(){ if (typeof devAddExp           === 'function') devAddExp(); },
+    addCoin:          function(){ if (typeof devAddCoin          === 'function') devAddCoin(); },
+    addKey:           function(){ if (typeof devAddKey           === 'function') devAddKey(); },
+    nextDay:          function(){ if (typeof devNextDay          === 'function') devNextDay(); },
+    tempUnlockChest:  function(){ if (typeof devTempUnlockChest  === 'function') devTempUnlockChest(); },
+    hardReset:        function(){ if (typeof devHardReset        === 'function') devHardReset(); },
+    close:            function(){ var bar = document.getElementById('dev-tools-bar'); if (bar) bar.classList.remove('on'); }
+  };
+  document.addEventListener('click', function(e){
+    var btn = e.target && e.target.closest && e.target.closest('[data-dev-action]');
+    if (!btn) return;
+    var action = btn.getAttribute('data-dev-action');
+    var fn = DEV_ACTIONS[action];
+    if (fn) fn();
+  });
+})();
+
+// 🌙 [v1.1.1] Service Worker registration — รองรับ offline mode + cache static assets
+// DEV_MODE = true จะข้าม register เพื่อให้ผู้พัฒนาดู change ทันที (กัน cache stale)
+(function registerServiceWorker_(){
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+  if (BIFROST_DEV_MODE) {
+    // ใน DEV mode: ถ้ามี SW ติดอยู่ ให้ unregister เพื่อให้เห็น code ใหม่ทันที
+    navigator.serviceWorker.getRegistrations && navigator.serviceWorker.getRegistrations().then(function(regs){
+      regs.forEach(function(r){ r.unregister(); });
+    }).catch(function(){});
+    return;
+  }
+  if (typeof window !== 'undefined') {
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('sw.js?v=' + APP_VERSION).then(function(reg){
+        // เช็ค update ใหม่ทุกครั้งที่กลับมาที่หน้า
+        if (reg && reg.update) { try { reg.update(); } catch(_){} }
+      }).catch(function(err){
+        if (typeof console !== 'undefined' && console.warn) console.warn('[SW] register failed', err);
+      });
+    });
+  }
+})();
+
+// 🛡️ [v1.1.1] Global error handler — จับ promise reject + uncaught error ไม่ให้ silent fail
+// ใช้ flag กัน toast spam ระหว่าง burst ของ rejections (เช่น network ดับ → fetch หลายตัวพังพร้อมกัน)
+(function setupGlobalErrorHandlers_(){
+  if (typeof window === 'undefined') return;
+  var lastToastAt = 0;
+  var TOAST_COOLDOWN_MS = 3000;
+  function notifyOnce_(msg) {
+    var now = Date.now();
+    if (now - lastToastAt < TOAST_COOLDOWN_MS) return;
+    lastToastAt = now;
+    if (typeof showToast === 'function') {
+      showToast(msg);
+    }
+  }
+  window.addEventListener('unhandledrejection', function(event) {
+    var reason = event && event.reason;
+    var msg = (reason && (reason.message || reason.toString && reason.toString())) || 'Unknown rejection';
+    if (BIFROST_DEV_MODE && typeof console !== 'undefined' && console.error) console.error('[unhandledrejection]', reason);
+    notifyOnce_('⚠️ ระบบทำงานสะดุด: ' + String(msg).substring(0, 80));
+    // ไม่ preventDefault — ให้ console เห็นด้วย เผื่อ debug
+  });
+  window.addEventListener('error', function(event) {
+    if (!event) return;
+    var msg = event.message || (event.error && event.error.message) || 'Unknown error';
+    if (BIFROST_DEV_MODE && typeof console !== 'undefined' && console.error) console.error('[window.error]', event.error || msg);
+    // ไม่แจ้ง toast ทุกครั้ง เพราะ syntax error ภายในที่จับด้วย try/catch ก็จะมา trigger ที่นี่ได้
+    // แจ้งเฉพาะถ้ามาจาก network/script load failure
+    if (event.filename && /\.(js|css)(\?|$)/.test(event.filename)) {
+      notifyOnce_('⚠️ โหลด resource ไม่สำเร็จ: ' + (event.filename.split('/').pop() || ''));
+    }
+  });
+})();
 
 // 🔊 เสียง 8-Bit
 var actx;
@@ -395,6 +476,19 @@ function clearCloudDraft_() {
   var payload = { _draftCleared: true, _draftUpdatedAt: new Date().toISOString(), _draftDeviceId: getDraftDeviceId_(), _draftDeviceName: getDraftDeviceName_() };
   sendRetryablePost_('DRAFT_CLEAR', { syncType: 'DRAFT', syncDate: todayStr, payload: payload, clearDraft: true }, { dedupeKey: 'draft:' + todayStr, noCors: true });
 }
+// 🛡️ [v1.1.1] Debounce autoSyncDraft — รวม blur events ที่กระชั้นกัน เป็น 1 cloud call
+// เดิม: ผู้ใช้คลิก field A→B→C ภายใน 2 วิ ส่ง cloud sync 3 ครั้ง
+// ใหม่: รอจังหวะนิ่ง 1 วินาที แล้วค่อย sync รวบยอด
+var _autoSyncDraftTimer = null;
+function autoSyncDraftDebounced(e) {
+  if (_autoSyncDraftTimer) clearTimeout(_autoSyncDraftTimer);
+  // เก็บ event ไว้แค่ส่วนที่จำเป็น เพราะ React-style synthetic events อาจ recycle
+  var ev = e ? { target: e.target } : null;
+  _autoSyncDraftTimer = setTimeout(function() {
+    _autoSyncDraftTimer = null;
+    autoSyncDraft(ev);
+  }, 1000);
+}
 function autoSyncDraft(e) {
   if (S.submitted) { clearCloudDraft_(); return; }
   var payload = getQuestDraftPayload_();
@@ -417,20 +511,25 @@ function autoSyncDraft(e) {
 }
 function processAutoNextDay() {
   var now = new Date();
-  var todayStr = now.toLocaleDateString('en-CA'); 
-  
+  var todayStr = now.toLocaleDateString('en-CA');
+
   if (!S.lastSyncDate) { S.lastSyncDate = todayStr; saveLocal(); return; }
   if (S.lastSyncDate === todayStr) return;
+
+  // 🛡️ [v1.1.1] เปลี่ยนจาก fire-and-forget เป็น sequential Promise chain
+  // เดิม: ส่ง ARCHIVE_AUTO_DAY ทุกวันแบบไม่รอ → ถ้าเน็ตหลุด ระหว่างวัน 2-3 อาจหายเงียบ
+  // ใหม่: เก็บ payload แต่ละวันก่อน แล้วส่งเรียงลำดับ ถ้าวันก่อนหน้ายังไม่สำเร็จก็จะอยู่ใน retry queue
+  var hasUrl = !!(SHEET_URL && SHEET_URL.length >= 10);
+  var pendingArchives = []; // [{label, payload}]
 
   var lastDate = new Date(S.lastSyncDate);
   while (lastDate.toLocaleDateString('en-CA') < todayStr) {
     var dateLabel = lastDate.toLocaleDateString('th-TH', {year:'numeric',month:'long',day:'numeric'});
     if(S.gmBuffs) S.gmBuffs.secretQuest = '';
-   
 
-    if(!SHEET_URL || SHEET_URL.length < 10) return;
-    var payload = Object.assign({}, S, { syncDate: dateLabel });
-    sendRetryablePost_('ARCHIVE_AUTO_DAY', payload, { dedupeKey: 'archive:' + dateLabel, noCors: true });
+    if (hasUrl) {
+      pendingArchives.push({ label: dateLabel, payload: Object.assign({}, S, { syncDate: dateLabel }) });
+    }
 
     S.submitted = false; S.gmSubmitted = false; S.isResubmit = false;
     S.quests = [false, false, false];
@@ -455,7 +554,22 @@ function processAutoNextDay() {
   [1,2,3].forEach(function(n){ var qc = document.getElementById('qc'+n); if(qc) { qc.classList.remove('on'); qc.textContent=''; } var qi = document.getElementById('qi'+n); if(qi) qi.classList.remove('done'); });
   qcnt = 0; var qbar = document.getElementById('qbar'); if(qbar) qbar.innerHTML = 'ติ๊ก <b>0</b>/3 ภารกิจ';
   ['in-w','in-h','in-lp','in-fr','in-bt','in-fg','in-bk','in-gpa','in-sc'].forEach(function(id){ var el = document.getElementById(id); if(el) el.value = ''; });
-  
+
+  // 🛡️ [v1.1.1] ส่ง archive ของแต่ละวันเรียงลำดับ — แต่ละชิ้นมี dedupeKey ของตัวเอง
+  // ถ้าหลุดกลางทาง เครือข่าย sendRetryablePost_ จะใส่ลง retry queue ให้
+  if (pendingArchives.length) {
+    var chain = Promise.resolve();
+    pendingArchives.forEach(function(item) {
+      chain = chain.then(function() {
+        return sendRetryablePost_('ARCHIVE_AUTO_DAY', item.payload, { dedupeKey: 'archive:' + item.label, noCors: true })
+          .catch(function(err){
+            if (BIFROST_DEV_MODE && console && console.warn) console.warn('[autoNextDay] archive ' + item.label + ' deferred to retry queue', err);
+            return null; // ไม่ break chain — ให้วันถัดๆ ไปลองส่งต่อ (อยู่ใน retry queue ของตัวเองแล้ว)
+          });
+      });
+    });
+  }
+
   autoSyncDraft();
 }
 
@@ -490,10 +604,11 @@ function gasCall(fn, args, ok, fail) {
       if (args.score) { var sc = parseFloat(args.score);
         if (sc >= 90) { bossRewards.push({ title: 'บอสหมอโหด', coin: 300, desc: 'สอบได้ Rank S (' + sc + '%)', icon: '📚' }); earn += 300; S.hof.book = true; } else { S.hof.book = false; } 
       }
-      if (!isPerfectToday) { S.hof.heart = false; }
-      
-      if (S.currentDayIndex === 6 && S.streak.every(s => s === 'gold')) { 
-        bossRewards.push({ title: 'บอสมุ่งมั่น', coin: 18, desc: 'ภารกิจ 7 วันรวด! (รับกุญแจทอง 2 ดอก)', icon: '❤️' }); earn += 18; S.keys += 2; S.hof.heart = true; 
+      // 🛡️ [v1.1.1-rule-update] กฎใหม่: ผจญภัยสะสม 7 ครั้ง = รับรางวัล (ไม่ต้องต่อเนื่อง/perfect)
+      // เดิม: ต้อง every === 'gold' (ทุก slot perfect) ถึงได้รางวัล + ลบตราถ้าวันใดไม่ perfect
+      // ใหม่: แค่ submit ครบ 7 ครั้งใน cycle ก็พอ — ตราคงอยู่ ไม่ลบถ้าวันใดวันหนึ่งไม่ perfect
+      if (S.currentDayIndex === 6) {
+        bossRewards.push({ title: 'บอสมุ่งมั่น', coin: 18, desc: 'ผจญภัยครบ 7 ครั้ง! (รับกุญแจทอง 2 ดอก)', icon: '❤️' }); earn += 18; S.keys += 2; S.hof.heart = true;
       }
       
       if (args.h) { var hFloor = Math.floor(parseFloat(args.h));
@@ -770,17 +885,49 @@ function finishQuestSubmitState_(success) {
     setTimeout(function(){ var ok = document.getElementById('submit-ok'); if(ok) ok.classList.remove('on'); }, 1800);
   }
 }
-function doSubmit(){ 
+// 🛡️ [v1.1.1] Validate ฟอร์มก่อนส่ง — เดิมส่ง raw value ตรงๆ เสี่ยงเซฟ NaN/ค่าผิดช่วง
+function validateQuestForm_(qd) {
+  var errors = [];
+  function num(v){ return v === '' || v === undefined || v === null ? null : Number(v); }
+  function chk(field, label, opts) {
+    var v = num(qd[field]);
+    if (v === null) return; // อนุญาตเว้นว่าง
+    if (!Number.isFinite(v)) { errors.push(label + ' ต้องเป็นตัวเลข'); return; }
+    if (opts.min !== undefined && v < opts.min) errors.push(label + ' ต้องไม่น้อยกว่า ' + opts.min);
+    if (opts.max !== undefined && v > opts.max) errors.push(label + ' ต้องไม่มากกว่า ' + opts.max);
+  }
+  chk('w',     'น้ำหนัก',   { min: 5,  max: 250 });
+  chk('h',     'ส่วนสูง',   { min: 30, max: 250 });
+  chk('laps',  'จำนวนรอบ', { min: 0,  max: 200 });
+  chk('swimFr','ฟรีสไตล์',  { min: 0,  max: 600 });
+  chk('swimBk','กรรเชียง',  { min: 0,  max: 600 });
+  chk('swimFg','กบ',         { min: 0,  max: 600 });
+  chk('swimBt','ผีเสื้อ',    { min: 0,  max: 600 });
+  chk('gpa',   'GPA',        { min: 0,  max: 4 });
+  chk('score', 'คะแนนสอบ',  { min: 0,  max: 100 });
+  return errors;
+}
+
+function doSubmit(){
   if (questSubmitBusy) return;
-  if(S.submitted) { showToast('วันนี้ส่งภารกิจไปแล้วครับ!'); return; } 
+  if(S.submitted) { showToast('วันนี้ส่งภารกิจไปแล้วครับ!'); return; }
+
+  var questData={ q1: S.quests[0], q2: S.quests[1], q3: S.quests[2], w: document.getElementById('in-w')?.value || '', h: document.getElementById('in-h')?.value || '', laps: document.getElementById('in-lp')?.value || '', swimFr: document.getElementById('in-fr')?.value || '', swimBt: document.getElementById('in-bt')?.value || '', swimFg: document.getElementById('in-fg')?.value || '', swimBk: document.getElementById('in-bk')?.value || '', feeling: S.feeling, gpa: document.getElementById('in-gpa')?.value || '', score: document.getElementById('in-sc')?.value || '', illness: document.getElementById('in-ill')?.value || 'ไม่มี' };
+
+  // 🛡️ [v1.1.1] ตรวจค่าก่อนส่ง — ถ้าผิดให้บอก user แล้วไม่ทำอะไรต่อ
+  var validationErrors = validateQuestForm_(questData);
+  if (validationErrors.length) {
+    showToast('❌ ' + validationErrors[0]);
+    return;
+  }
+
   questSubmitBusy = true;
   var submitBtn = document.getElementById('btn-submit');
   var draftBtn = document.getElementById('btn-draft');
   if (submitBtn) submitBtn.disabled = true;
   if (draftBtn) draftBtn.disabled = true;
-  SFX.submit(); 
-  
-  var questData={ q1: S.quests[0], q2: S.quests[1], q3: S.quests[2], w: document.getElementById('in-w')?.value || '', h: document.getElementById('in-h')?.value || '', laps: document.getElementById('in-lp')?.value || '', swimFr: document.getElementById('in-fr')?.value || '', swimBt: document.getElementById('in-bt')?.value || '', swimFg: document.getElementById('in-fg')?.value || '', swimBk: document.getElementById('in-bk')?.value || '', feeling: S.feeling, gpa: document.getElementById('in-gpa')?.value || '', score: document.getElementById('in-sc')?.value || '', illness: document.getElementById('in-ill')?.value || 'ไม่มี' }; 
+  SFX.submit();
+
   ['w', 'h', 'gpa', 'score'].forEach(function(k) { if (questData[k] === '') { delete questData[k]; } });
   
   var ok=document.getElementById('submit-ok'), bar=document.getElementById('sok-bar'); 
@@ -1735,8 +1882,9 @@ function bindAll(){
   a('btn-boss-claim', 'click', () => { SFX.coin(); var bo = document.getElementById('boss-overlay'); if(bo) bo.classList.remove('on'); goP('dashboard'); setChar(chForLevel(S.lv)); });
   document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'visible') { fetchDraftFromCloud(); refreshWalletActivityLog(); processRetryQueue_(); resumePendingRewardIfAny_(); } });
   window.addEventListener('focus', function(){ refreshWalletActivityLog(); processRetryQueue_(); });
-  ['in-ill','in-w','in-h','in-lp','in-fr','in-bt','in-fg','in-bk','in-gpa','in-sc'].forEach(function(id){ var input = document.getElementById(id); if(input) input.addEventListener('blur', autoSyncDraft); });
-  var feelDraft = document.getElementById('feel-sl'); if(feelDraft) feelDraft.addEventListener('change', autoSyncDraft);
+  // 🛡️ [v1.1.1] ใช้ debounced version เพื่อกัน cloud spam เมื่อผู้ใช้ tab ผ่านหลาย field
+  ['in-ill','in-w','in-h','in-lp','in-fr','in-bt','in-fg','in-bk','in-gpa','in-sc'].forEach(function(id){ var input = document.getElementById(id); if(input) input.addEventListener('blur', autoSyncDraftDebounced); });
+  var feelDraft = document.getElementById('feel-sl'); if(feelDraft) feelDraft.addEventListener('change', autoSyncDraftDebounced);
 
  // 👑 ตรวจสอบ URL ว่ามีตัว @ อยู่ด้านหลังสุดหรือไม่ (รองรับทั้ง ?@ และ #@)
   var isAdmin = window.location.search.includes('@') || window.location.hash.includes('@');
@@ -1768,9 +1916,9 @@ function bindAll(){
       if(!BIFROST_DEV_MODE || !isAdmin) return; 
       
       testClicks++; clearTimeout(testTm);
-      if(testClicks >= 5) { 
+      if(testClicks >= 5) {
         var devBar = document.getElementById('dev-tools-bar');
-        if(devBar) devBar.style.display = 'flex';
+        if(devBar) devBar.classList.add('on'); // 🛠️ [v1.1.1] ใช้ class แทน inline style
         showToast('🛠️ เปิดโหมดทดสอบ (DEV MODE) แล้ว!');
         testClicks = 0;
       }
