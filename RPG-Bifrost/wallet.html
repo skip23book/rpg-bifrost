@@ -258,10 +258,11 @@
   </div>
   <div class="toast" id="toast"></div>
 
-  <script src="config.js?v=1.1.1"></script>
+  <script src="config.js?v=1.1.4"></script>
   <script>
     const BIFROST_CONFIG = window.BIFROST_CONFIG || {};
     const APP_VERSION = BIFROST_CONFIG.APP_VERSION || "1.1.0";
+    const OFFLINE_PRIMARY = BIFROST_CONFIG.OFFLINE_PRIMARY !== false;
     const SHEET_URL = BIFROST_CONFIG.API_URL || "";
     const RATE_COIN = 100;
     const RATE_BAHT = 100;
@@ -295,7 +296,7 @@
       localStorage.removeItem(WALLET_RETRY_KEY);
     }
     function walletPayload(req){
-      return { action:"WALLET_EXCHANGE", requestId:req.requestId, amount:req.amount, pin:req.pin, rateCoin:req.rateCoin, rateBaht:req.rateBaht };
+      return { action:"WALLET_EXCHANGE", requestId:req.requestId, amount:req.amount, pin:req.pin, rateCoin:req.rateCoin, rateBaht:req.rateBaht, offlinePrimary:OFFLINE_PRIMARY, clientSaveBefore:state.save || null };
     }
     async function postWalletExchange(req){
       const res = await fetch(SHEET_URL, {
@@ -374,6 +375,10 @@
     }
 
     async function loadCloud(){
+      if (OFFLINE_PRIMARY) {
+        render(state.save ? "ใช้ข้อมูลเครื่องน้อง" : "ยังไม่มีข้อมูลในเครื่อง");
+        return;
+      }
       try {
         const res = await fetch(SHEET_URL + "?action=walletBalance&ts=" + Date.now());
         const data = await res.json();

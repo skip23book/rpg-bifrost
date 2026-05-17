@@ -1,9 +1,34 @@
-﻿// ══════════════════════════════════════════════════
-//  STATE (ตัวแปรระบบหลัก)
-// ══════════════════════════════════════════════════
+﻿/* ══════════════════════════════════════════════════════════════════════════
+   📚 SCRIPT.JS — RPG BIFROST FRONTEND
+   ══════════════════════════════════════════════════════════════════════════
+   โครงสร้างไฟล์ (เรียงตามลำดับการใช้):
+
+   §1  CONFIG & STATE        — BIFROST_CONFIG, APP_VERSION, S, AV, FEEL, etc.
+   §2  GLOBAL HANDLERS       — Error handlers, Service Worker, Dev Tools Bar
+   §3  SOUND (SFX)           — playTone + SFX object
+   §4  VERSION CHECK         — checkRemoteVersion + reload
+   §5  RETRY QUEUE           — sendRetryablePost / processRetryQueue
+   §6  EVENT LOG             — [v1.1.2] structured logger
+   §7  SAVE & SYNC           — saveLocal, isCloudSaveNewer_, smartMergeCloud_
+   §8  DRAFT SYSTEM          — getQuestDraftPayload_, autoSyncDraft, applyDraftToForm_
+   §9  STATE MACHINE         — [v1.1.2] commitSubmit_, revertSubmit_, advanceToNewDay_
+   §10 BACKUP / RESTORE      — [v1.1.2] export/import JSON
+   §11 RETRY BADGE / HEALTH  — [v1.1.2] queue badge, health check
+   §12 GASCALL & SUBMIT      — gasCall (client simulator), doSubmit, applyData
+   §13 RENDERING             — renderAll, buildStreak, updateLog, updateBestTable
+   §14 UI INTERACTIONS       — goP, tQ, modals, toasts
+   §15 SHOP / GACHA          — buyFood, doGacha, etc.
+   §16 GM MODE               — repair, backdate, gm-submit, health
+   §17 BIND ALL              — bindAll() event handlers + DOMContentLoaded
+   §18 DEV MODE FUNCTIONS    — devQuickComplete, devLevelUp, etc.
+
+   ══════════════════════════════════════════════════════════════════════════
+   §1 CONFIG & STATE (ตัวแปรระบบหลัก)
+   ══════════════════════════════════════════════════════════════════════════ */
 var BIFROST_CONFIG = window.BIFROST_CONFIG || {};
 var APP_VERSION = BIFROST_CONFIG.APP_VERSION || "1.1.0";
 var BIFROST_DEV_MODE = !!BIFROST_CONFIG.DEV_MODE;
+var BIFROST_OFFLINE_PRIMARY = BIFROST_CONFIG.OFFLINE_PRIMARY !== false;
 var BIFROST_API_URL = BIFROST_CONFIG.API_URL || "";
 var SHEET_URL = BIFROST_API_URL;
 var APP_UPDATE_NOTES = BIFROST_CONFIG.UPDATE_NOTES || [];
@@ -18,6 +43,299 @@ var BOSS_DETAILS = { shark: { i: '🦈', t: 'บอสฉลามขาว', c:
 var S={ coins:0, todayCoins:0, todayGmCoins:0, w:'', h:'', exp:0, expMax:100, lv:1, curAv:0, selAv:0, phoenix:0, ticket:0, bcards:0, bcUsed:0, bcTotal: 0, bcList: [], keys:0, streak:['grey','grey','grey','grey','grey','grey','grey'], currentDayIndex: 0, lastSyncDate: null, quests:[false,false,false], pin:'', PIN:'2308', pending:null, pendingReward:null, submitted:false, gmSubmitted:false, isResubmit: false, feeling:3, illness:'ไม่มี', swimFr:'', swimBt:'', swimFg:'', swimBk:'', laps:'', achievement:'', specialCoin:0, gpa:'', score:'', weekKey:'', phWeekBought:0, foodWeekBought:0, monthBest:{fr:null,bt:null,fg:null,bk:null}, allBest:{fr:null,bt:null,fg:null,bk:null}, hof: { shark: false, book: false, heart: false }, bossTargets: { speed: 25, heightBase: 129, weightBase: 24 }, todayGacha: [], todayItemsUsed: [], gmBuffs: { jackpot: false, prophecy: '', buddy: false }, gmPopupSeen: true, prophecySeen: true };
 var qcnt=0, chIdx=0;
 
+/* ══════════════════════════════════════════════════════════════════════════
+   §6 EVENT LOG — [v1.1.2] structured logger
+   ══════════════════════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════════════════════
+// 📝 [v1.1.2] STRUCTURED LOGGER — logEvent_(category, data)
+// รวม console.log/warn/error และ buffer ส่งขึ้น Sheet "EventLog" เป็น batch
+// debug ง่ายเพราะดูประวัติได้บน server ไม่ต้องพึ่ง browser DevTools
+// ═══════════════════════════════════════════════════════════════════════════
+var _eventLogBuffer = [];
+var _eventLogTimer = null;
+var EVENT_LOG_FLUSH_MS = 5000;
+var EVENT_LOG_MAX_BUFFER = 30;
+function logEvent_(category, data) {
+  var entry = {
+    ts: new Date().toISOString(),
+    cat: String(category || 'misc'),
+    ver: APP_VERSION,
+    dev: BIFROST_DEV_MODE,
+    data: data || {}
+  };
+  _eventLogBuffer.push(entry);
+  if (BIFROST_DEV_MODE && typeof console !== 'undefined' && console.log) {
+    console.log('[event]', category, data);
+  }
+  // flush ทันทีถ้า buffer เต็ม หรือ category สำคัญ
+  if (_eventLogBuffer.length >= EVENT_LOG_MAX_BUFFER || /error|crash|conflict/.test(category)) {
+    flushEventLog_();
+    return;
+  }
+  // ปกติรอ batch ทุก 5 วินาที
+  if (!_eventLogTimer) {
+    _eventLogTimer = setTimeout(flushEventLog_, EVENT_LOG_FLUSH_MS);
+  }
+}
+function flushEventLog_() {
+  if (_eventLogTimer) { clearTimeout(_eventLogTimer); _eventLogTimer = null; }
+  if (!_eventLogBuffer.length) return;
+  if (!SHEET_URL || SHEET_URL.length < 10 || !navigator.onLine) {
+    // เก็บไว้ใน localStorage แทน — flush ตอน online
+    try {
+      var pending = JSON.parse(localStorage.getItem('bifrost_event_log_pending') || '[]');
+      pending = pending.concat(_eventLogBuffer).slice(-200);
+      localStorage.setItem('bifrost_event_log_pending', JSON.stringify(pending));
+    } catch (e) {}
+    _eventLogBuffer = [];
+    return;
+  }
+  var batch = _eventLogBuffer.slice();
+  _eventLogBuffer = [];
+  // รวม pending จาก localStorage ด้วย
+  try {
+    var pending = JSON.parse(localStorage.getItem('bifrost_event_log_pending') || '[]');
+    if (pending.length) {
+      batch = pending.concat(batch);
+      localStorage.removeItem('bifrost_event_log_pending');
+    }
+  } catch (e) {}
+  // ส่งเป็น fire-and-forget (event log ไม่ critical พอ retry queue)
+  try {
+    fetch(SHEET_URL, {
+      method: 'POST',
+      cache: 'no-cache',
+      keepalive: true,
+      mode: 'no-cors',
+      body: JSON.stringify({ action: 'EVENT_LOG', batch: batch })
+    }).catch(function(){});
+  } catch (e) {}
+}
+// flush ก่อนปิดแอป (best-effort)
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', function(){ flushEventLog_(); });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🛡️ [v1.1.2] sendBeacon — กัน save loss ตอนปิดแอป/reload กลางคัน
+// fetch บน beforeunload ไม่รับประกัน — sendBeacon ส่งสำเร็จแม้ระหว่าง unload
+// ═══════════════════════════════════════════════════════════════════════════
+function beaconSaveCloud_() {
+  if (BIFROST_OFFLINE_PRIMARY) return false;
+  if (typeof navigator === 'undefined' || !navigator.sendBeacon) return false;
+  if (!SHEET_URL || SHEET_URL.length < 10) return false;
+  if (typeof S === 'undefined') return false;
+  try {
+    S._clientUpdatedAt = new Date().toISOString();
+    var body = JSON.stringify({ action: 'saveCloud', payload: S });
+    var blob = new Blob([body], { type: 'text/plain;charset=utf-8' });
+    return navigator.sendBeacon(SHEET_URL, blob);
+  } catch (e) {
+    return false;
+  }
+}
+if (typeof window !== 'undefined') {
+  // beforeunload: ส่งครั้งสุดท้ายผ่าน beacon (synchronous, fires during unload)
+  window.addEventListener('beforeunload', function(){
+    beaconSaveCloud_();
+  });
+  // visibilitychange hidden: backup กรณี mobile browsers ไม่ fire beforeunload
+  window.addEventListener('visibilitychange', function(){
+    if (document.visibilityState === 'hidden') beaconSaveCloud_();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🏗️ [v1.1.2] STATE MACHINE — รวม state mutations ที่กระจายอยู่ใน 5+ จุด
+// commitSubmit / revertSubmit / advanceDay / resetCycle
+// ป้องกันบัค "ลืม reset flag" จากการแก้ใน 1 จุดแล้วลืมอีก 1 จุด
+// ═══════════════════════════════════════════════════════════════════════════
+function commitSubmit_(opts) {
+  // เรียกหลัง submit สำเร็จ (regardless of fresh/resubmit)
+  // - mark submitted=true
+  // - clear isResubmit (ป้องกัน flag ค้าง)
+  opts = opts || {};
+  S.submitted = true;
+  S.isResubmit = false;
+  if (typeof logEvent_ === 'function') logEvent_('state.commitSubmit', { dayIndex: S.currentDayIndex, perfect: !!opts.perfect });
+}
+
+function revertSubmit_() {
+  // เรียกตอน "Reset Today" — undo การ submit แต่ยังไม่ข้ามวัน
+  // - submitted=false
+  // - isResubmit=true (mark next submit as resubmit เพื่อไม่ increment ซ้ำ)
+  // - streak slot ปัจจุบัน → grey (จะถูกเขียนทับ gold/red ตอน resubmit)
+  S.submitted = false;
+  S.isResubmit = true;
+  if (Array.isArray(S.streak) && S.currentDayIndex >= 0 && S.currentDayIndex < 7) {
+    S.streak[S.currentDayIndex] = 'grey';
+  }
+  if (typeof logEvent_ === 'function') logEvent_('state.revertSubmit', { dayIndex: S.currentDayIndex });
+}
+
+function advanceCycleDay_() {
+  // เรียกเมื่อ submit fresh-day สำเร็จ — increment currentDayIndex
+  S.currentDayIndex = (Number(S.currentDayIndex) || 0) + 1;
+  if (S.currentDayIndex >= 7) {
+    resetCycle_('completed_7');
+    return true; // boss cleared
+  }
+  return false;
+}
+
+function resetCycle_(reason) {
+  // เรียกเมื่อครบ 7 วัน — reset cycle กลับมาที่ 0
+  S.currentDayIndex = 0;
+  S.streak = ['grey','grey','grey','grey','grey','grey','grey'];
+  if (typeof logEvent_ === 'function') logEvent_('state.resetCycle', { reason: reason || 'manual' });
+}
+
+function advanceToNewDay_() {
+  // เรียกใน processAutoNextDay เมื่อข้ามวัน — reset daily state แต่ persist streak/cycle progress
+  S.submitted = false;
+  S.gmSubmitted = false;
+  S.isResubmit = false;
+  S.quests = [false, false, false];
+  S.todayCoins = 0;
+  S.todayGmCoins = 0;
+  S.todayGacha = [];
+  S.todayItemsUsed = [];
+  S.todayCoinsSpent = 0;
+  S.achievement = '';
+  S.specialCoin = 0;
+  S.laps = '';
+  S.swimFr = ''; S.swimBt = ''; S.swimFg = ''; S.swimBk = '';
+  S.score = ''; S.gpa = '';
+  S.illness = 'ไม่มี';
+  if (typeof logEvent_ === 'function') logEvent_('state.advanceToNewDay', { newDayIndex: S.currentDayIndex });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 💾 [v1.1.2] BACKUP / RESTORE — export ทั้งก้อนเป็นไฟล์ JSON
+// ═══════════════════════════════════════════════════════════════════════════
+function exportBifrostBackup_() {
+  try {
+    var snapshot = {
+      _backupVersion: 1,
+      _backupAt: new Date().toISOString(),
+      _appVersion: APP_VERSION,
+      state: S,
+      retryQueue: readRetryQueue_(),
+      device: getDraftDeviceName_()
+    };
+    var json = JSON.stringify(snapshot, null, 2);
+    var blob = new Blob([json], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'bifrost-backup-' + new Date().toISOString().replace(/[:.]/g, '-') + '.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    if (typeof logEvent_ === 'function') logEvent_('backup.export', { rev: S._revision });
+    showToast('💾 Export Backup สำเร็จ!');
+  } catch (e) {
+    showToast('❌ Export Backup ล้มเหลว: ' + (e && e.message));
+  }
+}
+
+function importBifrostBackup_(file) {
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      var raw = String(ev.target.result || '');
+      var parsed = JSON.parse(raw);
+      if (!parsed || !parsed.state) throw new Error('Invalid backup format');
+      var confirmMsg = '⚠️ ระบบจะแทนที่ข้อมูลปัจจุบันด้วย backup\n\n'
+        + 'Backup จาก: ' + (parsed._backupAt || 'unknown') + '\n'
+        + 'App version: ' + (parsed._appVersion || 'unknown') + '\n'
+        + 'Device: ' + (parsed.device || 'unknown') + '\n\n'
+        + 'ดำเนินการต่อ?';
+      if (!confirm(confirmMsg)) return;
+      // backup local ก่อน restore (กันพลาด)
+      try { localStorage.setItem('bifrost_data_pre_restore', localStorage.getItem('bifrost_data') || ''); } catch(e){}
+      // Replace S
+      Object.keys(S).forEach(function(k){ delete S[k]; });
+      Object.keys(parsed.state).forEach(function(k){ S[k] = parsed.state[k]; });
+      saveLocal(); renderAll(); buildStreak();
+      if (typeof logEvent_ === 'function') logEvent_('backup.restore', { from: parsed._backupAt });
+      showToast('✅ Restore Backup สำเร็จ! (เก่าเก็บไว้ที่ bifrost_data_pre_restore ใน localStorage)');
+    } catch (e) {
+      showToast('❌ Restore ล้มเหลว: ' + (e && e.message));
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 📡 [v1.1.2] RETRY QUEUE BADGE — บอก user ว่ามีรายการรอส่งกี่อัน
+// ═══════════════════════════════════════════════════════════════════════════
+function updateRetryQueueBadge_() {
+  if (typeof document === 'undefined') return;
+  var badge = document.getElementById('retry-queue-badge');
+  if (!badge) return;
+  var count = readRetryQueue_().length;
+  if (count > 0) {
+    badge.textContent = '📡 รออัปเดต ' + count + ' รายการ';
+    badge.classList.add('on');
+  } else {
+    badge.classList.remove('on');
+  }
+}
+// hook update เข้าทุก write ของ queue
+var _origEnqueueRetry = enqueueRetry_;
+enqueueRetry_ = function(type, payload, options) {
+  var ret = _origEnqueueRetry.call(this, type, payload, options);
+  updateRetryQueueBadge_();
+  return ret;
+};
+var _origWriteRetryQueue = writeRetryQueue_;
+writeRetryQueue_ = function(queue) {
+  _origWriteRetryQueue.call(this, queue);
+  updateRetryQueueBadge_();
+};
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', updateRetryQueueBadge_);
+  window.addEventListener('offline', updateRetryQueueBadge_);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🩺 [v1.1.2] HEALTH CHECK — ดู local vs cloud diff + retry queue + anomalies
+// ═══════════════════════════════════════════════════════════════════════════
+function runHealthCheck_() {
+  return new Promise(function(resolve) {
+    var report = {
+      time: new Date().toISOString(),
+      version: APP_VERSION,
+      online: navigator.onLine,
+      local: {
+        revision: S._revision || 0,
+        currentDayIndex: S.currentDayIndex || 0,
+        coins: S.coins || 0,
+        lv: S.lv || 1,
+        submitted: !!S.submitted,
+        isResubmit: !!S.isResubmit,
+        clientUpdatedAt: S._clientUpdatedAt || ''
+      },
+      retryQueue: readRetryQueue_().length,
+      pendingEvents: _eventLogBuffer.length,
+      anomalies: detectImpossibleState_(S)
+    };
+    if (!navigator.onLine || !SHEET_URL || SHEET_URL.length < 10) {
+      report.cloud = { error: 'offline or no SHEET_URL' };
+      resolve(report);
+      return;
+    }
+    fetch(SHEET_URL + '?action=health&ts=' + Date.now(), { cache: 'no-store' })
+      .then(function(r){ return r.json(); })
+      .then(function(h){ report.cloud = h; resolve(report); })
+      .catch(function(err){ report.cloud = { error: String(err && err.message || err) }; resolve(report); });
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   §2 GLOBAL HANDLERS — Service Worker, Dev Tools Bar, Error handler
+   ══════════════════════════════════════════════════════════════════════════ */
 // 🛠️ [v1.1.1] Dev Tools Bar delegated handler — แทน inline onclick="devXxx()"
 // เดิม: 9 ปุ่มมี inline onclick + inline style → HTML รก override CSS ยาก
 // ใหม่: data-dev-action + class ตาม BEM, ฟังก์ชันยังคงเดิม (devQuickComplete, etc.)
@@ -99,6 +417,9 @@ var qcnt=0, chIdx=0;
   });
 })();
 
+/* ══════════════════════════════════════════════════════════════════════════
+   §3 SOUND (SFX) — 8-Bit tones via WebAudio API
+   ══════════════════════════════════════════════════════════════════════════ */
 // 🔊 เสียง 8-Bit
 var actx;
 function playTone(freq, type, duration, vol) {
@@ -132,6 +453,9 @@ var SFX = {
   beep: function(){ playTone(880, 'square', 0.1, 0.1); } 
 };
 
+/* ══════════════════════════════════════════════════════════════════════════
+   §4 VERSION CHECK — Force reload เมื่อ Apps Script deploy version ใหม่
+   ══════════════════════════════════════════════════════════════════════════ */
 function clearBrowserCachesForUpdate_() {
   try {
     if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
@@ -155,8 +479,25 @@ function reloadForAssetVersion_(assetVersion) {
   window.location.replace(nextUrl);
 }
 
+// 🛡️ [v1.1.1-hotfix] เปรียบเทียบ semantic version (1.1.10 > 1.1.9)
+// คืน 1 ถ้า a > b, -1 ถ้า a < b, 0 ถ้าเท่ากัน หรือ parse ไม่ได้
+function compareVersion_(a, b) {
+  var pa = String(a || "").split(".").map(function(x){ return parseInt(x, 10) || 0; });
+  var pb = String(b || "").split(".").map(function(x){ return parseInt(x, 10) || 0; });
+  for (var i = 0; i < Math.max(pa.length, pb.length); i++) {
+    var ai = pa[i] || 0, bi = pb[i] || 0;
+    if (ai > bi) return 1;
+    if (ai < bi) return -1;
+  }
+  return 0;
+}
+
 function checkRemoteVersion() {
   try {
+    if (BIFROST_DEV_MODE || window.location.protocol === 'file:') {
+      localStorage.setItem('bifrost_asset_version', APP_VERSION);
+      return Promise.resolve(false);
+    }
     if (!navigator.onLine || !BIFROST_API_URL || BIFROST_API_URL.length < 10) return Promise.resolve(false);
     return fetch(BIFROST_API_URL + '?action=version&ts=' + Date.now(), { cache: 'no-store' })
       .then(function(res) { return res.json(); })
@@ -165,12 +506,36 @@ function checkRemoteVersion() {
         var remoteVersion = String(info.assetVersion);
         var rememberedVersion = localStorage.getItem('bifrost_asset_version');
         if (!rememberedVersion) localStorage.setItem('bifrost_asset_version', APP_VERSION);
-        if (remoteVersion !== APP_VERSION) {
+
+        // 🛡️ [v1.1.1-hotfix] กัน reload loop:
+        // 1) ถ้า remote < local → เป็นกรณี "deploy frontend แล้ว แต่ยังไม่ deploy Apps Script"
+        //    เดิมจะ reload วนไม่หยุด เพราะ reload แล้วยังเป็น local version เดิม
+        //    แก้: log warning + ไม่ reload (ปล่อยให้ใช้ version ใหม่บน frontend ไปก่อน)
+        // 2) ถ้าเพิ่ง reload เพื่อ version นี้ใน session เดียวกัน → ไม่ reload ซ้ำ
+        var cmp = compareVersion_(remoteVersion, APP_VERSION);
+        if (cmp < 0) {
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn('[version] remote ' + remoteVersion + ' < local ' + APP_VERSION + ' (Apps Script ยังไม่ได้ deploy เวอร์ชันใหม่). Skip reload.');
+          }
+          localStorage.setItem('bifrost_asset_version', APP_VERSION);
+          return false;
+        }
+        if (cmp > 0) {
+          // remote > local → ของจริงในเซิร์ฟเวอร์ใหม่กว่า ให้ reload เพื่อให้ browser โหลด script ใหม่
+          // กัน reload loop ภายใน session เดียวกัน
+          var sessionTriedKey = 'bifrost_reload_attempted_' + remoteVersion;
+          var alreadyTried = sessionStorage.getItem(sessionTriedKey);
+          if (alreadyTried) {
+            console.warn('[version] already attempted reload to ' + remoteVersion + ' this session — skip to avoid loop');
+            return false;
+          }
+          sessionStorage.setItem(sessionTriedKey, '1');
           localStorage.setItem('bifrost_asset_version', remoteVersion);
           localStorage.removeItem('bifrost_seen_version');
           reloadForAssetVersion_(remoteVersion);
           return true;
         }
+        // remote == local → ทุกอย่าง sync, ไม่ทำอะไร
         localStorage.setItem('bifrost_asset_version', remoteVersion);
         return false;
       })
@@ -180,6 +545,9 @@ function checkRemoteVersion() {
   }
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   §5 RETRY QUEUE — sendRetryablePost / processRetryQueue / saveCloud handler
+   ══════════════════════════════════════════════════════════════════════════ */
 var RETRY_QUEUE_KEY = 'bifrost_retry_queue_v1';
 var retryQueueBusy = false;
 function readRetryQueue_() {
@@ -209,6 +577,8 @@ function enqueueRetry_(type, payload, options) {
   writeRetryQueue_(queue);
   return item;
 }
+// 🌐 [v1.1.2] postRetryPayload_ — รองรับทั้ง no-cors (legacy) และ real fetch (default)
+// real fetch อ่าน response ได้ → ใช้ update S._revision หลัง saveCloud
 function postRetryPayload_(item) {
   var fetchOptions = {
     method: 'POST',
@@ -216,24 +586,68 @@ function postRetryPayload_(item) {
     keepalive: true,
     body: JSON.stringify(item.payload)
   };
-  if (item.noCors) fetchOptions.mode = 'no-cors';
-  return fetch(SHEET_URL, fetchOptions);
+  if (item.noCors) {
+    fetchOptions.mode = 'no-cors';
+    return fetch(SHEET_URL, fetchOptions);
+  }
+  // 🌐 [v1.1.2] real fetch — ต้องการ Apps Script doPost ตอบกลับด้วย ContentService (ซึ่งมีอยู่แล้ว)
+  // ส่งเป็น text/plain เพื่อหลีกเลี่ยง CORS preflight (Apps Script doesn't allow OPTIONS)
+  fetchOptions.headers = { 'Content-Type': 'text/plain;charset=utf-8' };
+  return fetch(SHEET_URL, fetchOptions).then(function(res){
+    if (!res || !res.ok) throw new Error('HTTP ' + (res && res.status));
+    return res.json();
+  });
 }
+
+// 🌐 [v1.1.2] handleSaveCloudResponse_ — sync S._revision จาก server response
+// แก้ root cause ของบัค "blockStaleSave": ก่อนนี้ frontend ไม่เคยรู้ rev ที่ server เพิ่ง bump
+// ตอนนี้ทุกครั้งที่ saveCloud สำเร็จจะ update S._revision ทันที → ส่งครั้งถัดไปไม่ถูกบล็อก
+function handleSaveCloudResponse_(res) {
+  if (BIFROST_OFFLINE_PRIMARY) return;
+  if (!res || typeof res !== 'object') return;
+  if (res.result === 'conflict') {
+    // server มี rev ใหม่กว่า → merge save จาก server เข้ามา
+    if (res.save && typeof res.save === 'object') {
+      try {
+        var localSnapshot = JSON.parse(localStorage.getItem('bifrost_data') || '{}');
+        if (typeof smartMergeCloud_ === 'function') {
+          smartMergeCloud_(res.save, localSnapshot);
+        }
+      } catch (e) {}
+    }
+    if (typeof logEvent_ === 'function') logEvent_('saveCloud.conflict', { serverRev: res.revision });
+    return;
+  }
+  if (res.revision !== undefined) {
+    S._revision = Number(res.revision);
+    if (res.serverUpdatedAt) S._serverUpdatedAt = res.serverUpdatedAt;
+    // อัปเดต localStorage โดยไม่เรียก saveLocal (กัน loop)
+    try { localStorage.setItem('bifrost_data', JSON.stringify(S)); } catch (e) {}
+  }
+}
+
 function sendRetryablePost_(type, payload, options) {
   options = options || {};
   if (!SHEET_URL || SHEET_URL.length < 10) return Promise.resolve(false);
+  // 🌐 [v1.1.2] saveCloud → ใช้ real fetch เพื่อรับ revision response
+  // อื่นๆ ยังเป็น noCors (fire-and-forget) ตามเดิม
+  var useRealFetch = (type === 'saveCloud' || options.realFetch === true);
   var item = {
     id: options.id || (type + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8)),
     dedupeKey: options.dedupeKey || '',
     type: type,
     payload: payload,
-    noCors: options.noCors !== false
+    noCors: !useRealFetch
   };
   if (!navigator.onLine) {
     enqueueRetry_(type, payload, options);
     return Promise.resolve(false);
   }
-  return postRetryPayload_(item).catch(function() {
+  return postRetryPayload_(item).then(function(res){
+    if (useRealFetch && type === 'saveCloud') handleSaveCloudResponse_(res);
+    return res;
+  }).catch(function(err) {
+    if (typeof logEvent_ === 'function') logEvent_(type + '.fail', { error: String(err && err.message || err) });
     enqueueRetry_(type, payload, options);
     return false;
   });
@@ -241,13 +655,26 @@ function sendRetryablePost_(type, payload, options) {
 function processRetryQueue_() {
   if (retryQueueBusy || !navigator.onLine || !SHEET_URL || SHEET_URL.length < 10) return Promise.resolve(false);
   var queue = readRetryQueue_();
+  if (BIFROST_OFFLINE_PRIMARY) {
+    var filtered = queue.filter(function(item) {
+      return !/^(saveCloud|DRAFT_SAVE|DRAFT_CLEAR)$/.test(String(item.type || ''));
+    });
+    if (filtered.length !== queue.length) {
+      writeRetryQueue_(filtered);
+      queue = filtered;
+    }
+  }
   if (!queue.length) return Promise.resolve(true);
   retryQueueBusy = true;
   var remaining = [];
   var chain = Promise.resolve();
   queue.forEach(function(item) {
     chain = chain.then(function() {
-      return postRetryPayload_(item).catch(function() {
+      return postRetryPayload_(item).then(function(res){
+        // 🌐 [v1.1.2] handle saveCloud response เหมือน sendRetryablePost_
+        if (item.type === 'saveCloud' && !item.noCors) handleSaveCloudResponse_(res);
+        return res;
+      }).catch(function() {
         item.tries = Number(item.tries || 0) + 1;
         if (item.tries < 8) remaining.push(item);
       });
@@ -336,6 +763,9 @@ function refreshWalletActivityLog() {
     renderAll();
   }
 }
+/* ══════════════════════════════════════════════════════════════════════════
+   §7 SAVE & SYNC — loadLocal, saveLocal, isCloudSaveNewer_, smartMergeCloud_
+   ══════════════════════════════════════════════════════════════════════════ */
 function loadLocal() { var data = localStorage.getItem('bifrost_data'); if (data) Object.assign(S, JSON.parse(data)); if(S.keys === undefined) S.keys = 0; if(!S.todayItemsUsed) S.todayItemsUsed = []; }
 function getSaveTimestamp_(data) {
   if (!data) return 0;
@@ -353,9 +783,83 @@ function isCloudSaveNewer_(cloudData, localData) {
   if (cloudTime || localTime) return cloudTime >= localTime;
   return true;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🌐 [v1.1.2] SMART MERGE — แทน Object.assign(S, cloudData) ที่ทับทุก field
+// เดิม: cloud rev สูงกว่า → ทับ S ทั้งก้อน → field ที่ local ใหม่กว่าหายเสมอ
+// ใหม่: ตรวจ "field-level conflict" + auto-correct "impossible state"
+// ═══════════════════════════════════════════════════════════════════════════
+function detectImpossibleState_(state) {
+  var issues = [];
+  if (!state || typeof state !== 'object') return issues;
+  // 1. isResubmit=true แต่ submitted=false → flag ค้างจาก reset เก่า
+  if (state.isResubmit === true && state.submitted === false) {
+    issues.push({ key: 'isResubmit', from: true, to: false, reason: 'isResubmit=true while submitted=false (stale flag)' });
+  }
+  // 2. currentDayIndex อยู่ในขอบเขต 0-6
+  if (state.currentDayIndex !== undefined) {
+    var idx = Number(state.currentDayIndex);
+    if (!Number.isFinite(idx) || idx < 0 || idx > 6) {
+      issues.push({ key: 'currentDayIndex', from: state.currentDayIndex, to: 0, reason: 'currentDayIndex out of range 0-6' });
+    }
+  }
+  // 3. coins ต้องเป็นจำนวนเต็ม >= 0
+  if (state.coins !== undefined) {
+    var c = Number(state.coins);
+    if (!Number.isFinite(c) || c < 0) {
+      issues.push({ key: 'coins', from: state.coins, to: 0, reason: 'coins NaN/negative' });
+    }
+  }
+  // 4. lv ต้องเป็น 1-100
+  if (state.lv !== undefined) {
+    var lv = Number(state.lv);
+    if (!Number.isFinite(lv) || lv < 1 || lv > 100) {
+      issues.push({ key: 'lv', from: state.lv, to: Math.max(1, Math.min(100, Number(state.lv) || 1)), reason: 'lv out of range 1-100' });
+    }
+  }
+  return issues;
+}
+
+function smartMergeCloud_(cloudData, localData) {
+  if (!cloudData || typeof cloudData !== 'object') return false;
+  var localSnapshot = localData || {};
+
+  // Step 1: เริ่มจาก cloud เป็น base (ของส่วนกลาง revisioned)
+  var merged = {};
+  Object.keys(cloudData).forEach(function(k) { merged[k] = cloudData[k]; });
+
+  // Step 2: ป้องกันบาง field ที่ local อาจมีค่าใหม่กว่า แต่ cloud rev สูงกว่า
+  // เช่น todayItemsUsed เป็น array ที่ append-only — ถ้า local มีรายการมากกว่า cloud → ใช้ local
+  ['todayItemsUsed', 'todayGacha'].forEach(function(arrayKey) {
+    var l = Array.isArray(localSnapshot[arrayKey]) ? localSnapshot[arrayKey] : [];
+    var c = Array.isArray(cloudData[arrayKey]) ? cloudData[arrayKey] : [];
+    if (l.length > c.length) {
+      // local มีรายการมากกว่า → union (cloud + items ที่ไม่ซ้ำใน local)
+      var union = c.slice();
+      l.forEach(function(item) { if (union.indexOf(item) === -1) union.push(item); });
+      merged[arrayKey] = union;
+    }
+  });
+
+  // Step 3: detect + auto-fix impossible state
+  var issues = detectImpossibleState_(merged);
+  issues.forEach(function(iss) {
+    merged[iss.key] = iss.to;
+    if (typeof logEvent_ === 'function') logEvent_('smartMerge.fix', iss);
+  });
+
+  // Step 4: apply ลง S
+  Object.keys(merged).forEach(function(k) { S[k] = merged[k]; });
+
+  if (issues.length && typeof console !== 'undefined' && console.warn) {
+    console.warn('[smartMerge] auto-fixed impossible state:', issues);
+  }
+  return true;
+}
 function saveLocal() { 
   S._clientUpdatedAt = new Date().toISOString();
   localStorage.setItem('bifrost_data', JSON.stringify(S)); 
+  if (BIFROST_OFFLINE_PRIMARY) return;
   // ส่งเซฟขึ้น Cloud ทันทีที่เครื่องมีการอัปเดต
   if (navigator.onLine && SHEET_URL && SHEET_URL.length > 10) {
     sendRetryablePost_('saveCloud', { action: "saveCloud", payload: S }, { dedupeKey: 'saveCloud', noCors: true });
@@ -380,6 +884,9 @@ function showProphecyIfAny() {
     }
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   §8 DRAFT SYSTEM — getQuestDraftPayload, autoSyncDraft, applyDraftToForm
+   ══════════════════════════════════════════════════════════════════════════ */
 function getDraftDeviceId_() {
   var id = localStorage.getItem('bifrost_draft_device_id');
   if (!id) {
@@ -435,42 +942,77 @@ function isDraftEmpty_(draft) {
   var hasIll = draft.ill && draft.ill !== 'ไม่มี';
   return !hasValue && !hasQuest && !hasIll;
 }
+function getReportWeightInput_() {
+  var el = document.getElementById('in-w');
+  var live = el ? String(el.value || '').trim() : '';
+  var draft = S.draft && S.draft.w !== undefined ? String(S.draft.w || '').trim() : '';
+  return live || draft || '';
+}
+function updateReportSubmitUi_() {
+  var weight = getReportWeightInput_();
+  var hasWeight = weight !== '' && isFinite(Number(weight)) && Number(weight) > 0;
+  var qbar = document.getElementById('qbar');
+  var bSub = document.getElementById('btn-submit');
+  var bDraft = document.getElementById('btn-draft');
+
+  if (S.submitted) {
+    if (qbar) qbar.innerHTML = '<span class="qsuc">✦ ส่งรายงานวันนี้เรียบร้อยแล้ว ✦</span>';
+    if (bSub) {
+      bSub.style.display = 'block';
+      bSub.textContent = '✅ ส่งรายงานแล้ว';
+      bSub.disabled = true;
+      bSub.style.background = '#555';
+      bSub.style.color = '#fff';
+    }
+    if (bDraft) bDraft.style.display = 'none';
+    return;
+  }
+
+  if (qbar) {
+    qbar.innerHTML = hasWeight
+      ? '<span class="qsuc">✦ รายงานพร้อมส่ง รับ +6 B-Coin ✦</span>'
+      : 'กรอกน้ำหนักเพื่อส่งรายงานวันนี้';
+  }
+  if (hasWeight) {
+    if (bSub) {
+      bSub.style.display = 'block';
+      bSub.textContent = '⚔️ ส่งรายงานวันนี้';
+      bSub.disabled = false;
+      bSub.style.background = '';
+      bSub.style.color = '';
+    }
+    if (bDraft) bDraft.style.display = 'none';
+  } else {
+    if (bSub) bSub.style.display = 'none';
+    if (bDraft) {
+      bDraft.style.display = 'block';
+      bDraft.disabled = false;
+      bDraft.textContent = '💾 อัปเดตรายงาน';
+    }
+  }
+}
 function applyDraftToForm_(draft, source) {
   if (!draft || S.submitted || isDraftEmpty_(draft)) {
-    setDraftSyncStatus_(S.submitted ? 'วันนี้ส่งภารกิจจริงแล้ว' : 'ยังไม่มีข้อมูลร่างที่รอส่ง', S.submitted ? 'ok' : '');
+    setDraftSyncStatus_(S.submitted ? 'วันนี้ส่งรายงานจริงแล้ว' : 'ยังไม่มีข้อมูลร่างที่รอส่ง', S.submitted ? 'ok' : '');
     return false;
   }
   var map = { ill:'in-ill', w:'in-w', h:'in-h', lp:'in-lp', fr:'in-fr', bt:'in-bt', fg:'in-fg', bk:'in-bk', gpa:'in-gpa', sc:'in-sc' };
   Object.keys(map).forEach(function(k) { var el = document.getElementById(map[k]); if (el && draft[k] !== undefined) el.value = draft[k]; });
   if (draft.feel) { var fsl = document.getElementById('feel-sl'); if (fsl) { fsl.value = draft.feel; fsl.dispatchEvent(new Event('input')); } }
-  if (Array.isArray(draft.quests)) {
-    S.quests = draft.quests.map(Boolean).slice(0, 3);
-    [1,2,3].forEach(function(n) {
-      var done = !!S.quests[n-1];
-      var c = document.getElementById('qc' + n);
-      var qi = document.getElementById('qi' + n);
-      if (c) { c.classList.toggle('on', done); c.textContent = done ? '✓' : ''; }
-      if (qi) qi.classList.toggle('done', done);
-    });
-    var qcnt = S.quests.filter(Boolean).length;
-    var qbar = document.getElementById('qbar');
-    if (qbar) qbar.innerHTML = (qcnt === 3) ? '<span class="qsuc">✦ ภารกิจพร้อมส่ง! ✦</span>' : 'ติ๊ก <b>' + qcnt + '</b>/3 ภารกิจ';
-    var bSub = document.getElementById('btn-submit');
-    var bDraft = document.getElementById('btn-draft');
-    if (qcnt === 3) { if (bSub) bSub.style.display = 'block'; if (bDraft) bDraft.style.display = 'none'; }
-    else { if (bSub) bSub.style.display = 'none'; if (bDraft) bDraft.style.display = 'block'; }
-  }
+  if (Array.isArray(draft.quests)) S.quests = draft.quests.map(Boolean).slice(0, 3);
   S.draft = draft;
   localStorage.setItem('bifrost_data', JSON.stringify(S));
   var isRemote = draft._draftDeviceId && draft._draftDeviceId !== getDraftDeviceId_();
   var origin = isRemote ? 'โหลดข้อมูลร่างจาก ' + (draft._draftDeviceName || 'อีกเครื่อง') : 'ข้อมูลร่างบันทึกไว้แล้ว';
-  setDraftSyncStatus_(origin + ' เวลา ' + formatDraftTime_(draft._draftUpdatedAt) + ' • ยังไม่ได้ส่งภารกิจจริง', isRemote || source === 'cloud' ? 'remote' : 'ok');
+  setDraftSyncStatus_(origin + ' เวลา ' + formatDraftTime_(draft._draftUpdatedAt) + ' • ยังไม่ได้ส่งรายงานจริง', isRemote || source === 'cloud' ? 'remote' : 'ok');
+  updateReportSubmitUi_();
   return true;
 }
 function clearCloudDraft_() {
   S.draft = {};
   localStorage.setItem('bifrost_data', JSON.stringify(S));
   setDraftSyncStatus_('ล้างข้อมูลร่างแล้ว', 'ok');
+  if (BIFROST_OFFLINE_PRIMARY) return;
   if(!SHEET_URL || SHEET_URL.length < 10 || !navigator.onLine) return;
   var todayStr = new Date().toLocaleDateString('en-CA');
   var payload = { _draftCleared: true, _draftUpdatedAt: new Date().toISOString(), _draftDeviceId: getDraftDeviceId_(), _draftDeviceName: getDraftDeviceName_() };
@@ -494,6 +1036,13 @@ function autoSyncDraft(e) {
   var payload = getQuestDraftPayload_();
   S.draft = payload;
   localStorage.setItem('bifrost_data', JSON.stringify(S));
+  if (BIFROST_OFFLINE_PRIMARY) {
+    if (isDraftEmpty_(payload)) setDraftSyncStatus_('ยังไม่มีข้อมูลร่างที่รอส่ง', '');
+    else setDraftSyncStatus_('บันทึกข้อมูลร่างไว้ในเครื่องน้องแล้ว', 'ok');
+    SFX.save();
+    if(e && e.target) { e.target.classList.remove('save-glow'); void e.target.offsetWidth; e.target.classList.add('save-glow'); }
+    return;
+  }
   if (isDraftEmpty_(payload)) setDraftSyncStatus_('ยังไม่มีข้อมูลร่างที่รอส่ง', '');
   else setDraftSyncStatus_('กำลังบันทึกข้อมูลร่างขึ้น Cloud...', 'warn');
   if(!SHEET_URL || SHEET_URL.length < 10 || !navigator.onLine) {
@@ -502,7 +1051,7 @@ function autoSyncDraft(e) {
   }
   var todayStr = new Date().toLocaleDateString('en-CA');
   sendRetryablePost_('DRAFT_SAVE', { syncType: 'DRAFT', syncDate: todayStr, payload: payload }, { dedupeKey: 'draft:' + todayStr, noCors: true }).then(function() {
-    if (!isDraftEmpty_(payload)) setDraftSyncStatus_('บันทึกข้อมูลร่างขึ้น Cloud แล้ว เวลา ' + formatDraftTime_(payload._draftUpdatedAt) + ' • ยังไม่ได้ส่งภารกิจจริง', 'ok');
+    if (!isDraftEmpty_(payload)) setDraftSyncStatus_('บันทึกข้อมูลร่างขึ้น Cloud แล้ว เวลา ' + formatDraftTime_(payload._draftUpdatedAt) + ' • ยังไม่ได้ส่งรายงานจริง', 'ok');
     SFX.save();
     if(e && e.target) { e.target.classList.remove('save-glow'); void e.target.offsetWidth; e.target.classList.add('save-glow'); }
   }).catch(function() {
@@ -552,7 +1101,7 @@ function processAutoNextDay() {
   renderAll();
   buildStreak();
   [1,2,3].forEach(function(n){ var qc = document.getElementById('qc'+n); if(qc) { qc.classList.remove('on'); qc.textContent=''; } var qi = document.getElementById('qi'+n); if(qi) qi.classList.remove('done'); });
-  qcnt = 0; var qbar = document.getElementById('qbar'); if(qbar) qbar.innerHTML = 'ติ๊ก <b>0</b>/3 ภารกิจ';
+  qcnt = 0; updateReportSubmitUi_();
   ['in-w','in-h','in-lp','in-fr','in-bt','in-fg','in-bk','in-gpa','in-sc'].forEach(function(id){ var el = document.getElementById(id); if(el) el.value = ''; });
 
   // 🛡️ [v1.1.1] ส่ง archive ของแต่ละวันเรียงลำดับ — แต่ละชิ้นมี dedupeKey ของตัวเอง
@@ -573,6 +1122,9 @@ function processAutoNextDay() {
   autoSyncDraft();
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   §12 GASCALL & SUBMIT — gasCall (client simulator), doSubmit, applyData
+   ══════════════════════════════════════════════════════════════════════════ */
 function gasCall(fn, args, ok, fail) {
   // บล็อกการใช้งานเมื่อออฟไลน์ (ยกเว้นตอนโหลดข้อมูลครั้งแรก)
   if (!navigator.onLine && fn !== 'getHeroData') {
@@ -772,42 +1324,8 @@ function buildStreak() {
 }
 
 function tQ(n) {
-  var i = n - 1;
-  S.quests[i] = !S.quests[i];
-  var c = document.getElementById('qc' + n);
-  var qi = document.getElementById('qi' + n);
-  
-  // อัปเดตเครื่องหมายติ๊กถูก
-  if (c) {
-    c.classList.toggle('on', S.quests[i]);
-    c.textContent = S.quests[i] ? '✓' : '';
-  }
-  if (qi) qi.classList.toggle('done', S.quests[i]);
-  
-  // นับจำนวนเควสที่ทำเสร็จ
-  var qcnt = S.quests.filter(Boolean).length;
-  var qbar = document.getElementById('qbar');
-  if (qbar) {
-    qbar.innerHTML = (qcnt == 3) ? '<span class="qsuc">✦ ภารกิจพร้อมส่ง! ✦</span>' : 'ติ๊ก <b>' + qcnt + '</b>/3 ภารกิจ';
-  }
-
-  // --- 🌟 ระบบเช็กปุ่มแบบเรียลไทม์ 🌟 ---
-  var bSub = document.getElementById('btn-submit');
-  var bDraft = document.getElementById('btn-draft');
-  
-  if (!S.submitted) {
-      if (qcnt === 3) {
-          // ถ้าครบ 3 ข้อ โชว์ปุ่มส่งภารกิจสีทอง
-          if (bSub) { bSub.style.display = 'block'; bSub.textContent = '⚔️ ส่งภารกิจ'; bSub.disabled = false; bSub.style.background = ''; bSub.style.color = ''; }
-          if (bDraft) bDraft.style.display = 'none';
-      } else {
-          // ถ้าไม่ครบ 3 ข้อ โชว์ปุ่มอัปเดตชั่วคราว
-          if (bSub) bSub.style.display = 'none';
-          if (bDraft) bDraft.style.display = 'block';
-      }
-  }
-  // --------------------------------
-
+  // Daily Quest checkbox UI ถูกถอดออกแล้ว เหลือไว้เป็น compatibility เผื่อมีข้อมูลเก่า
+  updateReportSubmitUi_();
   saveLocal();
   if (!S.submitted) autoSyncDraft();
 }
@@ -908,7 +1426,7 @@ function validateQuestForm_(qd) {
   return errors;
 }
 
-function doSubmit(){
+function doSubmitLegacy_(){
   if (questSubmitBusy) return;
   if(S.submitted) { showToast('วันนี้ส่งภารกิจไปแล้วครับ!'); return; }
 
@@ -945,7 +1463,6 @@ function doSubmit(){
       S.currentDayIndex = (S.currentDayIndex || 0) + 1; 
       
       buildStreak(); // 🌟 สั่งให้วาดกราฟิกก้าวเดินใหม่ทันที!
-      saveLocal();   // 🌟 สั่งเซฟข้อมูลลงเครื่อง
       
       if (S.currentDayIndex >= 7) {
           isBossCleared_ForLine = true; // 🌟 มาร์คไว้ว่าเพิ่งตบบอสเสร็จ! ส่งให้ LINE รู้
@@ -968,19 +1485,17 @@ function doSubmit(){
         trackKeys.forEach(key => {
             let val = questData[key];
             if (val !== undefined && val !== '' && val !== null && val != 0) {
-                S.compareStats[key] = S.lastStats[key] || val; 
-                S.lastStats[key] = val; 
+                S.compareStats[key] = S.lastStats[key] || val;
+                S.lastStats[key] = val;
             }
         });
 }
 
-    // 🌟 ส่งข้อมูลขึ้น Sheet ประวัติแบบเรียลไทม์ทันทีที่กดส่งภารกิจ
-      var archiveSavePromise = Promise.resolve();
-      if (navigator.onLine && SHEET_URL && SHEET_URL.length > 10) {
-         var dateLabel = new Date().toLocaleDateString('th-TH', {year:'numeric',month:'long',day:'numeric'});
-         var payload = Object.assign({}, S, { syncDate: dateLabel });
-         archiveSavePromise = sendRetryablePost_('ARCHIVE_SUBMIT', payload, { dedupeKey: 'archive:' + dateLabel, noCors: true });
-      }
+    // 🏗️ [v1.1.2] ใช้ state machine helper แทน inline mutation
+    // commitSubmit_() set submitted=true + isResubmit=false + log event
+    if (typeof commitSubmit_ === 'function') commitSubmit_({ perfect: !!(args && args.q1 && args.q2 && args.q3) });
+    else { S.submitted = true; S.isResubmit = false; }
+
     // บันทึกสถิติวันนี้สำหรับ Ghost Data
       S.todayStats = questData;
       updateLog();
@@ -988,11 +1503,19 @@ function doSubmit(){
       // ล้าง Draft ทั้งในเครื่องและ Cloud หลังส่งภารกิจจริง
       clearCloudDraft_();
       ['in-w','in-h','in-lp','in-fr','in-bt','in-fg','in-bk','in-gpa','in-sc'].forEach(id => {
-         let el = document.getElementById(id); if(el) el.value = '';
+       let el = document.getElementById(id); if(el) el.value = '';
       });
       document.getElementById('in-ill').value = 'ไม่มี';
       let fsl = document.getElementById('feel-sl'); if(fsl){ fsl.value = 3; fsl.dispatchEvent(new Event('input')); }
       saveLocal();
+
+    // 🌟 ส่งข้อมูลขึ้น Sheet และยืนยัน CloudSave หลังข้อมูลใน S ครบแล้ว
+      var archiveSavePromise = Promise.resolve();
+      if (navigator.onLine && SHEET_URL && SHEET_URL.length > 10) {
+         var dateLabel = new Date().toLocaleDateString('th-TH', {year:'numeric',month:'long',day:'numeric'});
+         var payload = Object.assign({}, S, { syncType: 'FINAL_SUBMIT', syncDate: dateLabel });
+         archiveSavePromise = sendRetryablePost_('ARCHIVE_SUBMIT', payload, { dedupeKey: 'archive:' + dateLabel, noCors: true });
+      }
 
 if(r.lv>prevLv) { 
       SFX.levelUp(); 
@@ -1061,10 +1584,316 @@ if(r.lv>prevLv) {
       setQuestSubmitState_('error', 'ส่งข้อมูลไม่สำเร็จ', 'อินเทอร์เน็ตอาจมีปัญหา ลองกดส่งอีกครั้ง', '');
       finishQuestSubmitState_(false);
     });
+  }, 1500);
+}
+
+function makeRequestId_(prefix) {
+  var rand = Math.random().toString(36).slice(2, 10);
+  return String(prefix || 'REQ') + '-' + Date.now() + '-' + rand;
+}
+
+function recordTransaction_(txAction, details) {
+  details = details || {};
+  var requestId = details.requestId || makeRequestId_(txAction || 'TX');
+  var payload = {
+    action: 'CLIENT_TRANSACTION',
+    requestId: requestId,
+    txAction: txAction || 'CLIENT_TRANSACTION',
+    coinDelta: Number(details.coinDelta || 0),
+    expDelta: Number(details.expDelta || 0),
+    coinBefore: Number(details.coinBefore || 0),
+    coinAfter: Number(details.coinAfter !== undefined ? details.coinAfter : S.coins || 0),
+    lvBefore: Number(details.lvBefore || S.lv || 1),
+    lvAfter: Number(details.lvAfter || S.lv || 1),
+    note: details.note || '',
+    source: getDraftDeviceId_()
+  };
+  return sendRetryablePost_('CLIENT_TRANSACTION', payload, {
+    dedupeKey: 'tx:' + requestId,
+    realFetch: true
   });
 }
 
-function doReset(){ cfmShow('⚠️', 'ยืนยันรีเซ็ตภารกิจ?', 'ข้อมูลที่กรอกวันนี้จะหายไปทั้งหมด', function() { gasCall('resetToday',undefined,function(r){ applyData(r); [1,2,3].forEach(function(n){ S.quests[n-1]=false; var qc = document.getElementById('qc'+n); if(qc){ qc.classList.remove('on'); qc.textContent=''; } var qi = document.getElementById('qi'+n); if(qi){ qi.classList.remove('done'); } }); qcnt=0; var qbar = document.getElementById('qbar'); if(qbar) qbar.innerHTML='ติ๊ก <b>0</b>/3 ภารกิจ'; ['in-w','in-h','in-lp','in-fr','in-bt','in-fg','in-bk','in-gpa','in-sc'].forEach(function(id){ var el = document.getElementById(id); if(el) el.value = ''; }); var ill = document.getElementById('in-ill'); if(ill) ill.value = 'ไม่มี'; var sl = document.getElementById('feel-sl'); if(sl) { sl.value = 3; updateFeel(3); } showToast('🗑️ รีเซ็ตข้อมูลวันนี้เรียบร้อย กรอกใหม่ได้เลย!'); 
+function addExpLocal_(expDelta) {
+  var max = Number(S.expMax || 100);
+  S.exp = Number(S.exp || 0) + Number(expDelta || 0);
+  S.lv = Number(S.lv || 1);
+  if (S.lv >= 100) {
+    S.lv = 100;
+    S.exp = max;
+    return;
+  }
+  while (S.exp >= max && S.lv < 100) {
+    S.exp -= max;
+    S.lv += 1;
+  }
+  if (S.lv >= 100) {
+    S.lv = 100;
+    S.exp = max;
+  }
+}
+
+function applyDailyReportLocal_(report, meta) {
+  meta = meta || {};
+  if (!S.streak) S.streak = ['grey','grey','grey','grey','grey','grey','grey'];
+  if (!S.hof) S.hof = { shark: false, book: false, heart: false };
+  if (!S.bossTargets) S.bossTargets = { speed: 25, heightBase: 129, weightBase: 24 };
+  if (!S.todayGacha) S.todayGacha = [];
+  if (!S.todayItemsUsed) S.todayItemsUsed = [];
+  if (!S.monthBest) S.monthBest = { fr:null, bt:null, fg:null, bk:null };
+  if (!S.allBest) S.allBest = { fr:null, bt:null, fg:null, bk:null };
+
+  var coinBefore = Number(S.coins || 0);
+  var lvBefore = Number(S.lv || 1);
+  var earn = 6;
+  var expGain = 35;
+  var bossRewards = [];
+
+  if (report.swimFr) {
+    var frInt = Math.floor(parseFloat(report.swimFr));
+    var currentTarget = Number(S.bossTargets.speed || 25);
+    if (isFinite(frInt) && frInt < currentTarget) {
+      var rewardCoins = currentTarget <= 20 ? 200 : 50;
+      bossRewards.push({ title: 'บอสฉลามขาว', coin: rewardCoins, desc: 'ผ่านด่าน < ' + currentTarget + ' วิ! (เป้าหมายต่อไป: < ' + (currentTarget - 1) + ' วิ)', icon: '🦈' });
+      earn += rewardCoins;
+      S.bossTargets.speed = currentTarget - 1;
+      if (currentTarget <= 20) S.hof.shark = true;
+    }
+  }
+  if (report.score) {
+    var sc = parseFloat(report.score);
+    if (isFinite(sc) && sc >= 90) {
+      bossRewards.push({ title: 'บอสหมอโหด', coin: 300, desc: 'สอบได้ Rank S (' + sc + '%)', icon: '📚' });
+      earn += 300;
+      S.hof.book = true;
+    } else if (isFinite(sc)) {
+      S.hof.book = false;
+    }
+  }
+  if (report.h) {
+    var hFloor = Math.floor(parseFloat(report.h));
+    var hBase = Number(S.bossTargets.heightBase || 129);
+    if (isFinite(hFloor) && hFloor >= hBase + 2) {
+      var hSteps = Math.floor((hFloor - hBase) / 2);
+      var hBonus = hSteps * 30;
+      bossRewards.push({ title: 'บอสเสาไฟ', coin: hBonus, desc: 'ตัวสูงทะลุเป้า (+' + (hSteps * 2) + 'cm)', icon: '🦒' });
+      earn += hBonus;
+      S.bossTargets.heightBase = hBase + (hSteps * 2);
+    }
+  }
+  if (report.w) {
+    var wFloor = Math.floor(parseFloat(report.w));
+    var wBase = Number(S.bossTargets.weightBase || 24);
+    if (isFinite(wFloor) && wFloor >= wBase + 2) {
+      var wSteps = Math.floor((wFloor - wBase) / 2);
+      var wBonus = wSteps * 30;
+      bossRewards.push({ title: 'บอสกุ้งแห้งเล่นเวท', coin: wBonus, desc: 'ร่างกายแข็งแรง (+' + (wSteps * 2) + 'kg)', icon: '💪' });
+      earn += wBonus;
+      S.bossTargets.weightBase = wBase + (wSteps * 2);
+    }
+  }
+
+  var step = Number(S.currentDayIndex || 0);
+  if (step < 0 || step > 6) step = 0;
+  S.streak[step] = 'gold';
+  S.currentDayIndex = step + 1;
+  if (S.currentDayIndex >= 7) {
+    bossRewards.push({ title: 'บอสมุ่งมั่น', coin: 18, desc: 'ผจญภัยครบ 7 ครั้ง! (รับกุญแจทอง 2 ดอก)', icon: '❤️' });
+    earn += 18;
+    S.keys = Number(S.keys || 0) + 2;
+    S.hof.heart = true;
+    S.currentDayIndex = 0;
+    S.streak = ['grey','grey','grey','grey','grey','grey','grey'];
+  }
+
+  var prevStats = S.lastStats || {};
+  S.compareStats = JSON.parse(JSON.stringify(prevStats || {}));
+  S.lastStats = JSON.parse(JSON.stringify(prevStats || {}));
+  ['w','h','laps','swimFr','swimBt','swimFg','swimBk','gpa','score'].forEach(function(key) {
+    if (report[key] !== undefined && report[key] !== '' && report[key] !== null) S.lastStats[key] = report[key];
+  });
+
+  var styles = { swimFr:'fr', swimBt:'bt', swimFg:'fg', swimBk:'bk' };
+  Object.keys(styles).forEach(function(key) {
+    if (!report[key]) return;
+    var time = parseFloat(report[key]);
+    var st = styles[key];
+    if (!isFinite(time)) return;
+    if (S.allBest[st] === null || S.allBest[st] === undefined || time < Number(S.allBest[st])) S.allBest[st] = time;
+    if (S.monthBest[st] === null || S.monthBest[st] === undefined || time < Number(S.monthBest[st])) S.monthBest[st] = time;
+  });
+
+  S.coins = coinBefore + earn;
+  S.todayCoins = Number(S.todayCoins || 0) + earn;
+  addExpLocal_(expGain);
+  S.w = report.w || S.w || '';
+  if (report.h !== undefined && report.h !== '') S.h = report.h;
+  if (report.laps !== undefined && report.laps !== '') S.laps = report.laps;
+  if (report.swimFr !== undefined && report.swimFr !== '') S.swimFr = report.swimFr;
+  if (report.swimBt !== undefined && report.swimBt !== '') S.swimBt = report.swimBt;
+  if (report.swimFg !== undefined && report.swimFg !== '') S.swimFg = report.swimFg;
+  if (report.swimBk !== undefined && report.swimBk !== '') S.swimBk = report.swimBk;
+  if (report.gpa !== undefined && report.gpa !== '') S.gpa = report.gpa;
+  if (report.score !== undefined && report.score !== '') S.score = report.score;
+  S.feeling = report.feeling || S.feeling || 3;
+  S.illness = report.illness || 'ไม่มี';
+  var todayStats = JSON.parse(JSON.stringify(report));
+  todayStats.rewardCoins = earn;
+  todayStats.expEarned = expGain;
+  S.todayStats = todayStats;
+  S.quests = [true, true, true];
+  S.submitted = true;
+  S.isResubmit = false;
+  S.lastSyncDate = meta.isoDate || new Date().toLocaleDateString('en-CA');
+  S.draft = { _draftCleared: true, _draftUpdatedAt: new Date().toISOString(), _draftSubmitted: true };
+  S._revision = Number(S._revision || 0) + 1;
+  S._offlinePrimary = true;
+  saveLocal();
+
+  return {
+    result: 'success',
+    save: S,
+    totalCoinsEarned: earn,
+    expEarned: expGain,
+    bossRewards: bossRewards.length ? bossRewards : null,
+    coinBefore: coinBefore,
+    lvBefore: lvBefore
+  };
+}
+
+function postJson_(payload) {
+  return fetch(SHEET_URL, {
+    method: 'POST',
+    cache: 'no-cache',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  }).then(function(res) {
+    if (!res || !res.ok) throw new Error('HTTP ' + (res && res.status));
+    return res.json();
+  });
+}
+
+function doSubmit(){
+  if (questSubmitBusy) return;
+  if (S.submitted) { showToast('วันนี้ส่งรายงานไปแล้วครับ!'); return; }
+
+  var questData = {
+    w: document.getElementById('in-w')?.value || '',
+    h: document.getElementById('in-h')?.value || '',
+    laps: document.getElementById('in-lp')?.value || '',
+    swimFr: document.getElementById('in-fr')?.value || '',
+    swimBt: document.getElementById('in-bt')?.value || '',
+    swimFg: document.getElementById('in-fg')?.value || '',
+    swimBk: document.getElementById('in-bk')?.value || '',
+    feeling: S.feeling,
+    gpa: document.getElementById('in-gpa')?.value || '',
+    score: document.getElementById('in-sc')?.value || '',
+    illness: document.getElementById('in-ill')?.value || 'ไม่มี'
+  };
+  if (!questData.w || !String(questData.w).trim()) {
+    showToast('กรุณากรอกน้ำหนักก่อนส่งรายงาน');
+    return;
+  }
+  var validationErrors = validateQuestForm_(questData);
+  if (validationErrors.length) {
+    showToast('❌ ' + validationErrors[0]);
+    return;
+  }
+  ['h', 'laps', 'swimFr', 'swimBt', 'swimFg', 'swimBk', 'gpa', 'score'].forEach(function(k) {
+    if (questData[k] === '') delete questData[k];
+  });
+
+  questSubmitBusy = true;
+  var submitBtn = document.getElementById('btn-submit');
+  var draftBtn = document.getElementById('btn-draft');
+  if (submitBtn) submitBtn.disabled = true;
+  if (draftBtn) draftBtn.disabled = true;
+  SFX.submit();
+  setQuestSubmitState_('loading', 'กำลังส่งข้อมูล', 'โปรดรอซักครู่... ระบบกำลังบันทึกรายงาน', '');
+
+  var prevLv = S.lv;
+  var todayIso = new Date().toLocaleDateString('en-CA');
+  var dateLabel = new Date().toLocaleDateString('th-TH', {year:'numeric',month:'long',day:'numeric'});
+  var requestId = makeRequestId_('DAILY');
+  var clientSaveBefore = JSON.parse(JSON.stringify(S));
+  var data = applyDailyReportLocal_(questData, { isoDate: todayIso });
+  var earnCoin = data.totalCoinsEarned || 0;
+  var bossRewards = data.bossRewards || null;
+  var spentCoin = S.todayCoinsSpent || 0;
+  var sokC = document.getElementById('sok-coins');
+  if (sokC) sokC.textContent = '+' + earnCoin + ' B-Coin';
+
+  clearCloudDraft_();
+  ['in-w','in-h','in-lp','in-fr','in-bt','in-fg','in-bk','in-gpa','in-sc'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  var ill = document.getElementById('in-ill');
+  if (ill) ill.value = 'ไม่มี';
+  var fsl = document.getElementById('feel-sl');
+  if (fsl) { fsl.value = 3; fsl.dispatchEvent(new Event('input')); }
+
+  if (S.lv > prevLv) {
+    SFX.levelUp();
+    var lvt = document.getElementById('lv-txt');
+    if (lvt) { lvt.classList.remove('level-up-pop'); void lvt.offsetWidth; lvt.classList.add('level-up-pop'); }
+    var lm = document.getElementById('lm-lv-val');
+    if (lm) lm.textContent = S.lv;
+    var overlay = document.getElementById('level-overlay');
+    if (overlay) overlay.classList.add('on');
+  } else {
+    SFX.coin();
+  }
+
+  var backupPayload = {
+    action: 'DAILY_REPORT',
+    requestId: requestId,
+    offlinePrimary: true,
+    report: questData,
+    isoDate: todayIso,
+    syncDate: dateLabel,
+    clientRevision: clientSaveBefore._revision || 0,
+    clientSaveBefore: clientSaveBefore,
+    clientSaveAfter: JSON.parse(JSON.stringify(S)),
+    deviceId: getDraftDeviceId_(),
+    deviceName: getDraftDeviceName_()
+  };
+  sendRetryablePost_('DAILY_REPORT', backupPayload, {
+    dedupeKey: 'daily:' + requestId,
+    noCors: true
+  });
+
+  var stepStr = S.currentDayIndex === 0 ? 'ด่าน บอส 💎' : 'ด่าน ' + S.currentDayIndex + '/7';
+  var todayStr = new Date().toLocaleDateString('th-TH', {year:'numeric', month:'short', day:'numeric'});
+  var lineMsg = '🛡️ [BIFROST] สรุปรายงานประจำวัน 🛡️\n';
+  lineMsg += '📅 วันที่: ' + todayStr + '\n\n';
+  lineMsg += '💰 เหรียญทั้งหมดในกระเป๋า: ' + S.coins + ' B-Coin\n';
+  lineMsg += '✨ เหรียญที่ได้วันนี้: +' + earnCoin + ' B-Coin\n';
+  lineMsg += '💸 เหรียญที่ใช้วันนี้: -' + spentCoin + ' B-Coin\n\n';
+  lineMsg += '🗺️ เส้นทางนักผจญภัย: ' + stepStr + '\n\n';
+  lineMsg += '📊 สถิติการฝึกซ้อม:\n';
+  lineMsg += '⚖️ น้ำหนัก: ' + (questData.w ? questData.w + ' kg' : '-') + '\n';
+  lineMsg += '🦒 ส่วนสูง: ' + (questData.h ? questData.h + ' cm' : '-') + '\n';
+  lineMsg += '🏊 จำนวนรอบว่ายน้ำ: ' + (questData.laps ? questData.laps + ' รอบ' : '-') + '\n\n';
+  lineMsg += '⏱️ สถิติเวลาว่ายน้ำ:\n';
+  lineMsg += '🏊 ฟรีสไตล์: ' + (questData.swimFr ? questData.swimFr + ' วิ' : '-') + '\n';
+  lineMsg += '🏊 กรรเชียง: ' + (questData.swimBk ? questData.swimBk + ' วิ' : '-') + '\n';
+  lineMsg += '🏊 กบ: ' + (questData.swimFg ? questData.swimFg + ' วิ' : '-') + '\n';
+  lineMsg += '🏊 ผีเสื้อ: ' + (questData.swimBt ? questData.swimBt + ' วิ' : '-');
+  sendToLine('DAILY_REPORT', lineMsg);
+
+  setQuestSubmitState_('success', 'ส่งรายงานสำเร็จ!', 'บันทึกในเครื่องน้องเรียบร้อยแล้ว ระบบจะส่งสำเนาเข้า Sheet/LINE อัตโนมัติ', '+' + earnCoin + ' B-Coin');
+  setTimeout(function() {
+    var ok = document.getElementById('submit-ok');
+    if (ok) ok.classList.remove('on');
+    finishQuestSubmitState_(true);
+    renderAll();
+    goP('dashboard');
+    if (bossRewards && bossRewards.length > 0) setTimeout(function(){ showBossRewards(bossRewards); }, 500);
+  });
+}
+
+function doReset(){ cfmShow('⚠️', 'ยืนยันรีเซ็ตรายงาน?', 'ข้อมูลที่กรอกวันนี้จะหายไปทั้งหมด', function() { gasCall('resetToday',undefined,function(r){ applyData(r); [1,2,3].forEach(function(n){ S.quests[n-1]=false; var qc = document.getElementById('qc'+n); if(qc){ qc.classList.remove('on'); qc.textContent=''; } var qi = document.getElementById('qi'+n); if(qi){ qi.classList.remove('done'); } }); qcnt=0; ['in-w','in-h','in-lp','in-fr','in-bt','in-fg','in-bk','in-gpa','in-sc'].forEach(function(id){ var el = document.getElementById(id); if(el) el.value = ''; }); var ill = document.getElementById('in-ill'); if(ill) ill.value = 'ไม่มี'; var sl = document.getElementById('feel-sl'); if(sl) { sl.value = 3; updateFeel(3); } updateReportSubmitUi_(); showToast('🗑️ รีเซ็ตข้อมูลวันนี้เรียบร้อย กรอกใหม่ได้เลย!'); 
   autoSyncDraft();
 }); }); }
 
@@ -1093,9 +1922,29 @@ function doGmSubmit(){
     revHeart: document.getElementById('gm-revoke-heart')?.checked || false
   };
 
+  var beforeCoins = Number(S.coins || 0);
+  var beforeExp = Number(S.exp || 0);
+  var beforeLv = Number(S.lv || 1);
   gasCall('submitGm', gmData, function(r){ 
     var secretQuestLine = (gmData.secretQuest || '').trim();
     applyData(r); 
+    recordTransaction_('GM_COMMAND', {
+      coinDelta: Number(S.coins || 0) - beforeCoins,
+      expDelta: Number(S.exp || 0) - beforeExp,
+      coinBefore: beforeCoins,
+      coinAfter: S.coins,
+      lvBefore: beforeLv,
+      lvAfter: S.lv,
+      note: 'GM: ' + [
+        gmData.achievement,
+        gmData.coinsAdj ? ('coins ' + gmData.coinsAdj) : '',
+        gmData.lvAdj ? ('lv ' + gmData.lvAdj) : '',
+        gmData.addKey ? 'add key' : '',
+        gmData.addExp ? 'add exp' : '',
+        gmData.addFood ? 'add food' : '',
+        secretQuestLine ? 'secret quest' : ''
+      ].filter(Boolean).join(' | ')
+    });
     if (secretQuestLine) {
       var secretQuestMsg = '📜 [BIFROST] ภารกิจลับพิเศษมาแล้ว!\n\n';
       secretQuestMsg += 'ภารกิจ: ' + secretQuestLine + '\n';
@@ -1163,6 +2012,8 @@ function claimPendingGachaReward_(menuText) {
   if (!hasPendingGachaReward_()) { closeGacha(); return; }
   var pending = S.pendingReward;
   var res = pending.result;
+  var beforeCoins = Number(S.coins || 0);
+  var beforeLv = Number(S.lv || 1);
   if(!S.todayGacha) S.todayGacha = [];
   if(res.type === 'chef') {
     var menu = String(menuText || '').trim();
@@ -1171,15 +2022,31 @@ function claimPendingGachaReward_(menuText) {
     S.todayGacha.push('👨‍🍳 สั่งเมนู: ' + menu + ' (+'+res.val+' Coins)');
     S.pendingReward = null;
     saveLocal(); renderAll();
+    recordTransaction_('GACHA_CLAIM', {
+      coinDelta: Number(res.val || 0),
+      coinBefore: beforeCoins,
+      coinAfter: S.coins,
+      lvBefore: beforeLv,
+      lvAfter: S.lv,
+      note: 'ตั๋วเชฟทองคำ: ' + menu
+    });
     sendToLine("CHEF_TICKET", "👨‍🍳 [BIFROST] ออเดอร์พิเศษ!\nเมนู: " + menu + "\n(ได้รับจาก: 🎫 ตั๋วเชฟทองคำ ในกาชา)");
     showToast('🍜 ส่งเมนูให้ปะป๊าเรียบร้อย! ได้รับ +5 B-Coin'); closeGacha();
     return;
   }
   if(res.type === 'coin') { S.coins += res.val; S.todayCoins += res.val; S.todayGacha.push(res.ico + ' หมุนได้ ' + res.ttl); }
-  else if(res.type === 'item') { S.phoenix++; S.todayGacha.push(res.ico + ' หมุนได้ น้ำตาฟีนิกซ์'); }
+  else if(res.type === 'item') { S.todayGacha.push(res.ico + ' หมุนได้ ' + (res.ttl || 'ไอเทมพิเศษ')); }
   else if(res.type === 'info') { S.coins += res.val; S.todayCoins += res.val; S.todayGacha.push(res.ico + ' ภารกิจ: ' + res.ttl + ' (+'+res.val+' Coins)'); }
   S.pendingReward = null;
   saveLocal(); renderAll(); closeGacha();
+  recordTransaction_('GACHA_CLAIM', {
+    coinDelta: Number(S.coins || 0) - beforeCoins,
+    coinBefore: beforeCoins,
+    coinAfter: S.coins,
+    lvBefore: beforeLv,
+    lvAfter: S.lv,
+    note: 'กล่องสมบัติ: ' + (res.ttl || res.type || '')
+  });
   if (res.rarity === 'LEGENDARY') {
     sendToLine("GACHA", "🏆 [BIFROST] แจ็คพอตแตก!!! 🏆\nไบฟรอสเปิดกล่องสมบัติได้รับ:\n✨ " + res.ttl + "\n(ยอดเงินล่าสุด: " + S.coins + " B-Coin)");
   }
@@ -1257,7 +2124,7 @@ function getGachaResult() {
   else if (rng <= 57) { res = { rarity: 'RARE', ico: '🍫', ttl: 'ขนมด่วนจี๋', desc: 'ขอรับขนม 7-11 ที่ต้องการทันที 2 ชิ้น!\n(ได้รับโบนัส 5 B-Coin)', type: 'info', val: 5, color: 'rare-rare' }; }
   else if (rng <= 68) { var c = Math.floor(Math.random() * 11) + 30; res = { rarity: 'RARE', ico: '💰', ttl: 'ได้รับ '+c+' B-Coin', desc: 'โชคดีจัง!\nเหรียญรางวัลหายาก!', type: 'coin', val: c, color: 'rare-rare' }; }
   else if (rng <= 76) { res = { rarity: 'RARE', ico: '👨‍🍳', ttl: 'เชฟทองคำ', desc: 'รีเควสอาหารมื้อเย็นให้ปะป๊าทำให้!\n(ได้รับโบนัส 5 B-Coin)', type: 'chef', val: 5, color: 'rare-rare' }; }
-  else if (rng <= 84) { if (S.phoenix < 2) { res = { rarity: 'RARE', ico: '💧', ttl: 'น้ำตาฟีนิกซ์', desc: 'ได้รับไอเทมชุบชีวิต Streak!', type: 'item', val: 0, color: 'rare-rare' }; } else { res = { rarity: 'RARE', ico: '💰', ttl: 'ได้รับ 15 B-Coin', desc: 'คลังน้ำตาเต็ม 2 อันแล้ว!\nเปลี่ยนเป็นเหรียญแทน', type: 'coin', val: 15, color: 'rare-rare' }; } }
+  else if (rng <= 84) { res = { rarity: 'RARE', ico: '🎟️', ttl: 'โบนัสฝึกซ้อม', desc: 'รับกำลังใจพิเศษจากกล่องสมบัติ!\n(ได้รับโบนัส 15 B-Coin)', type: 'info', val: 15, color: 'rare-rare' }; }
   else if (rng <= 90) { res = { rarity: 'RARE', ico: '🤝', ttl: 'การ์ดเพื่อนแท้', desc: 'เรียกปะป๊ามาเล่นด้วยทันที 30 นาที!\n(เฉพาะตอนปะป๊าว่าง + ได้รับ 5 B-Coin)', type: 'info', val: 5, color: 'rare-rare' }; }
   else if (rng <= 96) { var c = Math.floor(Math.random() * 21) + 40; res = { rarity: 'EPIC', ico: '💰', ttl: 'ได้รับ '+c+' B-Coin', desc: 'สุดยอด!\nรางวัลระดับมหากาพย์!', type: 'coin', val: c, color: 'rare-epic' }; }
   else { res = { rarity: 'LEGENDARY', ico: '🏆', ttl: 'JACKPOT!!!', desc: 'แจ็คพอตแตกแล้ววว!\nมหาเศรษฐี!', type: 'coin', val: 150, color: 'rare-legendary' }; }
@@ -1297,11 +2164,8 @@ function updateLog() {
     // 🟢 โซนที่ 1: ข้อมูลภารกิจ (ลด margin-bottom เป็น 2px)
     // ==========================================
     if (isTodayDone) {
-        let qCnt = S.quests ? S.quests.filter(Boolean).length : 0;
-        if (qCnt > 0) {
-            let qEarn = (S.quests[0]?2:0) + (S.quests[1]?2:0) + (S.quests[2]?2:0);
-            html += `<div style="margin-bottom:2px; color:#4caf50; font-weight:bold;">✅ ภารกิจรายวัน: ${qCnt === 3 ? 'ครบถ้วน' : qCnt+' ข้อ'} (+${qEarn} Coins)</div>`;
-        }
+        const reportEarn = (S.todayStats && S.todayStats.rewardCoins) || 6;
+        html += `<div style="margin-bottom:2px; color:#4caf50; font-weight:bold;">✅ รายงานประจำวัน: ส่งแล้ว (+${reportEarn} Coins)</div>`;
     }
 
     if (S.todayItemsUsed && S.todayItemsUsed.length > 0) {
@@ -1318,7 +2182,7 @@ function updateLog() {
     <div style="margin-top:-10px; padding-top:-10px; border-top:1px dashed var(--gbdr);">
         <div style="color:var(--gold); font-weight:bold; margin-bottom:4px;">📊 สถิติการผจญภัย</div>`;
     
-    const d = isTodayDone ? (S.todayStats || {}) : {}; 
+    const d = isTodayDone ? (S.todayStats || {}) : {};
     const past = isTodayDone ? (S.compareStats || {}) : (S.lastStats || {});
 
     function getVal(obj, k1, k2) {
@@ -1327,13 +2191,44 @@ function updateLog() {
         return '';
     }
 
+    // 🌟 [Bugfix] อ่านค่าที่กำลังกรอกในฟอร์ม (live) + เผื่อ S.draft เป็น fallback
+    // ใช้เฉพาะตอนยังไม่ได้ส่งภารกิจ เพื่อโชว์ค่า "รอส่ง" แทน lastStats เก่า
+    function _formVal(id) {
+        var el = (typeof document !== 'undefined') ? document.getElementById(id) : null;
+        return el ? el.value : '';
+    }
+    const draftLive = !isTodayDone ? {
+        w:   _formVal('in-w')   || (S.draft && S.draft.w)   || '',
+        h:   _formVal('in-h')   || (S.draft && S.draft.h)   || '',
+        lp:  _formVal('in-lp')  || (S.draft && S.draft.lp)  || '',
+        fr:  _formVal('in-fr')  || (S.draft && S.draft.fr)  || '',
+        bk:  _formVal('in-bk')  || (S.draft && S.draft.bk)  || '',
+        fg:  _formVal('in-fg')  || (S.draft && S.draft.fg)  || '',
+        bt:  _formVal('in-bt')  || (S.draft && S.draft.bt)  || '',
+        gpa: _formVal('in-gpa') || (S.draft && S.draft.gpa) || '',
+        sc:  _formVal('in-sc')  || (S.draft && S.draft.sc)  || ''
+    } : {};
+
+    // 🌟 [Bugfix] "ล่าสุดจริง" จาก S (กรณีไม่มี draft live) — S.w/S.h ฯลฯ persist อยู่แล้ว
+    const latestReal = !isTodayDone ? {
+        w:   S.w      || '',
+        h:   S.h      || '',
+        laps: S.laps  || '',
+        fr:  S.swimFr || '',
+        bk:  S.swimBk || '',
+        fg:  S.swimFg || '',
+        bt:  S.swimBt || '',
+        gpa: S.gpa    || '',
+        sc:  S.score  || ''
+    } : {};
+
     let cv = {
         w: getVal(d, 'w'), h: getVal(d, 'h'), laps: getVal(d, 'laps', 'lp'),
         fr: getVal(d, 'swimFr', 'fr'), bk: getVal(d, 'swimBk', 'bk'),
         fg: getVal(d, 'swimFg', 'fg'), bt: getVal(d, 'swimBt', 'bt'),
         gpa: getVal(d, 'gpa'), sc: getVal(d, 'score', 'sc')
     };
-    
+
     let pv = {
         w: getVal(past, 'w'), h: getVal(past, 'h'), laps: getVal(past, 'laps', 'lp'),
         fr: getVal(past, 'swimFr', 'fr'), bk: getVal(past, 'swimBk', 'bk'),
@@ -1341,18 +2236,45 @@ function updateLog() {
         gpa: getVal(past, 'gpa'), sc: getVal(past, 'score', 'sc')
     };
 
-    function drawStatRow(label, icon, currentVal, prevVal, unit, isTimeBased = false) {
+    // 🌟 [Bugfix] dv = ค่ารอส่ง (จาก draft/form), lv = ค่าล่าสุดจริงจาก S
+    let dv = {
+        w: getVal(draftLive, 'w'), h: getVal(draftLive, 'h'),
+        laps: getVal(draftLive, 'lp'),
+        fr: getVal(draftLive, 'fr'), bk: getVal(draftLive, 'bk'),
+        fg: getVal(draftLive, 'fg'), bt: getVal(draftLive, 'bt'),
+        gpa: getVal(draftLive, 'gpa'), sc: getVal(draftLive, 'sc')
+    };
+    let lv = {
+        w: getVal(latestReal, 'w'), h: getVal(latestReal, 'h'),
+        laps: getVal(latestReal, 'laps'),
+        fr: getVal(latestReal, 'fr'), bk: getVal(latestReal, 'bk'),
+        fg: getVal(latestReal, 'fg'), bt: getVal(latestReal, 'bt'),
+        gpa: getVal(latestReal, 'gpa'), sc: getVal(latestReal, 'sc')
+    };
+
+    function drawStatRow(label, icon, currentVal, prevVal, unit, isTimeBased = false, draftVal = '', latestVal = '') {
         // 🌟 ไม้ตายก้นหีบ: บังคับความสูงและระยะห่างขั้นเด็ดขาด (ทับ CSS ทุกตัว 100%)
         let baseStyle = "display:flex !important; align-items:center !important; justify-content:flex-start !important; padding: 0 !important; margin: 0 !important; height: 0px !important; line-height: 1 !important; font-size:13px !important; color:#333 !important; overflow:visible !important;";
-        
-        // 🌟 กรณีที่ 1: พอกดข้ามวัน (ยังไม่ได้ส่งเควส) ให้โชว์ค่า (ล่าสุด: ...)
+
+        // 🌟 กรณีที่ 1: ยังไม่ได้ส่งเควสวันนี้
         if (!isTodayDone) {
-            if (!prevVal || prevVal === '' || prevVal == 0) return '';
+            // 1a) มีค่ากรอกในฟอร์ม/draft แล้ว → โชว์ "X kg (รอส่ง)" — ลำดับสำคัญสุด
+            if (draftVal !== '' && draftVal != 0) {
+                return `
+                <div style="${baseStyle}">
+                    <span style="margin-right:8px; width:18px; text-align:center;">${icon}</span>
+                    <span style="min-width:80px; margin-right:5px; color:#333;">${label}:</span>
+                    <span style="font-weight:bold; color:#1976d2;">${draftVal} ${unit} <span style="color:#888; font-weight:normal; font-size:11px;">(รอส่ง)</span></span>
+                </div>`;
+            }
+            // 1b) ไม่มี draft → ใช้ "ล่าสุดจริง" จาก S ก่อน, fallback ไป lastStats (prevVal)
+            let displayVal = (latestVal !== '' && latestVal != 0) ? latestVal : prevVal;
+            if (!displayVal || displayVal === '' || displayVal == 0) return '';
             return `
             <div style="${baseStyle}">
                 <span style="margin-right:8px; width:18px; text-align:center;">${icon}</span>
                 <span style="min-width:80px; margin-right:5px; color:#333;">${label}:</span>
-                <span style="font-weight:bold; color:#777;">(ล่าสุด: ${prevVal} ${unit})</span>
+                <span style="font-weight:bold; color:#777;">(ล่าสุด: ${displayVal} ${unit})</span>
             </div>`;
         }
 
@@ -1379,13 +2301,13 @@ function updateLog() {
     }
 
     let statHtml = '';
-    statHtml += drawStatRow('น้ำหนัก', '⚖️', cv.w, pv.w, 'kg');
-    statHtml += drawStatRow('ส่วนสูง', '🦒', cv.h, pv.h, 'cm');
-    statHtml += drawStatRow('จำนวนรอบ', '🏊', cv.laps, pv.laps, 'รอบ');
-    statHtml += drawStatRow('ฟรีสไตล์', '🏊', cv.fr, pv.fr, 'วิ', true);
-    statHtml += drawStatRow('กรรเชียง', '🏊', cv.bk, pv.bk, 'วิ', true);
-    statHtml += drawStatRow('กบ', '🏊', cv.fg, pv.fg, 'วิ', true);
-    statHtml += drawStatRow('ผีเสื้อ', '🏊', cv.bt, pv.bt, 'วิ', true);
+    statHtml += drawStatRow('น้ำหนัก', '⚖️', cv.w, pv.w, 'kg', false, dv.w, lv.w);
+    statHtml += drawStatRow('ส่วนสูง', '🦒', cv.h, pv.h, 'cm', false, dv.h, lv.h);
+    statHtml += drawStatRow('จำนวนรอบ', '🏊', cv.laps, pv.laps, 'รอบ', false, dv.laps, lv.laps);
+    statHtml += drawStatRow('ฟรีสไตล์', '🏊', cv.fr, pv.fr, 'วิ', true, dv.fr, lv.fr);
+    statHtml += drawStatRow('กรรเชียง', '🏊', cv.bk, pv.bk, 'วิ', true, dv.bk, lv.bk);
+    statHtml += drawStatRow('กบ', '🏊', cv.fg, pv.fg, 'วิ', true, dv.fg, lv.fg);
+    statHtml += drawStatRow('ผีเสื้อ', '🏊', cv.bt, pv.bt, 'วิ', true, dv.bt, lv.bt);
     
     if (statHtml === '') {
         html += `<div style="font-size:12px; color:#777; font-style:italic; margin-bottom:4px;">ยังไม่มีข้อมูลสถิติที่บันทึกไว้ครับ...</div>`;
@@ -1447,24 +2369,7 @@ if(bgSub) {
   var gkDisp = document.getElementById('gacha-key-display'); if(gkDisp) gkDisp.textContent = S.keys || 0;
   syncInv(); syncShopQuota(); updateLog(); updateBestTable(); checkGachaLock(); 
 
-  [1,2,3].forEach(function(n){ var c=document.getElementById('qc'+n), qi=document.getElementById('qi'+n); if(c) { c.classList.toggle('on',S.quests[n-1]); c.textContent=S.quests[n-1]?'✓':''; } if(qi) qi.classList.toggle('done',S.quests[n-1]); });
-  qcnt=S.quests.filter(Boolean).length; var qbar = document.getElementById('qbar'); if(qbar) qbar.innerHTML=qcnt===3?'<span class="qsuc">✦ ภารกิจพร้อมส่ง! ✦</span>':'ติ๊ก <b>'+qcnt+'</b>/3 ภารกิจ';
-
-// เช็กสถานะปุ่มอัปเดตและปุ่มส่ง
-  var bSub = document.getElementById('btn-submit');
-  var bDraft = document.getElementById('btn-draft');
-  if (S.submitted) {
-      if(bSub) { bSub.style.display = 'block'; bSub.textContent = '✅ ส่งภารกิจแล้ว'; bSub.disabled = true; bSub.style.background = '#555'; bSub.style.color = '#fff'; }
-      if(bDraft) bDraft.style.display = 'none';
-  } else {
-      if (qcnt === 3) {
-          if(bSub) { bSub.style.display = 'block'; bSub.textContent = '⚔️ ส่งภารกิจ'; bSub.disabled = false; bSub.style.background = ''; bSub.style.color = ''; }
-          if(bDraft) bDraft.style.display = 'none';
-      } else {
-          if(bSub) bSub.style.display = 'none';
-          if(bDraft) bDraft.style.display = 'block';
-      }
-  }
+  updateReportSubmitUi_();
 
 updateHeroSpeech();
   updateGmStatus();
@@ -1510,7 +2415,21 @@ function updateBestTable(){ var fmt=function(v){return(v===null||v===undefined||
 function syncInv(){ var invK = document.getElementById('inv-key'); if(invK) invK.textContent=S.keys||0; var invT = document.getElementById('inv-tk'); if(invT) invT.textContent=S.ticket; var shT = document.getElementById('sh-tk'); if(shT) shT.textContent=S.ticket; }
 function syncShopQuota(){ var fQ = document.getElementById('food-quota'); if(fQ) fQ.textContent='✅ โควต้าคงเหลือ: '+Math.max(0, 1-(S.foodWeekBought||0))+'/1'; }
 
-var toastTm; function showToast(m){ var t=document.getElementById('toast'); if(!t) return; t.textContent=m;t.classList.add('on'); clearTimeout(toastTm);toastTm=setTimeout(function(){t.classList.remove('on');},3200); }
+// 📱 [v1.1.2] toast — auto-hide หลัง 3.2 วิ + tap to dismiss ทันที
+var toastTm;
+function showToast(m){
+  var t=document.getElementById('toast');
+  if(!t) return;
+  t.textContent=m;
+  t.classList.add('on');
+  clearTimeout(toastTm);
+  toastTm=setTimeout(function(){t.classList.remove('on');},3200);
+  // bind tap-to-dismiss ครั้งเดียว
+  if (!t.dataset.tapBound) {
+    t.dataset.tapBound = '1';
+    t.addEventListener('click', function(){ t.classList.remove('on'); clearTimeout(toastTm); });
+  }
+}
 function cfmShow(ico,ttl,msg,cb){ var ci = document.getElementById('ci'); if(ci) ci.textContent=ico; var ct2 = document.getElementById('ct2'); if(ct2) ct2.textContent=ttl; var cm = document.getElementById('cm'); if(cm) cm.textContent=msg; S.pending=cb; var cfm = document.getElementById('cfm'); if(cfm) cfm.classList.add('on'); }
 
 function usePhoenix(){ if(S.phoenix<=0) showToast('❌ ไม่มีน้ำตาฟีนิกซ์ในคลัง'); else showToast('✅ กดใช้ที่ไอคอนรูปกะโหลก 💀 ในหน้า Streak ได้เลย!'); }
@@ -1562,6 +2481,8 @@ function buyFood() {
     
     cfmShow('🍜', 'ซื้อน้ำยาแสนอร่อย?', 'ราคา 50 B-Coin', function() {
         // 🌟 ให้ระบบหน้าจอ หักเงินและเพิ่มตั๋วเองทันที!
+        var beforeCoins = Number(S.coins || 0);
+        var beforeLv = Number(S.lv || 1);
         S.coins -= 50;
         S.todayCoinsSpent = (S.todayCoinsSpent || 0) + 50;
         S.ticket = (S.ticket || 0) + 1;
@@ -1571,6 +2492,14 @@ function buyFood() {
         
         saveLocal();
         renderAll();
+        recordTransaction_('SHOP_BUY_FOOD', {
+          coinDelta: -50,
+          coinBefore: beforeCoins,
+          coinAfter: S.coins,
+          lvBefore: beforeLv,
+          lvAfter: S.lv,
+          note: 'ซื้อน้ำยาแสนอร่อย'
+        });
         showToast('🍜 ซื้อน้ำยาแสนอร่อยสำเร็จ!');
     });
 }
@@ -1671,6 +2600,33 @@ function doRepairSubmit() {
   var gachaLogText = readRepairText('rp-gacha-log');
   if (gachaLogText !== undefined) fields.todayGacha = gachaLogText.split('\n').map(function(x){ return x.trim(); }).filter(Boolean);
 
+  if (BIFROST_OFFLINE_PRIMARY) {
+    if (pin !== S.PIN) { showToast('PIN ไม่ถูกต้อง'); return; }
+    var beforeCoins = Number(S.coins || 0);
+    var beforeExp = Number(S.exp || 0);
+    var beforeLv = Number(S.lv || 1);
+    Object.assign(S, fields);
+    Object.keys(nested).forEach(function(key) {
+      S[key] = Object.assign({}, S[key] || {}, nested[key] || {});
+    });
+    S._revision = Number(S._revision || 0) + 1;
+    S._offlinePrimary = true;
+    saveLocal();
+    recordTransaction_('ADMIN_REPAIR_LOCAL', {
+      coinDelta: Number(S.coins || 0) - beforeCoins,
+      expDelta: Number(S.exp || 0) - beforeExp,
+      coinBefore: beforeCoins,
+      coinAfter: S.coins,
+      lvBefore: beforeLv,
+      lvAfter: S.lv,
+      note: reason || 'ซ่อมข้อมูลในเครื่อง'
+    });
+    renderAll();
+    closeRepairCenter();
+    showToast('🛠️ ซ่อมข้อมูลในเครื่องสำเร็จ และส่งสำเนาเข้า log แล้ว');
+    return;
+  }
+
   fetch(SHEET_URL, { method:'POST', body:JSON.stringify({ action:'ADMIN_REPAIR', pin:pin, reason:reason, fields:fields, nested:nested }) })
     .then(function(res){ return res.json(); })
     .then(function(data){
@@ -1737,17 +2693,21 @@ function doBackdateSubmit() {
     score: readBackdateValue_('bd-score'),
     bonusCoins: Number(readBackdateValue_('bd-bonus') || 0) || 0,
     note: readBackdateValue_('bd-note'),
-    applyStreak: !!document.getElementById('bd-apply-streak')?.checked
+    applyStreak: !!document.getElementById('bd-apply-streak')?.checked,
+    offlinePrimary: BIFROST_OFFLINE_PRIMARY,
+    clientSaveBefore: BIFROST_OFFLINE_PRIMARY ? JSON.parse(JSON.stringify(S)) : null
   };
   fetch(SHEET_URL, { method:'POST', body:JSON.stringify(payload) })
     .then(function(res){ return res.json(); })
     .then(function(data){
       if (!data || data.result !== 'success') throw new Error((data && (data.message || data.error)) || 'บันทึกย้อนหลังไม่สำเร็จ');
-      Object.assign(S, data.save || {});
-      localStorage.setItem('bifrost_data', JSON.stringify(S));
+      if (!BIFROST_OFFLINE_PRIMARY) {
+        Object.assign(S, data.save || {});
+        localStorage.setItem('bifrost_data', JSON.stringify(S));
+      }
       renderAll();
       closeBackdateQuest();
-      showToast('📅 บันทึกย้อนหลังสำเร็จ +' + (data.totalCoins || 0) + ' B-Coin');
+      showToast(BIFROST_OFFLINE_PRIMARY ? '📅 บันทึกย้อนหลังลง Sheet สำเร็จ (ไม่ทับข้อมูลในเครื่อง)' : ('📅 บันทึกย้อนหลังสำเร็จ +' + (data.totalCoins || 0) + ' B-Coin'));
     })
     .catch(function(err){ showToast(err.message || 'บันทึกย้อนหลังไม่สำเร็จ'); })
     .finally(function(){ if (btn) { btn.disabled = false; btn.textContent = 'บันทึกย้อนหลัง'; } });
@@ -1769,7 +2729,7 @@ var GM_HELP_CONTENT = {
   repair: { title: 'ศูนย์ซ่อมข้อมูล', body: '<p>ใช้แก้ค่าหลักของระบบแบบละเอียด เช่น เหรียญ, EXP, ไอเท็ม, ค่าสถิติ และ Log เหมาะสำหรับแก้ข้อมูลที่ผิดจริง ๆ โดยต้องใส่รหัสผู้ปกครอง</p>' },
   backdate: { title: 'ส่งภารกิจย้อนหลัง', body: '<p>ใช้บันทึกภารกิจของวันที่ผ่านมา ระบบจะบันทึกตามวันที่เลือกและเรียงข้อมูลสถิติให้ถูกวัน เหมาะกับกรณีลืมส่งภารกิจเมื่อวานหรือส่งไม่ทันก่อนข้ามวัน</p>' },
   unlockChest: { title: 'เปิดหีบสมบัติชั่วคราว', body: '<p>ปลดล็อกสถานะหีบสมบัติเป็นเวลา 1 ชั่วโมง เหมาะสำหรับกรณีผู้ปกครองต้องการอนุญาตให้เปิดหีบนอกเวลาปกติ หลังครบเวลา ระบบจะกลับไปใช้กฎเดิมอัตโนมัติ</p>' },
-  health: { title: 'GM Health Check', body: '<p>ใช้ตรวจสุขภาพระบบ เช่น เวอร์ชันหน้าเว็บกับ backend, Sheet ที่เชื่อมอยู่, LINE, CloudSave และจำนวนรายการ Retry Queue ก่อนปล่อยใช้งานจริง</p>' }
+  health: { title: 'GM Health Check', body: '<p>ใช้ตรวจสุขภาพระบบ เช่น เวอร์ชันหน้าเว็บกับ backend, Sheet ที่เชื่อมอยู่, LINE, Local Save และจำนวนรายการ Retry Queue ก่อนปล่อยใช้งานจริง</p>' }
 };
 
 function openGmHelp(key) {
@@ -1805,22 +2765,53 @@ function closeHealthCheck() {
 function runHealthCheck() {
   var body = document.getElementById('health-body');
   if (!body) return;
-  body.innerHTML = 'กำลังตรวจ Apps Script, CloudSave และ Retry Queue...';
+  body.innerHTML = 'กำลังตรวจ Apps Script, Local Save และ Retry Queue...';
   var healthFetch = (SHEET_URL && navigator.onLine) ? fetch(SHEET_URL + '?action=health&ts=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.json(); }) : Promise.reject(new Error('offline'));
-  var saveFetch = (SHEET_URL && navigator.onLine) ? fetch(SHEET_URL + '?action=loadSave&ts=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.json(); }) : Promise.reject(new Error('offline'));
+  var saveFetch = (!BIFROST_OFFLINE_PRIMARY && SHEET_URL && navigator.onLine) ? fetch(SHEET_URL + '?action=loadSave&ts=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.json(); }) : Promise.resolve({});
   Promise.allSettled([healthFetch, saveFetch]).then(function(results) {
     var health = results[0].status === 'fulfilled' ? results[0].value : null;
     var cloud = results[1].status === 'fulfilled' ? results[1].value : null;
     var html = '';
     html += healthLine_('Mode', BIFROST_DEV_MODE ? 'DEV Mode' : 'Production Mode', true);
+    html += healthLine_('Data Authority', BIFROST_OFFLINE_PRIMARY ? 'Offline-first: เครื่องน้องเป็นข้อมูลหลัก / Sheet และ LINE เป็นสำเนา' : 'CloudSave sync ข้ามอุปกรณ์', true);
     html += healthLine_('Frontend Version', APP_VERSION, true);
     html += healthLine_('Backend Version', health && health.apiVersion ? health.apiVersion : 'ติดต่อ backend ไม่สำเร็จ', !!(health && health.apiVersion === APP_VERSION));
     html += healthLine_('Apps Script URL', SHEET_URL || 'ยังไม่ได้ตั้งค่า', !!SHEET_URL);
     html += healthLine_('Sheet ID', health && health.sheetId ? health.sheetId : 'ไม่ทราบ', !!(health && health.sheetId));
     html += healthLine_('LINE', health ? ((health.lineAlertsDisabled ? 'Disabled' : 'Enabled') + ' / ' + (health.lineSendMode || 'push')) : 'ตรวจไม่ได้', !!health && (BIFROST_DEV_MODE || !health.lineAlertsDisabled));
-    html += healthLine_('CloudSave', cloud && Object.keys(cloud).length ? ('Revision ' + (cloud._revision || 0) + ' / Coins ' + (cloud.coins || 0) + ' / Updated ' + (cloud._serverUpdatedAt || cloud._clientUpdatedAt || '-')) : 'ยังไม่มีข้อมูล CloudSave หรือโหลดไม่ได้', !!(cloud && Object.keys(cloud).length));
+    html += healthLine_('Local Save', 'Revision ' + (S._revision || 0) + ' / Coins ' + (S.coins || 0) + ' / Updated ' + (S._clientUpdatedAt || '-'), true);
+    if (!BIFROST_OFFLINE_PRIMARY) {
+      html += healthLine_('CloudSave', cloud && Object.keys(cloud).length ? ('Revision ' + (cloud._revision || 0) + ' / Coins ' + (cloud.coins || 0) + ' / Updated ' + (cloud._serverUpdatedAt || cloud._clientUpdatedAt || '-')) : 'ยังไม่มีข้อมูล CloudSave หรือโหลดไม่ได้', !!(cloud && Object.keys(cloud).length));
+    }
     html += healthLine_('Pending Reward', hasPendingGachaReward_() ? ('มีรางวัลรอรับ: ' + S.pendingReward.result.ttl) : 'ไม่มีรางวัลค้างรับ', true);
     html += healthLine_('Retry Queue', retryQueueCount_() + ' รายการรอส่ง', retryQueueCount_() === 0);
+    // 🩺 [v1.1.2] state anomaly detection
+    var anomalies = (typeof detectImpossibleState_ === 'function') ? detectImpossibleState_(S) : [];
+    if (anomalies.length) {
+      html += '<div style="margin-top:10px; color:#ff8a80; font-weight:900;">⚠️ State Anomalies (' + anomalies.length + ')</div>';
+      html += '<ul style="padding-left:18px; margin-top:4px; color:#ffcdd2; font-size:11px;">';
+      anomalies.forEach(function(a){ html += '<li style="margin-bottom:3px;">' + escapeHtml(a.reason) + ' (' + a.key + ': ' + a.from + ' → ' + a.to + ')</li>'; });
+      html += '</ul>';
+    } else {
+      html += healthLine_('State Integrity', '✅ ไม่พบ anomalies', true);
+    }
+    // 🩺 local vs cloud diff (เฉพาะ field สำคัญ)
+    if (!BIFROST_OFFLINE_PRIMARY && cloud && Object.keys(cloud).length) {
+      var diffKeys = ['coins', 'lv', 'exp', 'currentDayIndex', 'submitted', 'isResubmit', '_revision'];
+      var diffs = [];
+      diffKeys.forEach(function(k){
+        var l = S[k], c = cloud[k];
+        if (JSON.stringify(l) !== JSON.stringify(c)) diffs.push({ key: k, local: l, cloud: c });
+      });
+      if (diffs.length) {
+        html += '<div style="margin-top:10px; color:#ffe082; font-weight:900;">⚖️ Local vs Cloud Diff</div>';
+        html += '<ul style="padding-left:18px; margin-top:4px; color:#fff8df; font-size:11px;">';
+        diffs.forEach(function(d){ html += '<li style="margin-bottom:3px;"><b>' + d.key + '</b>: local=' + JSON.stringify(d.local) + ' / cloud=' + JSON.stringify(d.cloud) + '</li>'; });
+        html += '</ul>';
+      } else {
+        html += healthLine_('Local ↔ Cloud Sync', '✅ ตรงกัน', true);
+      }
+    }
     html += '<div style="margin-top:12px; color:#86efac; font-weight:900;">Deploy Checklist</div>';
     html += '<ol style="padding-left:18px; margin-top:6px;">' + DEPLOY_CHECKLIST.map(function(item){ return '<li style="margin-bottom:5px;">' + escapeHtml(item) + '</li>'; }).join('') + '</ol>';
     body.innerHTML = html;
@@ -1868,9 +2859,16 @@ function bindAll(){
   a('btn-av-confirm', 'click', () => { gasCall('saveAvatar', S.selAv, function(r){ applyData(r); var m = document.getElementById('av-mov'); if(m) m.classList.remove('on'); showToast('✦ เปลี่ยนอวาตาร์สำเร็จ!'); }); });
   [1,2,3].forEach(function(n){ a('qi'+n, 'click', () => tQ(n)); });
   a('feel-sl', 'input', function(){ updateFeel(this.value); });
+  a('in-w', 'input', function(){ updateReportSubmitUi_(); updateLog(); });
    
   bindGmHelpButtons(); a('gm-help-close', 'click', closeGmHelp);
   a('btn-submit', 'click', doSubmit); a('btn-gm-submit', 'click', doGmSubmit); a('btn-gm-unlock-chest', 'click', gmTempUnlockChest); a('btn-open-repair', 'click', openRepairCenter); a('btn-repair-submit', 'click', doRepairSubmit); a('btn-repair-close', 'click', closeRepairCenter); a('btn-open-backdate', 'click', openBackdateQuest); a('btn-backdate-submit', 'click', doBackdateSubmit); a('btn-backdate-close', 'click', closeBackdateQuest); a('btn-open-health', 'click', openHealthCheck); a('btn-health-refresh', 'click', runHealthCheck); a('btn-health-close', 'click', closeHealthCheck); a('btn-health-retry', 'click', function(){ processRetryQueue_().then(runHealthCheck); });
+  // 💾 [v1.1.2] Backup / Restore buttons
+  a('btn-export-backup', 'click', exportBifrostBackup_);
+  a('btn-import-backup', 'click', function(){ var f = document.getElementById('import-backup-file'); if (f) f.click(); });
+  a('import-backup-file', 'change', function(e){ if (e.target.files && e.target.files[0]) { importBifrostBackup_(e.target.files[0]); e.target.value = ''; } });
+  // 📡 [v1.1.2] update queue badge ทันทีหลัง bindAll
+  setTimeout(updateRetryQueueBadge_, 100);
   ['bd-q1','bd-q2','bd-q3','bd-bonus','bd-apply-streak'].forEach(function(id){ a(id, 'input', updateBackdatePreview); a(id, 'change', updateBackdatePreview); });
   a('inv-tk-row', 'click', useTicket);
   a('sh-food-btn', 'click', buyFood);
@@ -1880,7 +2878,7 @@ function bindAll(){
   a('cfm-no', 'click', () => { var c = document.getElementById('cfm'); if(c) c.classList.remove('on'); S.pending=null; });
   a('chef-close-btn', 'click', () => { var scr = document.getElementById('chef-screen'); if(scr) scr.style.display='none'; });
   a('btn-boss-claim', 'click', () => { SFX.coin(); var bo = document.getElementById('boss-overlay'); if(bo) bo.classList.remove('on'); goP('dashboard'); setChar(chForLevel(S.lv)); });
-  document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'visible') { fetchDraftFromCloud(); refreshWalletActivityLog(); processRetryQueue_(); resumePendingRewardIfAny_(); } });
+  document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'visible') { if (!BIFROST_OFFLINE_PRIMARY) fetchDraftFromCloud(); else loadDraft(); refreshWalletActivityLog(); processRetryQueue_(); resumePendingRewardIfAny_(); } });
   window.addEventListener('focus', function(){ refreshWalletActivityLog(); processRetryQueue_(); });
   // 🛡️ [v1.1.1] ใช้ debounced version เพื่อกัน cloud spam เมื่อผู้ใช้ tab ผ่านหลาย field
   ['in-ill','in-w','in-h','in-lp','in-fr','in-bt','in-fg','in-bk','in-gpa','in-sc'].forEach(function(id){ var input = document.getElementById(id); if(input) input.addEventListener('blur', autoSyncDraftDebounced); });
@@ -1913,7 +2911,7 @@ function bindAll(){
   if(heroNameEl) {
     heroNameEl.addEventListener('click', function() {
       // บล็อคไว้ให้เปิดได้เฉพาะคุณพ่อ (Admin) เท่านั้น
-      if(!BIFROST_DEV_MODE || !isAdmin) return; 
+      if(!isAdmin) return; 
       
       testClicks++; clearTimeout(testTm);
       if(testClicks >= 5) {
@@ -1931,7 +2929,7 @@ function bindAll(){
 // 🛠️ DEV MODE FUNCTIONS
 // ==========================================
 window.devQuickComplete = function() {
-    if (S.submitted) { showToast('วันนี้ส่งภารกิจไปแล้ว กดข้ามวันก่อนครับ!'); return; }
+    if (S.submitted) { showToast('วันนี้ส่งรายงานไปแล้ว กดข้ามวันก่อนครับ!'); return; }
     
     // 1. ติ๊กเควสให้ครบ 3 ข้อ
     S.quests = [true, true, true];
@@ -1954,7 +2952,7 @@ window.devQuickComplete = function() {
     
     saveLocal();
     renderAll();
-    showToast('🎯 จบเควส & เดินหน้า 1 ก้าวเรียบร้อย!');
+    showToast('🎯 ส่งรายงานจำลอง & เดินหน้า 1 ก้าวเรียบร้อย!');
 };
 
 window.devLevelUp = function() { 
@@ -2004,7 +3002,7 @@ if (new Date().getDay() === 1) { S.phWeekBought = 0; S.foodWeekBought = 0; showT
 
   S.submitted = false; S.gmSubmitted = false; S.isResubmit = false; S.quests = [false, false, false]; S.todayCoins = 0; S.todayGmCoins = 0; S.todayGacha = []; S.todayItemsUsed = []; S.todayCoinsSpent = 0; S.lastSyncDate = new Date().toLocaleDateString('en-CA');
   [1,2,3].forEach(function(n){ var qc = document.getElementById('qc'+n); if(qc) { qc.classList.remove('on'); qc.textContent=''; } var qi = document.getElementById('qi'+n); if(qi) qi.classList.remove('done'); });
-  qcnt = 0; var qbar = document.getElementById('qbar'); if(qbar) qbar.innerHTML = 'ติ๊ก <b>0</b>/3 ภารกิจ'; 
+  qcnt = 0; updateReportSubmitUi_();
   S.achievement = ''; S.specialCoin = 0;
   
   var currentM = new Date().getMonth(); var checkM = new Date(S.lastSyncDate).getMonth();
@@ -2048,6 +3046,17 @@ document.addEventListener('DOMContentLoaded',function(){ checkRemoteVersion();
   // ------------------------------
 
   bindAll(); 
+  if (BIFROST_OFFLINE_PRIMARY) {
+    if (S.bossTargets && S.bossTargets.speed === 21) { S.bossTargets.speed = 25; saveLocal(); }
+    setChar(chForLevel(S.lv));
+    processAutoNextDay();
+    renderAll();
+    loadDraft();
+    processRetryQueue_();
+    resumePendingRewardIfAny_();
+    showToast('📱 ใช้ข้อมูลหลักจากเครื่องน้อง');
+    return;
+  }
   // 🌟 โหลดเซฟจาก Cloud ตอนเปิดแอป
   if (navigator.onLine && SHEET_URL && SHEET_URL.length > 10) {
     setSkeleton(true);
@@ -2058,9 +3067,11 @@ document.addEventListener('DOMContentLoaded',function(){ checkRemoteVersion();
         if(Object.keys(data).length > 0) {
           var localSnapshot = JSON.parse(localStorage.getItem('bifrost_data') || '{}');
           if (isCloudSaveNewer_(data, localSnapshot)) {
-            Object.assign(S, data); 
-            localStorage.setItem('bifrost_data', JSON.stringify(S)); 
+            // 🌐 [v1.1.2] ใช้ smartMergeCloud_ แทน Object.assign — ป้องกัน array append-only ถูกทับ + auto-fix impossible state
+            smartMergeCloud_(data, localSnapshot);
+            localStorage.setItem('bifrost_data', JSON.stringify(S));
             showToast('🟢 ซิงค์ข้อมูลข้ามอุปกรณ์สำเร็จ!');
+            if (typeof logEvent_ === 'function') logEvent_('cloud.sync.success', { rev: S._revision });
           } else {
             saveLocal();
             showToast('🛡️ ใช้ข้อมูลในเครื่องที่ใหม่กว่า และกำลังซิงค์กลับขึ้น Cloud');
@@ -2078,6 +3089,7 @@ document.addEventListener('DOMContentLoaded',function(){ checkRemoteVersion();
 });
 
 function fetchDraftFromCloud() {
+  if (BIFROST_OFFLINE_PRIMARY) { loadDraft(); return; }
   if(!SHEET_URL || SHEET_URL.length < 10 || S.submitted) { loadDraft(); return; }
   var todayStr = new Date().toLocaleDateString('en-CA');
   fetch(SHEET_URL + "?action=fetchDraft&date=" + todayStr + "&ts=" + Date.now(), { cache: 'no-store' })
@@ -2239,18 +3251,18 @@ window.acknowledgeProphecy = function() {
 // (ให้คุณพ่อไปเติม showProphecyIfAny(); ไว้ท้ายฟังก์ชัน renderAll ต่อจาก checkGmNotif(); ได้เลยครับ)
 
 // ==========================================
-// 💾 ระบบอัปเดตภารกิจ (Save Draft)
+// 💾 ระบบอัปเดตรายงาน (Save Draft)
 // ==========================================
 function doDraft() {
     if(S.submitted || questSubmitBusy) return;
     questSubmitBusy = true;
     var draftBtn = document.getElementById('btn-draft');
     if (draftBtn) draftBtn.disabled = true;
-    setQuestSubmitState_('loading', 'กำลังส่งข้อมูล', 'โปรดรอซักครู่... ระบบกำลังบันทึกอัปเดตภารกิจ', '');
+    setQuestSubmitState_('loading', 'กำลังส่งข้อมูล', 'โปรดรอซักครู่... ระบบกำลังบันทึกอัปเดตรายงาน', '');
     autoSyncDraft();
     saveLocal();
     setTimeout(function(){
-      setQuestSubmitState_('success', 'อัปเดตข้อมูลสำเร็จ!', 'บันทึกข้อมูลร่างขึ้น Cloud แล้ว แต่ยังไม่ได้ส่งภารกิจจริง', '');
+      setQuestSubmitState_('success', 'อัปเดตข้อมูลสำเร็จ!', 'บันทึกข้อมูลร่างขึ้น Cloud แล้ว แต่ยังไม่ได้ส่งรายงานจริง', '');
       setTimeout(function(){ var ok = document.getElementById('submit-ok'); if(ok) ok.classList.remove('on'); finishQuestSubmitState_(true); }, 900);
     }, 650);
 }

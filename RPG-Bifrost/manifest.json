@@ -1,7 +1,7 @@
 {
   "name": "RPG BIFROST: Quest System",
   "short_name": "BIFROST",
-  "description": "แอปพลิเคชันจัดการภารกิจและจำลองการเงินของฮีโร่",
+  "description": "แอปพลิเคชันจัดการภารกิจและจำลองการเงินของฮีโร่ สำหรับทดสอบระบบ DEV",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#050505",

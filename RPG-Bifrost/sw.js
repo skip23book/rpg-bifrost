@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════
-//  RPG BIFROST — Service Worker (v1.1.1)
+//  RPG BIFROST — Service Worker (v1.1.4)
 //  รองรับ offline mode + cache static assets
 // ══════════════════════════════════════════════════
 //
@@ -15,7 +15,7 @@
 //   - DEV ปิด SW โดย default ผ่าน config (BIFROST_CONFIG.DEV_MODE === true)
 //   - script.js จะ register SW เฉพาะตอน DEV_MODE === false หรือ explicit opt-in
 //
-const VERSION = "1.1.1";
+const VERSION = "1.1.4";
 const CORE_CACHE = "bifrost-core-" + VERSION;
 const IMG_CACHE  = "bifrost-img-"  + VERSION;
 const RUNTIME    = "bifrost-rt-"   + VERSION;

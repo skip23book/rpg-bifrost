@@ -199,8 +199,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .cfm-m{font-size:12px;color:var(--txt2);line-height:1.7;margin-bottom:16px;white-space:pre-line}
 .cfm-r{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 /* TOAST */
-.toast{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-90px);background:var(--txt);border-radius:11px;padding:11px 18px;color:#fff;font-size:13px;z-index:500;transition:transform .38s cubic-bezier(.34,1.56,.64,1);max-width:300px;text-align:center;box-shadow:0 4px 18px rgba(0,0,0,.22);white-space:pre-line}
+/* 📱 [v1.1.2] toast — dismissible (tap to close) + larger touch padding บน mobile */
+.toast{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-90px);background:var(--txt);border-radius:11px;padding:14px 22px;color:#fff;font-size:13px;z-index:500;transition:transform .38s cubic-bezier(.34,1.56,.64,1);max-width:340px;text-align:center;box-shadow:0 4px 18px rgba(0,0,0,.22);white-space:pre-line;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .toast.on{transform:translateX(-50%) translateY(0)}
+.toast:active{transform:translateX(-50%) translateY(-3px) scale(0.98)}
 /* B-CARD */
 #bc-screen{position:fixed;inset:0;z-index:600;background:linear-gradient(160deg,#5a3200,#9a6800 30%,#c8920a 55%,#9a6800 80%,#5a3200);display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px}
 .bc-close{position:fixed;top:16px;right:16px;width:48px;height:48px;border-radius:50%;background:var(--red);color:#fff;border:3px solid rgba(255,255,255,.9);font-size:22px;cursor:pointer;font-weight:700;z-index:10;box-shadow:0 4px 16px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
@@ -625,6 +627,70 @@ body .stt, body .ch-name-lbl, body .feel-lbl, body .cfm-m { font-size: 14px; }
 .draft-sync-status.ok { border-color: rgba(72,187,120,.55); color: #166534; background: rgba(220,252,231,.9); }
 .draft-sync-status.remote { border-color: rgba(79,195,247,.55); color: #075985; background: rgba(224,242,254,.92); }
 .draft-sync-status.warn { border-color: rgba(245,158,11,.55); color: #92400e; background: rgba(254,243,199,.92); }
+
+/* ═══════════════════════════════════════
+   📡 [v1.1.2] Retry Queue Badge — บอก user ว่ามี item รอ sync
+   ═══════════════════════════════════════ */
+.retry-badge {
+  display: none;
+  position: fixed;
+  bottom: 90px;            /* เหนือ bottom nav */
+  left: 12px;
+  background: rgba(245,158,11,0.95);
+  color: #1f2937;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  z-index: 999998;
+  letter-spacing: 0.3px;
+  animation: retryPulse 2s ease-in-out infinite;
+  pointer-events: none; /* ไม่ block คลิก */
+}
+.retry-badge.on { display: block; }
+@keyframes retryPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* ═══════════════════════════════════════
+   🛠️ [v1.1.1-ux] GM Repair Center — labeled fields
+   ก่อน: input มีแต่ placeholder ที่หายเมื่อมีค่า — แก้ไขแล้วงงว่าช่องไหนของอะไร
+   ใหม่: <label> ครอบ <span class="rp-label">+<input> เห็นชื่อช่องตลอดเวลา
+   ═══════════════════════════════════════ */
+.rp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 8px;
+}
+.rp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  cursor: text; /* คลิก label = focus input */
+}
+.rp-field .rp-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #4fc3f7;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+  padding: 0 2px;
+  /* ตัดข้อความที่ยาวเกินด้วย ellipsis */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rp-field .gm-input {
+  margin: 0; /* override default fi margin ถ้ามี */
+  /* 📱 [v1.1.2] bump touch target — apple HIG ≥44px, material ≥48px */
+  min-height: 44px;
+  font-size: 14px;
+}
+@media (max-width: 360px) {
+  .rp-grid { grid-template-columns: 1fr; }
+}
 
 /* ═══════════════════════════════════════
    🛠️ [v1.1.1] DEV Tools Bar — refactored from inline styles
